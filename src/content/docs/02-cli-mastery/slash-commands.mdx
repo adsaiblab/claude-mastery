@@ -6,8 +6,192 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 9 — Toutes les commandes /"]}>
-  Commandes groupées par usage (Session, Modèle, Context, Permissions, Git, Agents, MCP, Scheduled, Debug, IDE, Slack, Qualité de vie). Démo Asciinema de `/compact`, `/rewind`, `/ultraplan`, `/branch`.
-</Planned>
+<Situation>
+  Tu es au milieu d'une session. Tu as besoin de basculer de modèle, compacter ton
+  contexte, noter une mémoire, lancer un subagent, renommer la session, lister les
+  skills disponibles. Chaque interruption pour aller chercher la syntaxe te sort
+  de ton flow. Les slash commands existent pour que ça ne t'arrive jamais.
+</Situation>
+
+## Concept — qu'est-ce qu'une slash command
+
+Une slash command est une **commande textuelle** préfixée par `/` que tu tapes dans le prompt. Elle **ne va pas au modèle** — elle est interceptée par le CLI qui exécute une action.
+
+Différence fondamentale avec un message classique : pas de tokens consommés côté LLM pour la commande elle-même.
+
+## Catégories (60+ commandes)
+
+### Session
+
+| Commande | Effet |
+|----------|-------|
+| `/status` | Affiche modèle, mode, tokens, tools actifs. |
+| `/rename <nom>` | Renomme la session courante. |
+| `/tag <tag>` | Ajoute un tag (pour recherche ultérieure). |
+| `/branch <nom>` | Crée une branche à partir du tour courant. |
+| `/resume` | Picker pour reprendre une autre session. |
+| `/exit` ou `/quit` | Termine la session (équivalent Ctrl+D). |
+
+### Modèle
+
+| Commande | Effet |
+|----------|-------|
+| `/model` | Affiche le modèle courant. |
+| `/model <alias>` | Change de modèle (opus/sonnet/haiku). |
+| `/fast` | Toggle "fast mode" sur Opus 4.6 (si dispo). |
+
+### Context
+
+| Commande | Effet |
+|----------|-------|
+| `/compact` | Résume l'historique, libère des tokens. |
+| `/clear` | Vide la conversation (garde CLAUDE.md + mémoire). |
+| `/btw <msg>` | Injecte un message système (recentrer l'agent). |
+| `/memory` | Liste et gère les mémoires chargées. |
+| `/init` | Scaffold un CLAUDE.md pour ce projet. |
+
+### Permissions
+
+| Commande | Effet |
+|----------|-------|
+| `/mode` | Affiche le permission mode courant. |
+| `/mode <m>` | Change : default, acceptEdits, plan, auto, bypassPermissions. |
+| `Shift+Tab` | Raccourci pour cycler les modes sans taper. |
+
+### Rewind / Checkpoints
+
+| Commande | Effet |
+|----------|-------|
+| `/rewind` | Menu de rewind (code+conv, code seul, conv seule, summary, cancel). |
+| `Esc Esc` | Raccourci pour le rewind menu. |
+
+### Git
+
+| Commande | Effet |
+|----------|-------|
+| `/commit` | Propose un commit basé sur le diff courant. |
+| `/pr` | Crée une PR via `gh` (à partir de la branche courante). |
+
+### Agents / Subagents
+
+| Commande | Effet |
+|----------|-------|
+| `/agents` | Liste les subagents disponibles (depuis `.claude/agents/`). |
+| `/skills` | Liste les skills chargés. |
+| `/tools` | Liste tous les outils actifs (built-in + MCP). |
+
+### MCP
+
+| Commande | Effet |
+|----------|-------|
+| `/mcp` | Liste les serveurs MCP connectés. |
+| `/mcp reconnect <srv>` | Redémarre un serveur MCP qui a planté. |
+
+### Scheduled / Cron
+
+| Commande | Effet |
+|----------|-------|
+| `/schedule` | Crée une tâche planifiée (cron-like). |
+| `/schedules` | Liste les tâches planifiées actives. |
+
+### Debug
+
+| Commande | Effet |
+|----------|-------|
+| `/debug on` / `/debug off` | Toggle les logs verbeux. |
+| `/whoami` | Affiche user + org. |
+
+### IDE / Integrations
+
+| Commande | Effet |
+|----------|-------|
+| `/ide` | État de l'intégration IDE. |
+| `/slack` | Bascule la session vers un thread Slack (si configuré). |
+
+### Qualité de vie
+
+| Commande | Effet |
+|----------|-------|
+| `/help` | Liste exhaustive avec descriptions. |
+| `/help <cmd>` | Aide d'une commande précise. |
+
+## Slash commands personnalisées
+
+Tu peux créer les tiennes en mettant un fichier `.claude/commands/<nom>.md` :
+
+```markdown
+---
+name: review-pr
+description: Review détaillée d'une PR
+---
+
+Fais une review approfondie de la PR courante. Priorise : sécurité,
+performance, testabilité. Propose 3 améliorations concrètes avec diff.
+```
+
+Ensuite, dans une session : `/review-pr`. C'est un **prompt template** exécuté avec ton CLAUDE.md comme contexte.
+
+Tu peux partager ces commandes via un [plugin](/03-multi-agents/plugins/) (Niveau 3).
+
+## Démo — enchaînement typique
+
+```
+> Refactor auth.ts to use our new token service
+
+● ...Claude lit, propose un plan...
+
+/mode plan                    ← on s'assure qu'il ne touche à rien encore
+/compact                      ← 68% rempli, on libère
+
+> Go, applique le plan
+
+/mode acceptEdits             ← on accepte les edits automatiquement
+● ...Claude édite 5 fichiers, lance les tests...
+● 3 tests cassent
+
+/rewind                       ← on revient à avant l'édit
+● Menu rewind → "restore code only" (on garde la conversation)
+
+> Il faut aussi préserver le refresh token dans le cookie
+
+● ...Claude retente avec cette contrainte...
+● ✓ tests passent
+
+/commit                       ← proposition de commit
+```
+
+C'est le flow naturel d'une session productive.
+
+## Check
+
+<Quiz
+  client:visible
+  id="slash-category"
+  question="Tu veux recentrer l'agent qui dérive, sans perdre le contexte de la session. Quelle commande ?"
+  options={[
+    { text: "/clear", correct: false, explanation: "/clear vide la conversation — tu perds précisément le contexte que tu voulais garder." },
+    { text: "/btw <message>", correct: true, explanation: "C'est pile ce que /btw fait : injecter un message système pour recadrer, sans toucher au reste du contexte." },
+    { text: "/compact", correct: false, explanation: "/compact résume pour libérer des tokens. Ça ne recadre pas — l'agent peut continuer à dériver." },
+    { text: "/exit puis relancer", correct: false, explanation: "Sur-réaction massive. Tu perds toute la session pour un recadrage que /btw fait en 2 secondes." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="slash-custom"
+  scenario="Tu tapes la même formulation de review de PR 5 fois par semaine."
+  question="Quelle est la façon la plus propre d'automatiser ?"
+  options={[
+    { text: "Copier-coller le prompt à chaque fois.", correct: false, explanation: "Ça marche, mais c'est exactement le cas d'usage que les slash commands custom résolvent." },
+    { text: "Créer une slash command dans .claude/commands/review-pr.md.", correct: true, explanation: "Pile le bon outil. Le fichier devient /review-pr, versionnable dans le repo, partageable avec l'équipe." },
+    { text: "Mettre le prompt dans CLAUDE.md.", correct: false, explanation: "CLAUDE.md est chargé à chaque session comme contexte global — tu ne veux pas qu'il soit actif tout le temps, tu veux le déclencher à la demande." },
+    { text: "Créer un subagent.", correct: false, explanation: "Overkill pour un prompt template. Les subagents sont pour des tâches déléguées en isolation, pas pour standardiser un prompt." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais piloter ta session. Mais parfois l'agent fait un mauvais choix et modifie des fichiers. **Comment revenir en arrière ?** → [Checkpointing](/02-cli-mastery/checkpointing/).

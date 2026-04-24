@@ -1,13 +1,171 @@
 ---
 title: Permission modes
-description: Shift+Tab — default, acceptEdits, plan, auto, dontAsk, bypassPermissions.
+description: Shift+Tab — default, acceptEdits, plan, auto, bypassPermissions.
 sidebar:
   order: 6
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 7 — Permission modes"]}>
-  Arbre de décision "quel mode pour cette tâche ?", cycle Shift+Tab, chemins protégés toujours safe, flag `--dangerously-skip-permissions`, combinaison avec sandboxing, bonne pratique "démarrer en plan, switch acceptEdits après validation".
-</Planned>
+<Situation>
+  Tu veux qu'un agent travaille plusieurs minutes sans que tu aies à cliquer
+  "Approve" toutes les 10 secondes. Mais tu ne veux pas non plus qu'il lance
+  `rm -rf` sans te demander. Le bon réglage dépend de la **tâche** et du
+  **risque** — et il doit pouvoir changer en cours de session. C'est à ça que
+  servent les permission modes.
+</Situation>
+
+## Concept — qu'est-ce qu'un permission mode
+
+Le permission mode contrôle **si et quand Claude Code te demande une autorisation** avant d'exécuter un outil. C'est un curseur entre deux extrêmes :
+
+- **Sécurité maximale** : confirme tout (lent, sûr).
+- **Vitesse maximale** : n'importe quoi (rapide, dangereux).
+
+Tu peux changer de mode **à tout moment** sans redémarrer la session.
+
+## Les 5 modes
+
+| Mode | Comportement | Usage typique |
+|------|-------------|---------------|
+| `default` | Demande confirmation pour les actions "à risque" (Bash, Write, Edit sur fichiers sensibles). | Travail interactif courant. |
+| `acceptEdits` | Accepte automatiquement Edit/Write sans demander. Les autres restent en default. | Une fois le plan validé, pour laisser Claude itérer. |
+| `plan` | **Lecture seule**. Aucune écriture ni commande. L'agent produit un plan textuel. | Exploration, audit, draft de refacto. |
+| `auto` | Accepte automatiquement **toute** action considérée "safe" par Claude. | Tâches longues où tu fais confiance. |
+| `bypassPermissions` | ⚠️ **Aucune** confirmation, même sur les actions dangereuses. | CI headless avec sandbox contrôlé. |
+
+## Le raccourci — `Shift+Tab`
+
+Dans une session, `Shift+Tab` cycle les modes : default → acceptEdits → plan → default …
+
+Tu le vois en bas de l'écran (ex: `● acceptEdits`). C'est le raccourci le plus utilisé au Niveau 2.
+
+Commande équivalente :
+
+```
+/mode acceptEdits
+/mode plan
+/mode default
+```
+
+## Arbre de décision
+
+```
+Quel mode pour cette tâche ?
+│
+├─ Je découvre le repo, je ne veux rien modifier
+│    → plan
+│
+├─ Je lance un refacto, je veux valider chaque étape
+│    → default
+│
+├─ Le plan est validé, Claude implémente maintenant
+│    → acceptEdits
+│
+├─ Tâche longue, code peu critique, je fais confiance
+│    → auto
+│
+├─ CI headless dans un container éphémère
+│    → bypassPermissions (avec sandbox !)
+│
+└─ Je ne sais pas
+     → default (le défaut, justement, est fait pour ça)
+```
+
+## Pattern canonique — plan → acceptEdits
+
+Le flow le plus productif pour une tâche non-triviale :
+
+1. **Démarrer en `plan`** : tu discutes, tu pousses l'agent, tu obtiens un plan clair qui liste les fichiers à toucher et les étapes.
+2. **Valider le plan** : tu l'acceptes, tu fais des ajustements, tu dis go.
+3. **Switcher en `acceptEdits`** : l'agent implémente sans te réveiller à chaque edit.
+4. **Vérifier avant de passer à la suite** : tests, relecture rapide, `/commit` si OK.
+
+Ce pattern évite deux fatigues :
+
+- "Plan partout" → tu ne laisses jamais l'agent coder.
+- "acceptEdits partout" → tu laisses filer un plan foireux sans t'en rendre compte.
+
+## Chemins protégés — toujours safe
+
+Même en `bypassPermissions`, certains chemins sont **bloqués par conception** :
+
+- `~/.ssh/`
+- `~/.aws/`
+- Variables d'env sensibles.
+- Fichiers listés dans `.gitignore` qui matchent des patterns de secrets.
+
+Claude refuse même si tu le supplies. C'est volontaire — une protection de dernière ligne.
+
+## `--dangerously-skip-permissions` — le gros bouton rouge
+
+Ce flag est **plus permissif que `bypassPermissions`** : il supprime aussi les protections sur les chemins sensibles.
+
+**À réserver aux contextes contrôlés :**
+
+- CI éphémère dans un container.
+- Sandbox avec filesystem isolé.
+- Tests automatisés d'un pipeline où tu contrôles exactement ce qui tourne.
+
+**Jamais sur ton poste de dev.** Tu ne veux pas qu'un mauvais prompt puisse faire un `rm -rf ~/`.
+
+## Combinaison avec sandboxing
+
+Pour des actions vraiment risquées (exec d'un script inconnu, test de malware en analyse), la combinaison recommandée :
+
+```bash
+# dans un container Docker / un sandbox léger
+claude --dangerously-skip-permissions --name sandbox-test-042026
+```
+
+Le container isole. Le flag permet à l'agent d'agir sans friction. Si quelque chose dérape, tu détruis le container.
+
+## Settings par projet
+
+Tu peux fixer le mode **par défaut** d'un projet dans `.claude/settings.json` :
+
+```json
+{
+  "permission_mode_default": "plan",
+  "permissions": {
+    "allow": ["Read", "Grep", "Glob", "Bash(git status:*)", "Bash(ls:*)"],
+    "deny": ["Bash(rm:*)"]
+  }
+}
+```
+
+Utile pour un projet sensible où tu veux que **tout le monde** (toi-même demain matin, tes collègues) démarre en lecture seule par défaut.
+
+## Check
+
+<Quiz
+  client:visible
+  id="pm-flow"
+  scenario="Tu dois refactorer 10 fichiers. Tu n'as pas encore décidé du plan exact."
+  question="Quel est le meilleur enchaînement de modes ?"
+  options={[
+    { text: "acceptEdits dès le départ", correct: false, explanation: "Tu laisses Claude coder avant de valider le plan — risque élevé de mauvais pattern." },
+    { text: "plan pour discuter, puis acceptEdits une fois le plan validé", correct: true, explanation: "Le pattern canonique. Plan pour borner le scope sans risque, acceptEdits pour fluidifier l'implémentation une fois la direction claire." },
+    { text: "plan du début à la fin", correct: false, explanation: "Tu ne laisses jamais l'agent écrire. Tu finiras par tout faire à la main, ce qui défait l'intérêt." },
+    { text: "bypassPermissions pour gagner du temps", correct: false, explanation: "Excessif pour un refactor local, et tu perds les garde-fous sur les actions risquées." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="pm-dangerous"
+  scenario="Un collègue te dit : 'utilise --dangerously-skip-permissions, ça va plus vite.' Tu es sur ton poste de dev principal."
+  question="Que fais-tu ?"
+  options={[
+    { text: "J'accepte — si on me le recommande, c'est que c'est OK.", correct: false, explanation: "Ce flag désactive les protections sur les chemins sensibles (SSH, AWS creds). Un mauvais prompt peut faire des dégâts permanents sur ton poste." },
+    { text: "Je refuse — ce flag est fait pour des sandboxes contrôlés, pas pour un poste de dev.", correct: true, explanation: "Exactement. Les bons usages sont : CI éphémère, container isolé, sandbox de test. Sur un poste de dev, bypassPermissions (sans le flag dangerous) suffit largement." },
+    { text: "Je l'utilise uniquement dans des projets non-critiques.", correct: false, explanation: "Ton poste est le même pour tous les projets — les risques (ssh keys, aws creds) ne dépendent pas du projet courant." },
+    { text: "Je l'utilise mais je fais un backup d'abord.", correct: false, explanation: "Backup ≠ protection en temps réel. Et certaines actions (envoi HTTP, déclenchement de job) ne sont pas réversibles par backup." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu maîtrises le contrôle de ta session courante. Reste à **naviguer ton historique** de sessions → [Sessions avancées](/02-cli-mastery/sessions-advanced/).

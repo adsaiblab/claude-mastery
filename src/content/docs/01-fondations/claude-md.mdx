@@ -6,8 +6,213 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 6 — Mémoire & instructions", "Bloc 18 §2 — Écrire un CLAUDE.md efficace"]}>
-  Éditeur live avec preview, hiérarchie managed→user→project→local, scoping `.claude/rules/`, règle des 150 instructions, `@docs/api-conventions.md`, commande `/init` (mode classique et `CLAUDE_CODE_NEW_INIT=1`).
-</Planned>
+<Situation>
+  Ton équipe vient d'adopter Claude Code. Chaque dev a ses propres conventions, ses
+  propres raccourcis, son propre CLAUDE.md bidouillé. Deux semaines plus tard :
+  trois styles de code différents dans la même codebase, des hooks qui se
+  contredisent, un projet impossible à onboarder. Ce module pose la **discipline
+  CLAUDE.md** avant que ça parte en vrille.
+</Situation>
+
+## Concept — CLAUDE.md, c'est quoi exactement
+
+`CLAUDE.md` est le fichier que **tu écris** pour dire à Claude :
+
+- **Ce que fait** ce projet (contexte).
+- **Quelles règles** respecter (conventions, contraintes).
+- **Quelles commandes** sont utiles (dev, test, lint, build).
+- **Quoi ne pas faire** (antipatterns, fichiers sensibles).
+
+C'est chargé dans le contexte **à chaque démarrage de session**. C'est donc une ressource **payante en tokens** — chaque ligne consomme à vie. D'où la règle qui suit.
+
+## Hiérarchie de chargement
+
+Claude charge plusieurs `CLAUDE.md` dans l'ordre suivant (du plus général au plus spécifique) :
+
+```
+~/.claude/CLAUDE.md         (1) managed — org-wide (admin MDM)
+    ↓
+~/.claude/CLAUDE.md         (2) user — tes préférences perso
+    ↓
+<repo>/CLAUDE.md            (3) project — règles du projet
+    ↓
+<repo>/src/.../CLAUDE.md    (4) local — scopé à un sous-dossier
+```
+
+**Principe** : les règles plus spécifiques **écrasent** les plus générales en cas de conflit.
+
+### Exemple concret
+
+- `~/.claude/CLAUDE.md` (user) → *"Toujours finir par un résumé en 1 ligne."*
+- `monorepo/CLAUDE.md` (project) → *"Langage : TypeScript strict. Tests : vitest."*
+- `monorepo/packages/backend/CLAUDE.md` (local) → *"Tests : vitest avec `--pool=forks`. Pas d'import ESM direct."*
+
+Quand tu travailles dans `packages/backend/`, les 3 fichiers sont chargés. Les règles locales l'emportent si elles contredisent les supérieures.
+
+## La règle des 150 instructions
+
+Cible pratique : **moins de 150 lignes de règles actives** dans l'ensemble CLAUDE.md + subagents + skills chargés.
+
+Au-delà, deux problèmes :
+
+1. Coût token élevé à chaque session (payé même si tu fais un ping trivial).
+2. Les règles commencent à se **contredire** — l'agent oublie sélectivement.
+
+Si tu approches 150, c'est un signal de **scoping** (voir plus bas).
+
+## Scoping — la vraie arme
+
+Au lieu d'un CLAUDE.md géant, sépare par domaine :
+
+### Par sous-dossier
+
+```
+repo/
+├── CLAUDE.md                  # règles globales (7 lignes)
+├── frontend/
+│   └── CLAUDE.md              # React, Tailwind, tests RTL
+├── backend/
+│   └── CLAUDE.md              # Node, Prisma, vitest
+└── infra/
+    └── CLAUDE.md              # Terraform, Docker, AWS
+```
+
+Claude ne charge que les CLAUDE.md pertinents au(x) fichier(s) sur lesquels il travaille.
+
+### Inclusions via `@`
+
+Tu peux référencer d'autres fichiers depuis ton CLAUDE.md :
+
+```markdown
+# CLAUDE.md
+
+## Conventions
+@docs/code-style.md
+@docs/api-conventions.md
+
+## Commandes
+- `pnpm dev` — lance le dev server.
+- `pnpm test -- --watch` — tests en watch.
+```
+
+Les fichiers référencés sont chargés **à la demande** quand Claude en a besoin, pas systématiquement. Tu peux mettre beaucoup dans `docs/` sans payer à chaque session.
+
+### Sous-dossier `.claude/rules/`
+
+Alternative : placer des règles dans `.claude/rules/*.md`. Claude les charge contextuellement selon la tâche (encore en expérimentation côté équipe Anthropic — voir la [référence settings keys](/reference/settings-keys/) pour le flag exact).
+
+## Ce qu'il faut mettre dans CLAUDE.md
+
+| Type | Exemple | À mettre dans CLAUDE.md ? |
+|------|---------|---------------------------|
+| Règle universelle du projet | "Tous les tests en vitest" | **Oui** |
+| Convention de nommage | "Components en PascalCase, hooks en camelCase" | **Oui** |
+| Commande utile | "npm run check avant chaque commit" | **Oui** |
+| Piège connu | "Ne jamais importer depuis `legacy/`" | **Oui** |
+| Contexte business | "On vend à des banques, compliance stricte" | **Oui** (bref) |
+| Doc d'archi détaillée | "Voici les 12 microservices et leurs relations" | **Non → `@docs/arch.md`** |
+| Note personnelle | "J'aime les commits imperatifs" | **Non → user-scope** |
+| Info qui change souvent | "Sprint en cours : S28" | **Non → mémoire projet** |
+
+**Règle mentale :** si l'info est stable **et** universelle **et** courte, elle va dans CLAUDE.md. Sinon, elle va ailleurs.
+
+## `/init` — le scaffold automatique
+
+Depuis le CLI :
+
+```bash
+/init
+```
+
+Claude analyse ton projet (fichiers, `package.json`, README) et propose un CLAUDE.md de base. **Édite-le ensuite** — le scaffold est un point de départ, pas la vérité.
+
+Variante expérimentale :
+
+```bash
+CLAUDE_CODE_NEW_INIT=1 claude
+/init
+```
+
+Utilise un pipeline d'analyse plus détaillé (interactif, avec questions).
+
+## Antipatterns classiques
+
+- **Dupliquer le README** → bruit pur, 50 lignes pour rien.
+- **Lister tous les fichiers** → ça change tous les jours, obsolète en une semaine.
+- **Instructions contradictoires** ("toujours TypeScript strict" + "accept any dans les tests") → l'agent choisit aléatoirement.
+- **Ton émotionnel** ("s'il te plaît sois gentil") → sans effet, perte de tokens.
+- **Règles génériques de prompting** ("soit concis", "pense étape par étape") → déjà dans le system prompt, inutile.
+- **CLAUDE.md en plusieurs langues** → source de confusion, le modèle mixe.
+
+## Exemple complet — projet moyen
+
+```markdown
+# API Checkout — CLAUDE.md
+
+Service REST Node (Fastify) + Postgres pour la gestion de paniers.
+Stack : TypeScript strict, Prisma, vitest, Biome.
+
+## Règles de code
+
+- TypeScript strict. Pas de `any` implicite. Pas de `any` explicite sans commentaire
+  justifiant (// reason: <…>).
+- Imports absolus depuis `@/*`. Pas d'import relatif au-delà de `..`.
+- Tests à côté du code (`foo.ts` + `foo.test.ts`).
+- Erreurs métier : classes dans `src/errors/`. Jamais de `throw new Error(...)`
+  ad-hoc dans le code applicatif.
+
+## Commandes
+
+- `pnpm dev` — serveur local avec reload.
+- `pnpm test` / `pnpm test --watch` — vitest.
+- `pnpm check` — lint + types + tests (obligatoire avant push).
+- `pnpm db:migrate` — applique les migrations Prisma.
+
+## À éviter
+
+- Ne commit pas dans `main` (bloqué par hook).
+- Ne génère pas de migrations Prisma sans me demander d'abord.
+- Ignore `legacy/` — ce code est en EOL, ne le modifie pas.
+
+## Références
+
+@docs/api-conventions.md
+@docs/db-schema.md
+```
+
+~25 lignes, 100% utiles. Tu peux aller plus loin avec `@docs/*` sans alourdir la session.
+
+## Check
+
+<Quiz
+  client:visible
+  id="claude-md-scope"
+  scenario="Tu travailles sur un monorepo avec 3 équipes. Chaque équipe a ses propres conventions de test (vitest, jest, playwright)."
+  question="Comment structures-tu les CLAUDE.md ?"
+  options={[
+    { text: "Un seul CLAUDE.md à la racine qui liste les 3 conventions.", correct: false, explanation: "Tout est chargé à chaque session, chaque ligne est en concurrence. L'agent choisira mal dès qu'il traverse des frontières." },
+    { text: "Un CLAUDE.md racine avec les règles communes + un CLAUDE.md par dossier d'équipe avec les spécificités.", correct: true, explanation: "C'est le bon scoping. Les règles communes sont chargées systématiquement, les spécifiques seulement quand Claude travaille dans le dossier concerné." },
+    { text: "Rien à la racine, seulement un CLAUDE.md par équipe.", correct: false, explanation: "Tu perds les règles communes (ex: 'TypeScript strict partout'). Il faut les deux niveaux." },
+    { text: "Un fichier unique dans `.claude/CLAUDE.md` user-scope.", correct: false, explanation: "Le user-scope est perso et ne s'applique qu'à toi. Ton collègue ne bénéficiera pas des règles." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="claude-md-overload"
+  scenario="Ton CLAUDE.md fait 300 lignes. Tu hésites à ajouter la liste complète de tes 40 microservices avec leur doc."
+  question="Que fais-tu ?"
+  options={[
+    { text: "Je l'ajoute — c'est de la doc utile.", correct: false, explanation: "Tu passes au-dessus de la règle des 150 instructions, avec du contenu qui change souvent et qui n'est pas utile à chaque session. Le modèle va saturer." },
+    { text: "Je refuse — c'est trop long.", correct: false, explanation: "Bonne intuition, mais la doc reste utile. Il faut la mettre ailleurs, pas l'ignorer." },
+    { text: "Je la mets dans `docs/microservices.md` et je référence `@docs/microservices.md` dans CLAUDE.md.", correct: true, explanation: "Pattern canonique. Le fichier est chargé à la demande quand Claude en a besoin, sans peser dans chaque session. CLAUDE.md reste court." },
+    { text: "Je la mets dans un fichier MEMORY.md.", correct: false, explanation: "MEMORY.md est pour la mémoire écrite par Claude (auto-memory). Mettre une liste de microservices que tu maintiens toi-même là-bas, c'est détourner le mécanisme." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais quoi mettre et où. Reste à distinguer CLAUDE.md (tu écris) de MEMORY.md (Claude écrit) → [Mémoire & sessions](/01-fondations/memory-sessions/).

@@ -6,8 +6,187 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 8 — Sessions"]}>
-  `claude -c`, `--resume`, `--fork-session`, `-n`, `/rename`, `/branch`, interaction avec git branches, pièges (même session-id dans 2 terminaux entrelace les JSONL), `listSessions` / `tagSession` via SDK.
-</Planned>
+<Situation>
+  Trois semaines plus tôt, tu avais eu une idée brillante avec Claude pendant une
+  session d'exploration. Tu l'avais mise de côté "pour plus tard". Aujourd'hui
+  tu veux la retrouver — mais ton `~/.claude/projects/` contient 47 sessions
+  toutes nommées `session-2026-XX-XX`. Ce module fait en sorte que cette situation
+  ne t'arrive plus jamais.
+</Situation>
+
+## Concept — ce qu'est vraiment une session
+
+Une session Claude = un fichier JSONL dans `~/.claude/projects/<repo-path>/<session-id>.jsonl`. Chaque ligne est un event (user prompt, assistant response, tool call, tool result). C'est append-only, donc tout ton historique est préservé.
+
+Le **session-id** est un UUID. Le **nom** (que tu choisis) est un alias humain. Les **tags** sont des labels secondaires pour classer.
+
+## Les commandes essentielles
+
+### À l'ouverture
+
+```bash
+claude                          # nouvelle session anonyme
+claude --name <nom>             # nouvelle session nommée
+claude -c                       # continue la DERNIÈRE session de ce repo
+claude --continue               # idem
+claude --resume                 # picker interactif (list de sessions)
+claude --resume <id>            # reprend une session précise par ID
+claude --fork-session <id>      # duplique à l'état courant
+```
+
+### Pendant la session
+
+```
+/rename <nom>                  — renomme la session courante
+/tag <tag>                     — ajoute un tag
+/untag <tag>                   — retire un tag
+/branch <nom>                  — crée une branche depuis le tour courant
+/status                        — affiche id, nom, modèle, tokens
+```
+
+## Naming — la convention qui marche
+
+```
+<verb>-<domain>-<MMYYYY?>
+```
+
+Exemples :
+
+- `refacto-auth-042026`
+- `investigate-prod-incident-checkout`
+- `draft-rfc-multi-agents`
+- `review-pr-1284`
+
+Règle : commence par le **verbe** (action) — ça rend le picker lisible au scan rapide.
+
+## Tags — pour classer
+
+Nommage d'une session = son identité unique. Tags = ses catégories partageables.
+
+```
+/tag wip           ← travail en cours
+/tag rfc           ← c'est un draft RFC
+/tag urgent        ← à reprendre vite
+/tag post-mortem   ← session d'analyse d'incident
+```
+
+Le picker `/resume` permet de filtrer par tag. Utile quand tu as 50+ sessions.
+
+## Fork — l'arme pour explorer
+
+```bash
+claude --fork-session <id>
+```
+
+Cas d'usage :
+
+1. **Deux approches alternatives** — tu as un gros choix d'archi, tu veux tester les deux sans les mélanger. Fork, explore la première, reviens, fork encore, explore la seconde.
+2. **Point de sauvegarde avant action risquée** — avant un refacto massif, fork, travaille dans le fork. Si ça foire, tu as l'originale intacte.
+3. **Partage sans pollution** — tu veux montrer à un collègue un état précis de ta session sans y toucher. Fork et share l'ID du fork.
+
+## /branch — la version intra-session
+
+```
+/branch <nom>
+```
+
+Similaire à fork, mais **à l'intérieur de la même session** : tu crées un point de branchement à partir duquel tu peux continuer ou revenir. C'est git-like.
+
+**Quand utiliser fork vs /branch ?**
+
+- `/branch` → exploration courte, tu restes dans le même "projet de pensée".
+- `fork` → exploration longue, tu veux une session autonome.
+
+## Piège #1 — deux terminaux, même session
+
+Si tu fais `claude --resume <same-id>` dans **deux terminaux en même temps**, les events des deux terminaux **s'entrelacent dans le même JSONL**. Le replay devient incohérent.
+
+**Règle absolue** : un session-id = un terminal à la fois. Pour deux fils parallèles, utilise `--fork-session`.
+
+## Piège #2 — session pas nommée → perdue
+
+Tu ouvres `claude` sans `--name`, tu fais une session géniale, tu fermes. Une semaine plus tard, le picker te montre "session-2026-05-02-14-08" et tu n'as aucune idée si c'est la bonne.
+
+**Réflexe** : `--name` **toujours** à l'ouverture. Même si tu penses que c'est une session jetable.
+
+Fallback : si tu as oublié, `/rename <nom>` en cours de session rattrape le coup.
+
+## API — listSessions / tagSession (SDK)
+
+Depuis un script ou un outil custom (Niveau 4) :
+
+```python
+from claude_sdk import list_sessions, tag_session
+
+sessions = list_sessions(repo="~/projects/api")
+for s in sessions:
+    if "auth" in (s.name or ""):
+        tag_session(s.id, "auth-related")
+```
+
+Utile pour nettoyer, archiver, ou générer un rapport de ce que tu as fait.
+
+## Nettoyage
+
+Pas de commande magique "delete session" côté CLI (intentionnel : tout est append-only). Pour nettoyer :
+
+```bash
+# supprimer les sessions de plus de 90 jours
+find ~/.claude/projects/ -name "*.jsonl" -mtime +90 -delete
+```
+
+À faire avec précaution : tu perds l'historique. Préfère archiver dans un autre dossier.
+
+## Démo — un lundi matin
+
+```bash
+# Vendredi soir
+claude --name refacto-auth-042026
+# ... tu bosses, /tag wip, /compact avant de fermer ...
+
+# Lundi matin
+cd ~/projects/api
+claude --resume
+# Picker :
+#   ● refacto-auth-042026       (vendredi 17:42, 14 tours, tag:wip)
+#     investigate-bug-1284      (jeudi 11:03, 8 tours)
+#     draft-rfc-multi-agents    (mercredi 16:21, 22 tours, tag:rfc)
+# ↑↓ sélectionne, Enter, tu reprends.
+```
+
+Sans convention de naming, tu aurais 10 sessions sans rien distinguer.
+
+## Check
+
+<Quiz
+  client:visible
+  id="sessions-two-terminals"
+  scenario="Tu fais `claude --resume abc123` dans un premier terminal, puis tu ouvres un second terminal et fais la même chose pour gagner du temps."
+  question="Quel est l'effet ?"
+  options={[
+    { text: "Les deux sessions tournent séparément sans interférer.", correct: false, explanation: "Faux : elles écrivent dans le même JSONL, les events s'entrelacent." },
+    { text: "Les events des deux terminaux s'entrelacent dans le même JSONL, la reprise devient incohérente.", correct: true, explanation: "Exactement. C'est le piège #1. Pour deux fils parallèles, utilise --fork-session pour obtenir un second ID indépendant." },
+    { text: "Le deuxième `--resume` échoue avec une erreur de lock.", correct: false, explanation: "Il n'y a pas de verrou — c'est précisément pour ça que c'est piégeux." },
+    { text: "Le deuxième prend la main et le premier est mis en pause.", correct: false, explanation: "Non, les deux tournent, les deux écrivent — le fichier se pollue." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="sessions-fork-vs-branch"
+  scenario="Tu explores deux patterns d'archi différents. Tu veux les garder complètement séparés pour pouvoir partager l'un ou l'autre à un collègue."
+  question="Quelle commande utilises-tu ?"
+  options={[
+    { text: "/branch pour chaque pattern", correct: false, explanation: "/branch crée un point de branche à l'intérieur de la même session — les deux explorations resteraient liées. Pour une vraie séparation, il faut des sessions distinctes." },
+    { text: "claude --fork-session pour la seconde exploration", correct: true, explanation: "Exact. Le fork crée une session autonome avec son propre ID, que tu peux partager ou abandonner sans affecter l'originale." },
+    { text: "/compact avant d'explorer le second pattern", correct: false, explanation: "/compact libère des tokens mais ne sépare rien. Tu garderais les deux explorations dans la même session." },
+    { text: "Deux terminaux avec le même --resume", correct: false, explanation: "Surtout pas — c'est pile le piège #1 qui corrompt les JSONL." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu pilotes une session de bout en bout. Place au [Lab 02 — Hooks pipeline](/02-cli-mastery/lab-02/) pour mettre en pratique un des mécanismes les plus puissants du Niveau 2.

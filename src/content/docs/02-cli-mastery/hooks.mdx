@@ -6,8 +6,235 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 11 — Hooks", "Bloc 17 — Hooks référence complète"]}>
-  4 sous-modules : (1) événements (SessionStart/End, PreToolUse, PostToolUse, Stop, SubagentStop, PreCompact…), (2) les 4 types, (3) exit codes et comportement par event, (4) patterns exhaustifs (auto-format, push guard, context injection, quality gate avec Doer/Judge).
-</Planned>
+<Situation>
+  Ton équipe a trois règles : les fichiers Python doivent être formatés avec `black`,
+  les push directs sur `main` sont interdits, et chaque début de session doit
+  afficher la version du modèle utilisé. Tu peux espérer que chaque dev s'en souvienne
+  — ou tu peux coder ces règles une fois pour toutes dans des **hooks**, et que
+  Claude les applique tout seul. C'est tout ce module.
+</Situation>
+
+## Concept — qu'est-ce qu'un hook
+
+Un **hook** est une action qui se déclenche automatiquement en réponse à un **événement** de Claude Code. Contrairement à un subagent ou à une instruction dans CLAUDE.md, un hook est **déterministe** : c'est du code qui tourne, pas un prompt que l'agent interprète.
+
+Cas d'usage classiques :
+
+- Auto-format après chaque édition.
+- Bloquer certaines commandes (push sur main, rm -rf, …).
+- Injecter du contexte au début de chaque session.
+- Déclencher un pipeline qualité à la fin d'une tâche (Doer/Judge).
+- Notifier un Slack quand une longue tâche finit.
+
+## Les 4 types de hook
+
+| Type | Définition | Quand l'utiliser |
+|------|------------|------------------|
+| `command` | Exécute un shell command. | 95% des cas — validation, formatting, git guards. |
+| `http` | POST sur une URL. | Notifications externes (Slack webhook, monitoring). |
+| `prompt` | Injecte un message dans la conversation. | Contexte à ajouter (ex: "Au fait, c'est vendredi, pas de refacto"). |
+| `agent` | Lance un subagent. | Quality gate (Doer/Judge), review automatique. |
+
+## Les événements
+
+| Événement | Déclenché quand |
+|-----------|-----------------|
+| `SessionStart` | Au tout début de la session. |
+| `SessionEnd` | À la fermeture (Ctrl+D ou /exit). |
+| `UserPromptSubmit` | Après chaque prompt utilisateur (avant que l'agent traite). |
+| `PreToolUse` | Avant qu'un outil soit appelé. |
+| `PostToolUse` | Après qu'un outil a été appelé. |
+| `Stop` | Quand l'agent a fini son travail (avant de rendre la main). |
+| `SubagentStop` | Quand un subagent termine. |
+| `PreCompact` | Avant un `/compact`. |
+
+## Les matchers
+
+Un matcher filtre **quand** le hook s'active. C'est une regex sur `tool_name` (pour les events PreToolUse/PostToolUse) ou une condition plus simple sinon.
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/validate-bash.sh" }]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/format-file.sh" }]
+      }
+    ]
+  }
+}
+```
+
+**Règle importante** : le matcher est **large**, le filtrage fin se fait **dans le script**. Ne tente pas de mettre toute la logique dans la regex du matcher.
+
+## Exit codes — le langage des hooks
+
+Pour les hooks de type `command`, **le code de sortie détermine l'effet** :
+
+| Exit code | Effet |
+|-----------|-------|
+| `0` | OK, on continue normalement. |
+| `2` | **Bloque** l'action. `stderr` est renvoyé à l'agent comme feedback. |
+| Autre (1, 3, …) | Warning silencieux — l'action continue mais le code est loggé. |
+
+**C'est le code 2 qui est spécial** : c'est le seul qui **stoppe l'agent et lui dit pourquoi**. Mal utilisé, tu as un hook qui plante sans conséquence visible (exit 1 = bug silencieux).
+
+## Payload stdin
+
+Les hooks de type `command` reçoivent leur payload **sur stdin**, en JSON :
+
+```json
+{
+  "tool_name": "Bash",
+  "tool_input": { "command": "git push origin main" },
+  "session_id": "abc123",
+  "hook_event": "PreToolUse"
+}
+```
+
+À parser avec `jq` :
+
+```bash
+payload=$(cat)
+cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // ""')
+```
+
+## 4 patterns exhaustifs
+
+### Pattern 1 — Auto-format (PostToolUse)
+
+```bash
+#!/usr/bin/env bash
+set -u
+payload=$(cat)
+file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // ""')
+[ -z "$file" ] && exit 0
+[ ! -f "$file" ] && exit 0
+
+case "$file" in
+  *.js|*.ts|*.tsx|*.jsx|*.json|*.md)
+    command -v prettier >/dev/null && prettier --write "$file" >/dev/null 2>&1 ;;
+  *.py)
+    command -v black >/dev/null && black -q "$file" >/dev/null 2>&1 ;;
+esac
+exit 0
+```
+
+Toujours `exit 0` à la fin : si le formatter plante, on ne bloque pas l'édition légitime.
+
+### Pattern 2 — Push guard (PreToolUse Bash)
+
+```bash
+#!/usr/bin/env bash
+set -u
+payload=$(cat)
+cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // ""')
+
+case "$cmd" in
+  *"git push"*) ;;
+  *) exit 0 ;;  # ← on n'intervient que sur git push
+esac
+
+if echo "$cmd" | grep -Eq '(main|master)\b'; then
+  echo "✗ Push sur main/master interdit — passer par une PR." >&2
+  exit 2
+fi
+exit 0
+```
+
+### Pattern 3 — Context injection (SessionStart)
+
+```bash
+#!/usr/bin/env bash
+cat <<EOF
+## Contexte projet
+Branche courante : $(git branch --show-current)
+Dernier commit : $(git log -1 --format="%h %s")
+Tests à jour : $(find . -newer .last-test -name "*.test.*" 2>/dev/null | wc -l) fichiers modifiés depuis.
+EOF
+```
+
+Type du hook : `prompt` (et non `command`) — la sortie du script est injectée comme message système.
+
+### Pattern 4 — Quality gate (Stop avec agent hook)
+
+```json
+{
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "agent",
+          "agent": "judge",
+          "prompt": "Review the work done in this session. Return APPROVED or list concerns."
+        }
+      ]
+    }
+  ]
+}
+```
+
+Le subagent `judge` (défini dans `.claude/agents/judge.md`) relit ce qui a été fait. C'est la base du pattern Doer/Judge (Niveau 3 et 5).
+
+## Scope — où définir les hooks
+
+| Fichier | Scope | Quand l'utiliser |
+|---------|-------|------------------|
+| `~/.claude/settings.json` | User global | Tes hooks perso (ex: toujours formatter avant save). |
+| `<repo>/.claude/settings.json` | Projet | Hooks d'équipe, versionnés dans git. |
+| Plugin | Distribuable | Hooks à partager entre plusieurs équipes/repos. |
+
+Pour un lab ou un projet pro, **toujours** versionne dans `<repo>/.claude/settings.json` — sinon seul le dev qui a configuré profite du hook.
+
+## Démo rapide — structure minimale
+
+```
+mon-repo/
+├── .claude/
+│   ├── settings.json          # déclaration des hooks
+│   └── hooks/
+│       ├── validate-push.sh   # chmod +x
+│       └── format-file.sh     # chmod +x
+└── ...
+```
+
+Sans le `chmod +x`, le hook est **ignoré silencieusement**. C'est le bug #1.
+
+## Check
+
+<Quiz
+  client:visible
+  id="hook-exit-code"
+  scenario="Ton hook PreToolUse détecte une commande interdite. Il exit avec code 1."
+  question="Que se passe-t-il côté Claude ?"
+  options={[
+    { text: "L'action est bloquée et Claude reçoit stderr.", correct: false, explanation: "Seul exit 2 bloque + renvoie stderr à l'agent. Exit 1 = warning silencieux." },
+    { text: "L'action continue, un warning est loggé.", correct: true, explanation: "C'est le piège #1 des hooks. Tu croyais bloquer, tu as juste logué. Il faut impérativement `exit 2` pour stopper + informer l'agent." },
+    { text: "Claude affiche une erreur à l'utilisateur.", correct: false, explanation: "Non, exit 1 ne remonte pas à l'utilisateur de façon visible ; c'est un warning dans les logs techniques." },
+    { text: "Le hook est retiré de la config.", correct: false, explanation: "Jamais. Un exit non-zéro ne désactive pas le hook." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="hook-matcher"
+  scenario="Tu veux auto-formatter uniquement les fichiers Python modifiés. Tu hésites entre trois approches."
+  question="Laquelle est correcte ?"
+  options={[
+    { text: "Matcher: 'Edit|Write', script qui vérifie l'extension .py.", correct: true, explanation: "C'est le pattern canonique : matcher large sur l'événement, filtrage fin dans le script. Le script reste lisible et maintenable." },
+    { text: "Matcher: 'Edit.*\\.py', pas de filtrage dans le script.", correct: false, explanation: "Le matcher est une regex sur tool_name, pas sur file_path. Il ne peut pas matcher l'extension." },
+    { text: "Pas de matcher, filtrage 100% dans le script.", correct: false, explanation: "Ça marche mais c'est inefficace : le hook serait appelé sur TOUS les tool calls, même Bash. Le matcher existe pour préfiltrer." },
+    { text: "Un hook par extension, matchers différents.", correct: false, explanation: "Dupliquer la logique pour chaque extension est un cauchemar de maintenance. Un seul hook avec dispatch par extension est plus propre." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais automatiser des garde-fous. Reste à comprendre **comment contrôler finement ce que Claude a le droit de faire** → [Permission modes](/02-cli-mastery/permission-modes/).

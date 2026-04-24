@@ -6,23 +6,45 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+
+<Situation>
+  Tu regardes un dev senior travailler avec Claude Code. Il enchaîne `Shift+Tab`,
+  `/compact`, `Esc Esc`, `--fork-session`, un hook qui se déclenche tout seul —
+  le tout sans jamais quitter son terminal. Ce qui te semblait être dix étapes
+  manuelles, lui le fait en **deux raccourcis**. Ce niveau t'apprend cette fluidité.
+</Situation>
 
 > Durée estimée : **3h** · 6 modules + 1 lab
 
-Maintenant que tu comprends comment Claude pense, on devient rapide avec **les outils du terminal**. L'objectif : réduire la friction entre ton intention et l'exécution à zéro.
+## Pourquoi ce niveau
+
+Au Niveau 1, tu as le **modèle mental**. Maintenant, tu acquiers les **réflexes moteurs** qui font la différence entre "utilisateur occasionnel" et "power user" :
+
+- Les bons **flags** au lancement (et savoir lesquels existent).
+- Les bonnes **slash commands** en session (sans chercher dans la doc).
+- **Checkpointing** pour oser les refactors risqués (rewind en un raccourci).
+- **Hooks** pour automatiser ce qui doit être automatique.
+- **Permission modes** pour doser vitesse vs sécurité selon la tâche.
+- **Sessions nommées, forkées, taggées** — ton historique devient navigable.
 
 ## Modules
 
-1. **CLI flags** — flip-cards interactives pour toutes les flags.
-2. **Slash commands** — les 60+ commandes disponibles en session.
-3. **Checkpointing** — scénario de désastre → rewind menu.
-4. **Hooks** — command / http / prompt / agent, exit codes, matchers.
-5. **Permission modes** — default, acceptEdits, plan, auto, bypass.
-6. **Sessions avancées** — continue, resume, fork, naming, tags.
+1. **[CLI flags](/02-cli-mastery/cli-flags/)** — les ~80 flags groupées par catégorie.
+2. **[Slash commands](/02-cli-mastery/slash-commands/)** — les 60+ commandes en session.
+3. **[Checkpointing](/02-cli-mastery/checkpointing/)** — `Esc+Esc`, `/rewind`, modes restore.
+4. **[Hooks](/02-cli-mastery/hooks/)** — command / http / prompt / agent, exit codes, matchers.
+5. **[Permission modes](/02-cli-mastery/permission-modes/)** — default, acceptEdits, plan, auto, bypass.
+6. **[Sessions avancées](/02-cli-mastery/sessions-advanced/)** — continue, resume, fork, naming, tags.
 
 ## Lab 02 — Hooks pipeline
 
-Créer un hook qui auto-formate après chaque édition ET bloque les `git push` directs sur `main`. Validation avec `validate.sh` qui injecte un faux `tool_input` pour tester les deux branches.
+[Lab 02](/02-cli-mastery/lab-02/) — créer un hook `PreToolUse` qui bloque les `git push` directs sur `main` ET un hook `PostToolUse` qui auto-formate les fichiers édités (prettier/black selon l'extension). Validation scénarisée qui injecte de vrais `tool_input` pour tester les deux branches.
 
-<Planned session="3" blocs={["Blocs 9-11, 17-19"]} />
+## Après ce niveau, tu sauras
+
+- Ouvrir Claude avec les bons flags pour le contexte exact (model, permissions, tools restreints).
+- Enchaîner `Shift+Tab` entre permission modes sans hésiter.
+- Récupérer d'une dérive de Claude en 2 secondes via `Esc+Esc` ou `/rewind`.
+- Écrire un hook bash qui bloque ou autorise une action selon des critères précis.
+- Retrouver une session d'il y a 3 semaines via nom ou tag.

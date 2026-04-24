@@ -6,8 +6,147 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 7 — Checkpointing"]}>
-  Scénario "refactoring 15 fichiers → Claude dérive → rewind à mi-parcours". 5 actions du menu rewind (restore code+conv, code only, conv only, summarize, cancel). API SDK `rewind_files()` / `rewindFiles()`. Flag `CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING`.
-</Planned>
+<Situation>
+  Tu lances Claude sur un refactoring de 15 fichiers. Au 8ᵉ fichier, tu réalises
+  qu'il est parti sur un mauvais pattern — quelque chose qui compile mais qui
+  casse la convention du projet. Tu as deux options : tout annuler via `git
+  checkout` (et perdre la conversation, donc re-expliquer), ou continuer et
+  réparer à la main. Il existe une troisième option : **le rewind Claude Code**.
+</Situation>
+
+## Concept — pourquoi le checkpointing change tout
+
+Avant le checkpointing, tu hésitais à laisser Claude toucher plusieurs fichiers : si ça partait mal, annuler était douloureux. Avec le checkpointing, chaque action de l'agent crée un **point de sauvegarde implicite** — tu peux revenir à n'importe lequel, en choisissant quoi restaurer.
+
+Résultat : tu **oses**. Tu laisses Claude travailler plus longtemps avant d'intervenir. C'est un changement de rapport au risque.
+
+## Le raccourci
+
+- **`Esc Esc`** (double échap) — ouvre le menu rewind.
+- **`/rewind`** — équivalent en commande.
+
+## Le menu rewind — 5 actions
+
+Quand tu ouvres le menu, tu vois une liste des checkpoints récents (chacun correspond à un tour d'agent). Tu navigues avec les flèches, tu sélectionnes un point, puis tu choisis **quoi restaurer** :
+
+| Action | Effet | Quand utiliser |
+|--------|-------|----------------|
+| **Restore code + conversation** | Rembobine les fichiers **et** la conversation. | Tu veux tout annuler comme si le tour n'avait jamais eu lieu. |
+| **Restore code only** | Rembobine les fichiers, **garde** la conversation. | Le code était mauvais mais tu veux garder ce que tu as appris pendant. |
+| **Restore conversation only** | Rembobine la conversation, **garde** le code actuel. | Le code est bon, mais tu veux reformuler la suite sans l'historique. |
+| **Summarize & restore** | Compacte la conversation puis restaure. | Tu veux repartir propre d'un état donné. |
+| **Cancel** | Annule le rewind. | Tu as ouvert le menu par erreur. |
+
+## Scénario type — le refactor qui dérape
+
+```
+[T0]  "Refactor auth.ts → utiliser TokenService"
+[T1]  ● Read auth.ts, token-service.ts
+[T2]  ● Edit auth.ts
+[T3]  ● Edit auth.test.ts
+[T4]  ● Bash("npm test")            → 2 failures
+[T5]  ● Read auth.test.ts
+[T6]  ● Edit auth.ts (mauvaise piste — casse la convention)
+[T7]  ● Edit middleware.ts
+[T8]  ● Bash("npm test")            → 4 failures
+
+Tu réalises que T5 a envoyé Claude dans un mauvais pattern.
+
+Esc Esc
+  → Menu rewind
+  → Sélectionne T5 (avant la dérive)
+  → "Restore code only" (on garde ce qu'on a appris)
+  → /btw "Rappel : on garde la convention `auth/` pour les middlewares, pas `middleware/` global"
+  → Continue
+
+[T5']  ● Edit auth.ts (bon pattern cette fois)
+[T6']  ● Bash("npm test")            → OK
+```
+
+Tu as économisé 20 minutes de fix à la main et tu n'as pas perdu l'état de la session.
+
+## API SDK
+
+Côté Agent SDK, deux méthodes équivalentes :
+
+```python
+# Python SDK
+session.rewind_files(checkpoint_id="t5")
+```
+
+```ts
+// TypeScript SDK
+await session.rewindFiles({ checkpointId: "t5" });
+```
+
+Utile pour des tests d'agents automatisés : tu peux réinitialiser l'état après chaque itération.
+
+## Désactiver le checkpointing
+
+Parfois (CI headless, container éphémère), tu ne veux pas payer le coût disque des snapshots :
+
+```bash
+export CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING=1
+```
+
+**Ou** dans `.claude/settings.json` :
+
+```json
+{
+  "checkpointing": { "enabled": false }
+}
+```
+
+À activer uniquement quand tu sais que tu n'auras pas besoin de rewind (ex : headless mode dans une GitHub Action avec push direct).
+
+## Interaction avec git
+
+Le checkpointing Claude est **orthogonal** à git. Les snapshots sont internes à la session, pas des commits. Tu peux :
+
+- Rewind un changement **que tu n'as pas encore staged** (le cas le plus courant).
+- Rewind un changement **après `git add`** (git index reste celui qu'il était au moment du checkpoint).
+
+**Mais** : si tu `git commit` entre deux actions, Claude ne peut pas rewind à travers le commit — git est une autorité supérieure. Règle pratique : **commit après validation, pas pendant l'itération**.
+
+## Limites
+
+- Un checkpoint = un état **local** (par fichier concerné). Ne couvre pas les DB, caches, fichiers externes.
+- Ne couvre pas les actions irréversibles **hors filesystem** (HTTP POST, cron job déclenché).
+- Si la session crashe, les checkpoints sont perdus à la prochaine session.
+
+Pour du reproductible et du shared : git reste la source de vérité.
+
+## Check
+
+<Quiz
+  client:visible
+  id="checkpoint-which-restore"
+  scenario="Claude a édité 5 fichiers en suivant un plan. Tu vois que les 3 derniers sont mauvais, mais la conversation a révélé un détail important que tu veux garder."
+  question="Quelle action rewind choisis-tu ?"
+  options={[
+    { text: "Restore code + conversation — tout annuler", correct: false, explanation: "Tu perds le détail important appris pendant. Pas optimal." },
+    { text: "Restore code only", correct: true, explanation: "Exact. Les fichiers reviennent à l'état avant les 3 mauvais edits ; la conversation reste intacte — tu continues à partir du détail appris." },
+    { text: "Restore conversation only", correct: false, explanation: "L'inverse de ce que tu veux : tu garderais le mauvais code mais perdrais l'historique." },
+    { text: "Cancel, et corriger à la main", correct: false, explanation: "Possible mais plus long. Le rewind fait le boulot en 2 secondes." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="checkpoint-git"
+  scenario="Tu as fait `git commit` au milieu d'une session, puis Claude a continué à éditer et s'est trompé."
+  question="Peux-tu rewind au-delà du commit ?"
+  options={[
+    { text: "Oui, le checkpointing fonctionne indépendamment de git.", correct: false, explanation: "Le checkpointing est **orthogonal** à git pour les working files, mais il ne peut pas revenir sur un état déjà commité. Git est l'autorité supérieure." },
+    { text: "Non, git est l'autorité ; il faut utiliser git reset.", correct: true, explanation: "Exact. Une fois commité, c'est git qui gère. Règle pratique : commit seulement après validation, pas pendant l'itération rapide avec Claude." },
+    { text: "Oui, mais uniquement avec --force.", correct: false, explanation: "Il n'y a pas de --force dans le rewind ; et ce n'est pas le mécanisme." },
+    { text: "Ça dépend du mode permission.", correct: false, explanation: "Le permission mode n'a rien à voir avec la capacité de rewind vs git." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais reculer quand ça va mal. Reste à **automatiser des garde-fous** pour éviter certains dérapages → [Hooks](/02-cli-mastery/hooks/).

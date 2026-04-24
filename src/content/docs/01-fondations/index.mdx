@@ -6,24 +6,42 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+
+<Situation>
+  Tu vas écrire ton premier `CLAUDE.md`. Avant d'appuyer sur Entrée, tu te poses
+  trois questions : **quel modèle** va lire ce fichier, **comment** il va le charger,
+  et **pourquoi** certaines choses doivent y figurer mais pas d'autres. Ce sont les
+  trois questions du Niveau 1.
+</Situation>
 
 > Durée estimée : **2h** · 5 modules + 1 lab
 
-Tu vas apprendre **comment Claude Code pense** avant d'apprendre comment l'utiliser. C'est le socle qui rend tout le reste intuitif.
+## Pourquoi ce niveau
+
+Tu peux faire des choses utiles avec Claude sans rien comprendre à son fonctionnement — jusqu'à un certain point. Passé ce point, chaque bug, chaque dérive, chaque limite devient opaque. Le Niveau 1 te donne le **modèle mental** qui rend la suite transparente :
+
+- Savoir **quel modèle** utiliser pour quelle tâche (et pourquoi Opus partout coûte cher pour rien).
+- Comprendre la **boucle agentique** et pourquoi "prompt unique" et "agent" sont des bêtes différentes.
+- Traiter le **context window** comme une ressource active, pas un truc infini.
+- Écrire un **CLAUDE.md** qui sert vraiment au lieu de faire du bruit.
+- Distinguer **CLAUDE.md (tu écris)** et **MEMORY.md (Claude écrit)** — la confusion est la règle.
 
 ## Modules
 
-1. **Les modèles** — Opus 4.7, Sonnet 4.6, Haiku 4.5 : quand utiliser quoi.
-2. **L'agentic loop** — les 3 phases qui transforment un LLM en agent.
-3. **Le context window** — ta ressource principale, gérée activement.
-4. **CLAUDE.md** — les instructions que tu écris, hiérarchie de chargement.
-5. **Mémoire & sessions** — auto-memory, scopes, fork, resume.
+1. **[Les modèles](/01-fondations/models/)** — Opus 4.7, Sonnet 4.6, Haiku 4.5. Choix par tâche.
+2. **[L'agentic loop](/01-fondations/agentic-loop/)** — gather → act → verify. Les 3 phases qui font d'un LLM un agent.
+3. **[Le context window](/01-fondations/context-window/)** — règle des 60%, `/compact`, `/clear`, `/btw`.
+4. **[CLAUDE.md](/01-fondations/claude-md/)** — la hiérarchie, le scoping, la règle des 150 instructions.
+5. **[Mémoire & sessions](/01-fondations/memory-sessions/)** — auto-memory, fork, resume, naming, tags.
 
 ## Lab 01 — Setup complet
 
-À la fin du niveau, tu configures ton premier projet *from scratch* : `CLAUDE.md`, `.claude/settings.json`, permission modes, première session productive. Feedback binaire via `validate.sh`.
+[Lab 01](/01-fondations/lab-01/) — tu montes un projet *from scratch* avec `CLAUDE.md`, mémoire typée dans `.claude/memory/`, session nommée reprenable. Validation avec `validate.sh`.
 
-<Planned session="3" blocs={["Bloc 0 — Définition", "Bloc 2 — Agentic loop", "Bloc 5 — .claude", "Bloc 6 — Mémoire"]}>
-  Modules rédigés en Session 3 à partir des blocs Doc B ci-dessus.
-</Planned>
+## Après ce niveau, tu sauras
+
+- Lire un `CLAUDE.md` d'équipe et comprendre pourquoi ses choix sont ceux-là.
+- Décider quand `/clear`, quand `/compact`, quand partir sur une nouvelle session.
+- Distinguer les cas où "mettre plus dans le prompt" est la bonne idée de ceux où c'est le piège.
+- Nommer tes sessions pour les retrouver une semaine après.

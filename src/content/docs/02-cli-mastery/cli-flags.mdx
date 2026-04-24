@@ -1,13 +1,302 @@
 ---
 title: CLI flags
-description: Toutes les flags de claude — flip cards interactives filtrables par catégorie.
+description: Toutes les flags de `claude` — groupées par catégorie, avec l'usage typique.
 sidebar:
   order: 2
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 10 — CLI flags référence", "Bloc 16 — CLI flags exhaustif"]}>
-  ~80 flags groupées en 10 catégories (session, modèle, permissions, tools, MCP, plugins, output, remote, auth, debug). FlipCards filtrables, lien direct vers la `Référence/cli-flags` complète.
-</Planned>
+<Situation>
+  Tu veux lancer Claude sur un repo hérité, avec un modèle précis, en mode plan
+  (lecture seule), avec seulement les outils Read/Grep, sans MCP, et nommer la
+  session. Tu sais que c'est possible mais tu ne te souviens plus des flags. Dix
+  minutes plus tard, tu as toujours le terminal ouvert avec `claude --help`.
+  Ce module fixe les réflexes.
+</Situation>
+
+## Concept — 10 catégories
+
+Les flags de `claude` se rangent en 10 familles. Ce module donne les **plus utiles de chaque famille**. La [Référence CLI flags](/reference/cli-flags/) a la liste exhaustive.
+
+### 1. Session
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--name <nom>"
+    back="Nomme la session — essentiel pour /resume plus tard. Ex: claude --name refacto-auth"
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="-c / --continue"
+    back="Continue la dernière session de ce repo. Raccourci le plus utilisé au quotidien."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--resume [id]"
+    back="Picker interactif (sans argument) ou reprend une session précise par ID."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--fork-session <id>"
+    back="Duplique une session à l'état courant — pour explorer sans polluer l'originale."
+  />
+</div>
+
+### 2. Modèle
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--model <id>"
+    back="opus / sonnet / haiku (alias) ou ID complet (claude-opus-4-7, …). Défaut interactif : opus."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--thinking-budget <n>"
+    back="Force un budget tokens pour extended thinking. 0 = désactivé. Pour problèmes durs."
+  />
+</div>
+
+### 3. Permissions
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--permission-mode <m>"
+    back="default | acceptEdits | plan | auto | bypassPermissions. Voir module Permission Modes."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--dangerously-skip-permissions"
+    back="⚠️ Désactive TOUT prompt de permission. À réserver aux CI/sandbox contrôlés."
+  />
+</div>
+
+### 4. Tools
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--allowed-tools <list>"
+    back="Whitelist d'outils, séparés par virgule. Ex: Read,Grep,Glob pour un mode audit."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--disallowed-tools <list>"
+    back="Blacklist. Ex: --disallowed-tools Bash pour interdire toute exécution shell."
+  />
+</div>
+
+### 5. MCP
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--mcp-config <file>"
+    back="Surcharge le fichier de config MCP (par défaut .claude/mcp.json)."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--no-mcp"
+    back="Démarre sans serveurs MCP. Utile pour debug ou pour sessions légères."
+  />
+</div>
+
+### 6. Plugins
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--plugin <name>"
+    back="Active un plugin nommé. Répétable."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--no-plugins"
+    back="Désactive tous les plugins, même ceux enablés par défaut."
+  />
+</div>
+
+### 7. Output / Headless
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="-p / --print"
+    back="Mode headless : exécute une requête, imprime, sort. Pour scripts et CI."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--output-format <fmt>"
+    back="text | json | stream-json. En CI, privilégier json pour parser les résultats."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--verbose"
+    back="Affiche tous les tool calls, utiles pour debug ou démo."
+  />
+</div>
+
+### 8. Remote / Auth
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--login"
+    back="Force une nouvelle auth (utile après rotation de clé)."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--org <id>"
+    back="Bascule sur une autre organisation si tu as plusieurs comptes."
+  />
+</div>
+
+### 9. Debug
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--debug"
+    back="Logs très verbeux. À activer quand un comportement semble aberrant."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--version"
+    back="Affiche la version installée — utile pour reporter un bug."
+  />
+</div>
+
+### 10. Qualité de vie
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--help"
+    back="Liste complète avec descriptions. Toujours à jour avec ta version."
+  />
+  <FlipCard
+    client:visible
+    frontLabel="Flag"
+    backLabel="Usage"
+    front="--ide <ide>"
+    back="Active une intégration IDE (vscode, jetbrains)."
+  />
+</div>
+
+## Combos typiques
+
+**Audit lecture-seule sur un repo inconnu** :
+
+```bash
+claude --permission-mode plan --allowed-tools "Read,Grep,Glob,WebFetch" \
+       --name audit-$(basename $PWD)
+```
+
+**CI headless pour PR review** :
+
+```bash
+echo "Review this PR diff: $(git diff origin/main)" \
+  | claude -p --model sonnet --output-format json \
+           --allowed-tools "Read,Grep,Bash(git:*)"
+```
+
+**Debug d'un hook qui déconne** :
+
+```bash
+claude --debug --name hook-debug
+```
+
+**Session de refacto sensible** :
+
+```bash
+claude --permission-mode plan --model opus --name refacto-auth-042026
+# ... tu planifies, tu valides ...
+# /mode acceptEdits     (une fois le plan OK, tu passes en accept-edits)
+```
+
+## Où trouver la liste complète
+
+- `claude --help` — autoritative, toujours à jour.
+- [Référence CLI flags](/reference/cli-flags/) — version parcours avec exemples.
+
+## Check
+
+<Quiz
+  client:visible
+  id="cli-flags-audit"
+  scenario="Tu dois faire un audit de sécurité d'un repo que tu ne connais pas. Tu veux que Claude ne puisse QUE lire, pas exécuter ni écrire."
+  question="Quel combo utilises-tu ?"
+  options={[
+    { text: "claude --permission-mode acceptEdits", correct: false, explanation: "Au contraire, acceptEdits accepte automatiquement les écritures. C'est l'opposé de ce que tu veux." },
+    { text: "claude --permission-mode plan --allowed-tools 'Read,Grep,Glob'", correct: true, explanation: "Mode plan = lecture seule par conception, et on restreint en plus aux outils de lecture. Double garantie." },
+    { text: "claude --dangerously-skip-permissions", correct: false, explanation: "C'est l'opposé du comportement voulu — ce flag désactive les protections." },
+    { text: "claude --no-mcp --no-plugins", correct: false, explanation: "Ça coupe MCP et plugins, mais l'agent peut toujours écrire des fichiers via Edit/Write. Pas assez restrictif." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="cli-flags-headless"
+  scenario="Tu veux lancer Claude dans une GitHub Action pour qu'il commente une PR."
+  question="Quels flags sont strictement nécessaires pour que ça marche en non-interactif ?"
+  options={[
+    { text: "--interactive", correct: false, explanation: "Il n'y a pas de flag --interactive, et c'est l'inverse de ce que tu veux pour la CI." },
+    { text: "-p (print) et --output-format json", correct: true, explanation: "-p met en mode headless : Claude lit stdin, traite, imprime, sort. --output-format json permet de parser la réponse côté CI." },
+    { text: "--name + --continue", correct: false, explanation: "Ces flags gèrent des sessions interactives. En CI tu veux une exécution one-shot." },
+    { text: "--ide github-actions", correct: false, explanation: "Ce n'est pas un IDE valide, et ça n'existe pas." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais entrer dans une session avec les bonnes options. Maintenant, fluidité **pendant** la session → [Slash commands](/02-cli-mastery/slash-commands/).

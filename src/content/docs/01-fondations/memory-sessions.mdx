@@ -6,8 +6,227 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 6.2 — Auto memory", "Bloc 8 — Sessions avancées"]}>
-  Différence CLAUDE.md (tu écris) vs MEMORY.md (Claude écrit), limite 200 lignes/25KB, scope par worktree, `/memory`, sessions nommées, `--fork-session`, `/resume` picker, pièges du même session-id dans 2 terminaux.
-</Planned>
+<Situation>
+  Vendredi 17h, tu fermes le terminal. Lundi matin, tu veux reprendre exactement
+  là où tu t'étais arrêté : même contexte, même fil de pensée, mêmes décisions.
+  Tu ouvres Claude, tu vois **12 sessions dans ton historique**, toutes nommées
+  "session-2026-04-21-13-48". Impossible de retrouver la bonne. Ce module t'évite
+  ce lundi matin.
+</Situation>
+
+## Deux mécanismes de persistance
+
+Ne confonds pas les deux :
+
+| | **CLAUDE.md** | **MEMORY.md + fichiers typés** |
+|---|---|---|
+| Qui écrit ? | Toi | Claude |
+| Quand ? | Avant la session | Pendant la session, quand il détecte une info clé |
+| Scope | Projet ou user | Par projet (par défaut) |
+| Objectif | Règles stables | Apprentissage cross-session |
+| Format | Libre, court | Index + fichiers typés (user/feedback/project/reference) |
+
+## Auto-memory — comment Claude se souvient
+
+Quand tu dis : *"Note que les PRs doivent passer par la queue prioritaire `ci-fast`"*, Claude peut :
+
+1. Créer ou mettre à jour `.claude/memory/project_ci.md` avec la règle.
+2. Ajouter une ligne dans `.claude/memory/MEMORY.md` qui pointe vers ce fichier.
+
+Au démarrage de la prochaine session, Claude scanne `MEMORY.md`, identifie les mémoires pertinentes à ta tâche courante, et charge les fichiers correspondants dans son contexte.
+
+### Structure type
+
+```
+.claude/
+└── memory/
+    ├── MEMORY.md                         # index, ~1 ligne par fichier
+    ├── user_profile.md                   # qui tu es, préférences
+    ├── project_ci.md                     # processus CI/CD du projet
+    ├── feedback_prefers_short_pr.md      # comportement correct à répéter
+    └── reference_linear_project.md       # où tracker les bugs
+```
+
+### Les 4 types de mémoire
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0;">
+
+<div class="concept-card">
+#### 👤 `user`
+Qui tu es, ton rôle, tes connaissances, tes préférences.
+*Ex : "Data scientist, Python expert, nouveau sur React."*
+</div>
+
+<div class="concept-card">
+#### 💬 `feedback`
+Ce que tu as corrigé ou validé explicitement.
+*Ex : "Ne pas mocker la DB dans les tests — on s'est fait avoir au T2."*
+</div>
+
+<div class="concept-card">
+#### 📦 `project`
+Contexte du projet : constraints, stakeholders, goals.
+*Ex : "Compliance bancaire, pas de données perso en dev."*
+</div>
+
+<div class="concept-card">
+#### 🔗 `reference`
+Pointeurs vers systèmes externes.
+*Ex : "Bugs trackés dans Linear projet INGEST."*
+</div>
+
+</div>
+
+### Format d'un fichier de mémoire
+
+```markdown
+---
+name: Profil utilisateur
+description: Rôle et préférences de l'utilisateur
+type: user
+---
+
+Senior backend engineer, 8 ans Node, découvre React pour la première fois.
+Préfère les explications brèves sauf si le problème est non-obvious.
+Ne documente pas en prose longue — bullet points courts.
+```
+
+### Limites
+
+- **200 lignes ou 25 KB max par fichier.** Au-delà, Claude peut tronquer.
+- **Scope par worktree** par défaut. Un git worktree = un `.claude/memory/` séparé.
+- Peut être désactivée via settings.
+
+## La commande `/memory`
+
+Pendant une session :
+
+```
+/memory                 — affiche ce qui est chargé
+/memory edit            — ouvre l'index MEMORY.md dans ton éditeur
+/memory clear           — décharge les mémoires du contexte courant
+```
+
+Utile pour **voir ce que Claude a appris sur toi/le projet** et pour nettoyer les mémoires obsolètes.
+
+## Sessions — les bases
+
+Claude Code stocke chaque session dans `~/.claude/projects/<repo-path>/<session-id>.jsonl`. Chaque ligne = un event (user message, tool call, etc.).
+
+### Lancer une session
+
+```bash
+# Nouvelle session anonyme
+claude
+
+# Nouvelle session nommée (essentiel pour la retrouver)
+claude --name refacto-auth
+
+# Continuer la dernière session de ce repo
+claude -c
+# ou
+claude --continue
+```
+
+### Reprendre une session précise
+
+```bash
+# Picker interactif — choisis dans une liste
+/resume
+# ou :
+claude --resume
+```
+
+### Fork — dupliquer à un état donné
+
+```bash
+claude --fork-session <session-id>
+```
+
+Crée une copie pour explorer une autre piste sans toucher à l'originale. Utile pour :
+
+- "Je veux essayer une autre approche sans perdre l'état actuel."
+- "Je vais tester une hypothèse risquée, avec fallback."
+
+## Sessions avancées — `/branch`, tags
+
+```
+/branch <nom>           — crée une branche à partir du tour courant
+/rename <nouveau-nom>   — renomme la session
+/tag <tag>              — ajoute un tag (pour recherche)
+```
+
+Les tags et le nom sont recherchables via le picker `/resume`.
+
+## Piège classique — deux terminaux, même session
+
+Si tu lances `claude --resume <same-id>` dans **deux terminaux** simultanément, les events des deux sessions **s'entrelacent dans le même fichier JSONL**. Conséquence : la reprise ultérieure voit une conversation chaotique et bizarre.
+
+**Règle de sécurité :** un session-id = un terminal à la fois. Si tu veux vraiment deux fils parallèles, `--fork-session` pour créer un second ID.
+
+## Naming — comment bien nommer
+
+Convention utile :
+
+```
+<action>-<domaine>-<date?>
+```
+
+Exemples :
+
+- `refacto-auth-042026`
+- `investigate-prod-incident-checkout`
+- `draft-rfc-multi-agents`
+
+Ça te permet de retrouver en une seconde dans le picker, même après deux semaines.
+
+## Démo — un lundi matin après une pause
+
+```bash
+# Vendredi soir
+claude --name refacto-auth-042026
+# ... tu bosses, /compact, tu fermes ...
+
+# Lundi matin
+cd ~/projects/api
+claude --resume
+# → picker affiche : "refacto-auth-042026 (vendredi, 14 tours)"
+# tu sélectionnes, tu continues.
+```
+
+Sans `--name`, tu aurais eu "session-2026-04-25-14-48" et tu serais perdu.
+
+## Check
+
+<Quiz
+  client:visible
+  id="memory-vs-claude-md"
+  scenario="Tu viens de dire à Claude : 'Ne mocke jamais Redis dans nos tests, on s'est fait avoir la semaine dernière'."
+  question="Où cette info devrait-elle finir ?"
+  options={[
+    { text: "Dans CLAUDE.md — c'est une règle de projet.", correct: false, explanation: "Presque. C'est effectivement une règle, mais elle vient d'un incident spécifique et a une dimension 'apprentissage'. Elle appartient plus naturellement à la mémoire feedback, que Claude met à jour de lui-même." },
+    { text: "Dans un fichier de mémoire `feedback_*.md`, référencé par MEMORY.md.", correct: true, explanation: "Exact. Le type `feedback` est fait pour ça : une règle dérivée d'un incident, avec le pourquoi (pour juger les edge cases). Claude crée le fichier tout seul si tu lui demandes de se souvenir." },
+    { text: "Dans MEMORY.md directement — c'est une ligne.", correct: false, explanation: "MEMORY.md est un **index**. Les lignes pointent vers des fichiers, elles ne contiennent pas la mémoire elle-même." },
+    { text: "Nulle part — Claude s'en souviendra pour la session courante, c'est suffisant.", correct: false, explanation: "Il l'oubliera au prochain /clear ou à la session suivante. C'est le cas d'école pour la mémoire persistante." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="fork-session"
+  scenario="Tu as une session en cours où tu viens de finir une feature. Tu veux explorer un refacto risqué, mais garder la possibilité de revenir à l'état actuel si ça tourne mal."
+  question="Quelle commande utilises-tu ?"
+  options={[
+    { text: "/clear et tu recommences.", correct: false, explanation: "Tu perds tout l'état de la feature finie. Exactement ce que tu voulais éviter." },
+    { text: "claude --fork-session <id>", correct: true, explanation: "Le fork crée une copie à l'état courant. Tu explores dans le fork, et si ça tourne mal, tu reprends la session originale intacte." },
+    { text: "Je commit d'abord, puis je continue dans la même session.", correct: false, explanation: "Commit sauve le code, mais pas la session Claude (conversation, mémoire injectée, décisions). Le fork sauve les deux." },
+    { text: "git stash et /compact.", correct: false, explanation: "Aucun des deux ne crée un point de reprise reversible pour la session elle-même." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu maîtrises la persistance. Tu es prêt pour le **Lab 01** : monter un projet complet de zéro avec CLAUDE.md, mémoire typée, session nommée → [Lab 01 — Setup complet](/01-fondations/lab-01/).

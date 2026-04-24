@@ -6,8 +6,153 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 2 — Agentic loop", "Bloc 4 — 5 catégories de tools built-in"]}>
-  Animation Mermaid step-by-step du cycle gather → action → verify, exemples concrets de chaque phase, interruption et recadrage par l'utilisateur, différence fondamentale avec un copilote autocomplétion.
-</Planned>
+<Situation>
+  Tu écris : *"corrige le bug dans auth.ts"*. Tu vois passer des Bash, des Read, des
+  Edit, une relecture, puis une réponse. Entre ton prompt et la réponse finale,
+  Claude a enchaîné **une dizaine d'étapes autonomes** — pas parce qu'on lui a dit
+  de les faire, mais parce que c'est la nature d'un agent : boucler jusqu'à avoir
+  un résultat vérifié.
+</Situation>
+
+## Concept — les 3 phases
+
+Un agent, par opposition à un LLM "one-shot" comme un chatbot ou un autocomplétion, fonctionne en **boucle** :
+
+```
+┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+│  1. GATHER    │ ───▶ │  2. ACT       │ ───▶ │  3. VERIFY    │
+│   context     │      │   tools       │      │   results     │
+└───────────────┘      └───────────────┘      └───────────────┘
+        ▲                                              │
+        └──────────────────────────────────────────────┘
+                  on continue tant qu'il reste du travail
+```
+
+### 1. Gather context
+
+Avant d'agir, l'agent **lit** :
+
+- Ton prompt courant + l'historique de conversation.
+- `CLAUDE.md` et fichiers de mémoire pertinents.
+- Les fichiers mentionnés (ou qu'il juge utiles) — via `Read`, `Glob`, `Grep`.
+- Les outputs d'outils précédents dans la même session.
+
+C'est la **phase la plus importante**. Un agent qui agit sans avoir assez lu produit du code qui compile mais qui casse au premier edge case.
+
+### 2. Take action
+
+Il exécute des **outils** :
+
+- `Bash` pour lancer des commandes shell.
+- `Read` / `Edit` / `Write` pour manipuler des fichiers.
+- `Glob` / `Grep` pour chercher.
+- `Agent` pour déléguer à un subagent.
+- `WebFetch` / `WebSearch` pour aller chercher de l'info externe.
+- N'importe quel outil MCP branché.
+
+Chaque appel d'outil renvoie un résultat qui retourne dans la boucle.
+
+### 3. Verify results
+
+L'agent **relit son propre travail** :
+
+- Les tests passent ?
+- Le linter est content ?
+- La fonction modifiée fait bien ce qui était demandé ?
+- Y a-t-il un impact sur d'autres fichiers ?
+
+S'il détecte un problème, il **replonge en phase 1** : il va chercher plus de contexte, refait une action, reteste. Parfois plusieurs cycles avant une réponse finale.
+
+## Les 5 catégories d'outils built-in
+
+Un LLM sans outils ne peut que parler. Les outils sont ce qui le transforme en agent. Claude Code en a 5 familles :
+
+| # | Catégorie | Exemples | Rôle |
+|---|-----------|----------|------|
+| 1 | **Lecture** | `Read`, `Glob`, `Grep`, `NotebookRead` | Rassembler du contexte |
+| 2 | **Écriture** | `Write`, `Edit`, `NotebookEdit` | Modifier des fichiers |
+| 3 | **Exécution** | `Bash` | Lancer des processus, des tests |
+| 4 | **Délégation** | `Agent` (subagents), `TodoWrite` | Orchestrer, planifier |
+| 5 | **Web** | `WebFetch`, `WebSearch` | Info externe |
+
+S'ajoutent à ça les outils **MCP** (branchés depuis l'extérieur) et les outils que tu **enable/disable** via `--allowed-tools`.
+
+## Différence fondamentale avec un copilote
+
+| | Copilote (autocomplétion) | Agent (Claude Code) |
+|---|---|---|
+| Input | Code courant | Intention + contexte |
+| Output | Un patch | Une série d'actions vérifiées |
+| Contrôle | Accepte/refuse | Interrompt/guide |
+| Vérification | Toi | Lui, puis toi |
+| Durée d'une interaction | Secondes | Secondes à plusieurs minutes |
+
+Un copilote **prédit ta prochaine frappe**. Un agent **exécute une tâche**. Ce sont deux métaphores différentes — s'attendre à un comportement d'agent quand on utilise un copilote (et vice-versa) est la source #1 de frustration.
+
+## Démo — observer la boucle
+
+Tu peux voir la boucle en direct avec `--verbose` ou dans l'UI de Claude Code :
+
+```
+> corrige le bug de parsing dans src/parser.ts
+
+● Read(src/parser.ts)          ← GATHER
+● Grep("parse\(.*\)")            ← GATHER (élargir)
+● Read(src/parser.test.ts)       ← GATHER (vérifier le contrat)
+● Edit(src/parser.ts)            ← ACT
+● Bash("npm test -- parser")     ← VERIFY
+  → 2 tests KO
+● Read(src/parser.ts)            ← GATHER (retour phase 1)
+● Edit(src/parser.ts)            ← ACT
+● Bash("npm test -- parser")     ← VERIFY
+  → OK
+
+Le bug venait d'un null check manquant sur `token.value` ligne 42.
+Tests passent.
+```
+
+Notice : **deux cycles complets** avant la réponse finale. C'est normal.
+
+## Interrompre et recadrer
+
+Tu peux interrompre la boucle à tout moment avec `Esc` (ou `Ctrl+C` dans certains contextes). Pattern utile :
+
+- L'agent part sur une mauvaise piste → `Esc`, tu précises, tu relances.
+- L'agent a lu 15 fichiers inutiles → `Esc`, tu pointes le bon fichier.
+- L'agent modifie un fichier que tu ne voulais pas toucher → `Esc + Esc` (rewind, cf. Niveau 2).
+
+**Règle d'or** : intervenir *tôt* dans la boucle coûte moins cher que laisser faire puis rewind. Si à la 2ᵉ lecture d'un fichier non pertinent tu vois qu'il part en vrille, arrête-le.
+
+## Check
+
+<Quiz
+  client:visible
+  id="loop-phases"
+  question="Dans l'agentic loop, quelle phase correspond à 'l'agent relit le fichier qu'il vient de modifier et lance les tests' ?"
+  options={[
+    { text: "Gather context", correct: false, explanation: "Gather c'est rassembler l'info avant d'agir — typiquement au début d'un cycle ou avant un nouveau fichier." },
+    { text: "Take action", correct: false, explanation: "Take action c'est l'étape où l'agent modifie/crée/exécute. Relire un fichier déjà modifié n'est pas un 'act'." },
+    { text: "Verify results", correct: true, explanation: "Exactement — c'est la phase de vérification : l'agent contrôle que son action a bien produit le résultat attendu avant de répondre." },
+    { text: "Aucune — c'est fait par l'utilisateur", correct: false, explanation: "Non, un agent vérifie son propre travail. C'est précisément ce qui le distingue d'un copilote." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="loop-copilote"
+  scenario="Ton collègue dit : 'Claude Code, c'est comme Copilot mais dans un terminal.'"
+  question="Quelle est la correction la plus importante à apporter ?"
+  options={[
+    { text: "Aucune — c'est équivalent", correct: false, explanation: "Non, la différence est structurelle, pas cosmétique." },
+    { text: "Claude Code exécute des outils et vérifie son travail, Copilot prédit une complétion.", correct: true, explanation: "C'est LA distinction : Copilot est un prédicteur de tokens ; Claude Code est un agent qui boucle (gather → act → verify) pour accomplir une tâche. Deux métaphores différentes, deux usages différents." },
+    { text: "Claude Code est plus intelligent parce qu'il utilise un modèle plus gros.", correct: false, explanation: "La différence n'est pas la taille du modèle, c'est l'architecture : boucle agentique vs prédiction ponctuelle." },
+    { text: "Claude Code ne marche que dans le terminal, Copilot dans tous les IDE.", correct: false, explanation: "C'est accessoire. Claude Code a des intégrations IDE ; ce qui compte c'est sa nature d'agent." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais ce qu'est la boucle. Reste à comprendre le **contexte** qui alimente chaque cycle → [Le context window](/01-fondations/context-window/).

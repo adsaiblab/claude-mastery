@@ -6,8 +6,136 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="3" blocs={["Bloc 18 §1 — Gestion agressive du context", "Bloc 18 §8 — Context engineering"]}>
-  Visualisation de remplissage, règle des 60%, `/compact` vs `/clear` vs `/btw`, compaction personnalisée dans CLAUDE.md, interaction avec `CLAUDE_CODE_MAX_CONTEXT_TOKENS`, démonstration d'un context saturé.
-</Planned>
+<Situation>
+  Trois heures dans la session. Tu as fait explorer 20 fichiers, écrit 4 features,
+  débuggé un problème de types. Tu demandes : *"refais un tour du code pour t'assurer
+  que rien n'est cassé."* Claude répond n'importe quoi. Pas parce qu'il est devenu
+  bête — parce que son **context est saturé**. La moitié du message est tronquée.
+  Ce module t'évite ce mur.
+</Situation>
+
+## Concept — le context comme budget
+
+Le context window, c'est l'**espace de travail** du modèle. À chaque tour, il contient :
+
+- Le **system prompt** (fourni par Claude Code).
+- Ton **CLAUDE.md** et les mémoires chargées.
+- L'**historique de conversation** (chaque tour précédent).
+- Les **outputs d'outils** (Read, Bash, Grep…).
+- Ton **prompt courant**.
+
+Tout ça est compté en **tokens**. Un modèle a une limite — aujourd'hui ~200k tokens pour Opus/Sonnet (~500k en mode extended).
+
+**Règle mentale :** c'est comme la RAM. Quand c'est plein, ça swap (troncature silencieuse) et ça ralentit.
+
+## La règle des 60%
+
+Au-delà de **~60% de remplissage**, la qualité du modèle commence à se dégrader :
+
+- Il "oublie" des éléments des premiers tours.
+- Il réinvente des détails qu'on lui avait donnés.
+- Il mélange des fichiers différents.
+
+**Cible pratique :** reste en dessous de 60%. Au-dessus de 80%, ton prochain prompt est une perte de temps — compacte ou clear.
+
+Claude Code t'affiche l'usage dans l'UI (barre de remplissage en bas de l'écran, ou via `/status`).
+
+## Les 4 leviers — quand utiliser quoi
+
+| Commande | Effet | Quand l'utiliser |
+|----------|-------|------------------|
+| `/compact` | Résume l'historique, garde l'essentiel. | ~70% rempli, tu veux continuer la même tâche. |
+| `/clear` | Vide la conversation, garde CLAUDE.md. | Tu passes à un sujet **sans rapport**. |
+| `/btw` | Injecte un message système pour recentrer. | L'agent a dérivé, tu veux le recadrer sans perdre le contexte. |
+| Nouvelle session | Repart de zéro (nouveau jsonl). | Tu changes de projet, nouveau reset complet. |
+
+### `/compact` — la compaction
+
+Claude résume l'historique de la session en gardant : objectif courant, décisions prises, fichiers touchés, erreurs rencontrées. Coûte quelques milliers de tokens pour en libérer des dizaines de milliers.
+
+**Astuce** : tu peux personnaliser la compaction en ajoutant une directive dans ton `CLAUDE.md` :
+
+```markdown
+## Compaction
+Préserver toujours : objectif courant, liste des fichiers touchés, commandes
+de test utilisées. Compresser : explications détaillées, lectures exploratoires.
+```
+
+### `/clear` — le reset complet
+
+Vide la conversation. `CLAUDE.md` et la mémoire **restent** chargés. Utile quand tu changes de sujet et que l'historique précédent n'aide plus — au contraire, il pollue.
+
+### `/btw` — l'injection
+
+Message système ponctuel. Pratique pour :
+
+- "BTW, toutes les commandes git doivent passer par la CI, ne commit pas localement."
+- "BTW, ignore les fichiers `.generated.ts`."
+- "BTW, passe en mode plan avant d'éditer quoi que ce soit."
+
+C'est une télécommande pour recentrer l'agent sans redémarrer.
+
+## Fork / nouvelle session — quand reset
+
+- `claude --fork-session` — crée une copie de la session courante à un état donné. Utile pour **explorer deux pistes** en parallèle sans les mélanger.
+- Nouvelle session (`claude` nu) — repart à zéro. Préférable quand : tu changes de projet, tu as fini une grosse tâche, ou tu sens que la session est "polluée".
+
+## Interaction avec les env vars
+
+- `CLAUDE_CODE_MAX_CONTEXT_TOKENS` — forcer une taille max plus petite (utile pour tester que ton code marche sous contrainte).
+- `CLAUDE_CODE_AUTO_COMPACT=false` — désactiver la compaction automatique (déconseillé en pratique).
+
+## Démo — un context qui déborde
+
+```
+[~15% rempli] ✓ session fraîche, réponses rapides et précises
+[~45% rempli] ✓ toujours nickel
+[~65% rempli] ⚠️ commence à oublier des détails anciens → /compact
+[~85% rempli] ✗ hallucinations, réponses vagues → trop tard, /clear ou nouvelle session
+```
+
+## Context engineering — le réflexe de pro
+
+Ne considère pas le contexte comme quelque chose qui **se remplit passivement** — considère-le comme quelque chose que tu **composes** :
+
+1. **Minimiser** ce que tu charges (CLAUDE.md court, mémoire scopée, pas de gros dumps).
+2. **Injecter** précisément ce qui est utile au moment où c'est utile (`/btw`, fichiers pointés explicitement).
+3. **Compacter** agressivement à 60-70%.
+4. **Forker** quand tu veux explorer sans polluer.
+5. **Archiver dans MEMORY.md** ce qui doit survivre entre sessions.
+
+Le Niveau 5 a un module dédié ([Context Engineering](/05-expert/context-engineering/)) qui pousse ces patterns plus loin.
+
+## Check
+
+<Quiz
+  client:visible
+  id="context-strategy"
+  scenario="Tu es à 75% de remplissage. Tu bosses toujours sur la même feature. Ton prochain prompt demande à Claude d'écrire les tests unitaires."
+  question="Quelle commande est la plus adaptée ?"
+  options={[
+    { text: "/clear — repartir frais", correct: false, explanation: "Trop radical : tu perds le contexte de la feature. Il va refaire l'exploration depuis zéro." },
+    { text: "/compact — résumer l'historique et continuer", correct: true, explanation: "Exact. Tu es sur la même tâche, tu veux garder les décisions et l'état, mais tu veux libérer de l'espace pour écrire les tests. C'est pile le cas d'usage de /compact." },
+    { text: "Ignorer, continuer normalement", correct: false, explanation: "À 75% tu rentres dans la zone dangereuse. Le modèle va commencer à perdre des détails des premiers tours." },
+    { text: "Fermer le terminal, ouvrir une nouvelle session", correct: false, explanation: "Sur-réaction équivalente à /clear. Et tu perds la conversation complètement — alors que /compact garde le résumé." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="context-vs-memory"
+  question="Quelle est la différence entre charger plus de contexte et charger plus de mémoire ?"
+  options={[
+    { text: "Aucune — c'est juste du vocabulaire différent pour la même chose.", correct: false, explanation: "Non, ce sont deux mécanismes distincts." },
+    { text: "Le contexte est la conversation courante (éphémère), la mémoire persiste entre sessions.", correct: true, explanation: "Exact. Le context window = tout ce que le modèle a sous les yeux **maintenant** (historique + files + outputs). La mémoire = fichiers typés qui survivent à travers les sessions et sont chargés à la demande par Claude." },
+    { text: "Le contexte est lu par Claude, la mémoire est lue par l'utilisateur.", correct: false, explanation: "Inversé. La mémoire est **écrite par Claude** pour lui-même (et lue par lui). L'utilisateur écrit CLAUDE.md." },
+    { text: "Le contexte coûte des tokens, la mémoire non.", correct: false, explanation: "Faux : quand Claude charge un fichier de mémoire, il entre dans le contexte et coûte des tokens. La différence est la persistance, pas le coût." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu traites le contexte comme un budget. Maintenant, voyons **ce que tu y injectes explicitement** via CLAUDE.md → [CLAUDE.md](/01-fondations/claude-md/).

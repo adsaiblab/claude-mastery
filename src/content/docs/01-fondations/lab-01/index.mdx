@@ -9,10 +9,39 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../../components/Planned.astro';
+import Situation from '../../../../components/Situation.astro';
 import LabProgress from '../../../../components/interactive/LabProgress.tsx';
 
 > **Durée : ~45 min** · Shell scripts dans [`labs/lab-01-setup/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-01-setup)
+
+<Situation>
+  Tu clones le starter d'un petit module Node. Tu dois le transformer en **projet
+  Claude-ready** : un `CLAUDE.md` qui sert, une mémoire typée qui survivra à tes
+  sessions, et la preuve que tu peux fermer ton terminal et revenir sans rien perdre.
+  Tout ça en **45 minutes**.
+</Situation>
+
+## Objectif
+
+Transformer `starter/` en projet prêt à l'emploi. Tu dois livrer :
+
+1. Un `CLAUDE.md` à la racine (5-80 lignes, mentionnant conventions + commandes npm).
+2. Un dossier `.claude/memory/` avec un `MEMORY.md` (index) et au moins un fichier de mémoire typé (`user` / `feedback` / `project` / `reference`).
+3. Une session nommée que tu peux reprendre avec `--resume`.
+
+Les critères sont vérifiés automatiquement par `validate.sh`.
+
+## Démarrer
+
+```bash
+cd labs/lab-01-setup
+./setup.sh              # crée work/ à partir de starter/
+cd work/
+```
+
+Tout ton travail se passe dans `work/` (qui est gitignoré — tu peux tout casser).
+
+## Valider
 
 <LabProgress
   client:only="react"
@@ -28,6 +57,35 @@ import LabProgress from '../../../../components/interactive/LabProgress.tsx';
   ]}
 />
 
-<Planned session="3" blocs={["Bloc 6 — Mémoire", "Bloc 7 — Permission modes", "Bloc 18 §2 — CLAUDE.md efficace"]}>
-  Rédaction complète : énoncé scénarisé, starter/ incomplet, 3 hints progressifs, solution commentée avec EXPLANATION.md. Les scripts `setup.sh`/`validate.sh` existent déjà en squelette et sont activés en Session 3.
-</Planned>
+```bash
+cd labs/lab-01-setup
+./validate.sh
+```
+
+Tu dois voir tous les checks en ✓ vert. Sinon, la sortie te dit exactement ce qui manque.
+
+## Hints gradués
+
+Bloqué plus de 10 minutes sur un point ? Ouvre les hints **dans l'ordre** :
+
+- [`hints/hint-01.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-01-setup/hints/hint-01.md) — relance cognitive ("tu as regardé X ?").
+- [`hints/hint-02.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-01-setup/hints/hint-02.md) — piste concrète (structure suggérée).
+- [`hints/hint-03.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-01-setup/hints/hint-03.md) — quasi-solution (exemple quasi-complet).
+
+## Après validation
+
+Ouvre [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-01-setup/solution/EXPLANATION.md) — ça explique **pourquoi** le lab est fait comme ça (pièges CLAUDE.md, rôle exact de MEMORY.md, quand `/compact` avant de fermer).
+
+## Ce qu'on vérifie vraiment
+
+Le `validate.sh` teste 8 points :
+
+- `work/` bien initialisé.
+- `CLAUDE.md` présent, 5-80 lignes utiles.
+- Mention des commandes `npm` et d'au moins une convention.
+- `.claude/memory/MEMORY.md` présent.
+- Au moins un fichier de mémoire typée autre que MEMORY.md.
+- MEMORY.md référence au moins un fichier `.md`.
+- `~/.claude/projects/` existe (= tu as effectivement lancé une session au moins une fois).
+
+Si tu veux pousser plus loin, ajoute des entrées `feedback_*.md` au fur et à mesure que tu apprends des préférences de ton équipe.

@@ -9,10 +9,44 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../../components/Planned.astro';
+import Situation from '../../../../components/Situation.astro';
 import LabProgress from '../../../../components/interactive/LabProgress.tsx';
 
 > **Durée : ~60 min** · Scripts dans [`labs/lab-02-hooks/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-02-hooks)
+
+<Situation>
+  Ton équipe a deux règles non négociables : (1) aucun `git push` direct sur `main`,
+  (2) tout fichier édité doit être auto-formaté (prettier JS/TS/MD, black Python).
+  Jusqu'ici, tu espérais que chaque dev s'en souvienne. Dans ce lab, tu les
+  **gravées dans le marbre** sous forme de hooks qui marchent même quand Claude
+  n'a pas lu ton CLAUDE.md.
+</Situation>
+
+## Objectif
+
+Écrire deux hooks qui passent les trois scénarios suivants :
+
+1. **`git push origin main`** → bloqué avec un message d'erreur clair sur stderr (exit 2).
+2. **`git push origin feature/lab-02`** → autorisé (exit 0).
+3. **N'importe quelle autre commande** (`ls`, `npm test`, …) → pas d'intervention (exit 0).
+
+Plus un hook PostToolUse qui formatte automatiquement les fichiers `.js/.ts/.json/.md/.py` après chaque Edit ou Write.
+
+## Démarrer
+
+```bash
+cd labs/lab-02-hooks
+./setup.sh              # crée work/ avec package.json starter
+cd work/
+```
+
+Tu dois créer :
+
+- `.claude/settings.json` avec les déclarations des hooks.
+- `.claude/hooks/validate-push.sh` (exécutable).
+- `.claude/hooks/format-file.sh` (exécutable).
+
+## Valider
 
 <LabProgress
   client:only="react"
@@ -28,6 +62,38 @@ import LabProgress from '../../../../components/interactive/LabProgress.tsx';
   ]}
 />
 
-<Planned session="3" blocs={["Bloc 11 — Hooks", "Bloc 17 — Hooks référence"]}>
-  Énoncé complet, starter/ avec `settings.json` incomplet, 3 hints, solution commentée. Le `validate.sh` ci-dessus (inspiré Doc A lignes 546-615) est déjà scaffolded.
-</Planned>
+```bash
+bash labs/lab-02-hooks/validate.sh
+```
+
+Le script exécute trois scénarios :
+
+1. Simule un `git push origin main` → doit être **bloqué** (exit 2 + stderr contient "main").
+2. Simule un `git push origin feature/lab-02` → doit **passer** (exit 0).
+3. Simule un `ls -la` → doit être **ignoré** (exit 0, pas d'intervention).
+
+Puis il édite un `sample.js` mal formaté et vérifie que le hook `PostToolUse` l'a bien passé à prettier.
+
+## Hints
+
+Bloqué ? Les hints sont graduels :
+
+- [Hint 1 — structure settings.json](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-02-hooks/hints/hint-01.md)
+- [Hint 2 — parser le payload JSON avec jq](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-02-hooks/hints/hint-02.md)
+- [Hint 3 — détecter main/master dans la commande git push](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-02-hooks/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-02-hooks/solution/EXPLANATION.md) pour comparer avec ton approche, notamment le choix **matcher large + filtrage dans le script**.
+- Essaie d'ajouter un 3ᵉ hook : `SessionStart` de type `prompt` qui injecte la branche courante.
+
+## Ce qu'on vérifie vraiment
+
+1. `.claude/settings.json` déclare un `PreToolUse` (matcher `Bash`) et un `PostToolUse` (matcher `Edit|Write`).
+2. Les scripts `.claude/hooks/*.sh` existent et sont **exécutables** (`chmod +x`).
+3. `validate-push.sh` **exit 2** sur `git push origin main` et écrit un message sur **stderr**.
+4. `validate-push.sh` **exit 0** sur `git push origin feature/lab-02`.
+5. `validate-push.sh` **exit 0** sur toute commande qui n'est pas un `git push`.
+6. `format-file.sh` appelle `prettier --write` pour `.js/.ts/.json/.md`, `black` pour `.py`.
+7. Un formatter manquant ne **bloque pas** l'édition (exit 0 même si prettier absent).
+8. Le JSON de `settings.json` est valide (`jq . .claude/settings.json` passe).
