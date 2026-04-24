@@ -6,17 +6,60 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
 
-Avant de plonger dans le CLI, on prend 30 minutes pour cartographier **ce qui existe** dans l'écosystème Claude et **ce dont tu as besoin en premier**. L'objectif : démarrer le Niveau 1 avec un parcours adapté à ton profil.
+<Situation label="Avant de commencer">
+  Tu ouvres un terminal, tu tapes `claude`, tu vois un prompt. Tu sais que c'est
+  "l'IA d'Anthropic dans le CLI". Mais derrière ce prompt : **quatre modèles**,
+  **trois interfaces**, **deux SDK**, **des subagents**, **des hooks**, **des plugins**,
+  **un protocole ouvert (MCP)**. Par où tu commences ? Qu'est-ce qui est
+  optionnel ? Qu'est-ce qui change la donne ?
+</Situation>
 
-## Ce niveau contient
+## Pourquoi ce niveau
 
-- **Carte de l'écosystème** — une vue cliquable de tous les composants (modèles, CLI, plateformes, agents, SDK, routines).
-- **Quiz d'orientation** — 6 questions scénarisées → 1 profil parmi *Découvreur*, *Développeur*, *Architecte*.
-- **Comment utiliser ce parcours** — règles du jeu, durées, rythme recommandé.
+Avant d'écrire la moindre ligne de code, on prend 30 minutes pour :
 
-<Planned session="2" blocs={["Bloc 0 — Définition & positionnement", "Bloc 20 — Vue d'ensemble tableau"]}>
-  Le contenu complet (carte interactive D3 + quiz scénarisé) arrive en Session 2.
-  Les modules du niveau 1 sont déjà accessibles via la sidebar.
-</Planned>
+1. **Cartographier** l'écosystème — les 5 couches et ce qu'elles recouvrent.
+2. **Identifier** ton profil — pour sauter les modules évidents et creuser le reste.
+3. **Caler** les règles du jeu — rythme, labs, checkpoints, outils annexes (Anki, Obsidian).
+
+Objectif de sortie : démarrer le Niveau 1 avec un **parcours adapté**, pas un parcours linéaire par défaut.
+
+## Les trois pages de ce niveau
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
+
+<div class="concept-card">
+### 🗺️ [Carte de l'écosystème](/00-orientation/ecosystem-map/)
+Les 5 couches : modèles → capacités → interfaces → orchestration → déploiement.
+Tableau de référence + FlipCards pour le vocabulaire de base.
+</div>
+
+<div class="concept-card">
+### 🎯 [Quiz d'orientation](/00-orientation/quiz-orientation/)
+6 situations concrètes. À la fin, un profil (*Découvreur*, *Développeur*, *Architecte*)
+et un parcours recommandé avec les niveaux à prioriser.
+</div>
+
+<div class="concept-card">
+### 📖 [Comment utiliser ce parcours](/00-orientation/how-to/)
+Structure des modules, durée par niveau, setup machine, règles des labs,
+stratégie de reprise, interaction Anki + Obsidian.
+</div>
+
+</div>
+
+## Raccourci
+
+Tu as déjà utilisé Claude Code en production ? **Saute directement au [Quiz d'orientation](/00-orientation/quiz-orientation/)** — en 3 minutes il te dira si tu peux passer au Niveau 2 ou 3 sans perdre de temps sur les fondations.
+
+Tu démarres de zéro ? **Commence par la [Carte de l'écosystème](/00-orientation/ecosystem-map/)** pour poser le vocabulaire, puis fais le quiz.
+
+## Ce que tu ne trouveras pas ici
+
+- Pas d'installation — c'est dans le Lab 01.
+- Pas de code — les démos commencent au Niveau 1.
+- Pas de liste exhaustive de flags/commandes — voir la [Référence](/reference/slash-commands/).
+
+Le Niveau 0 est un **niveau de cartographie**, pas de pratique. 30 minutes investies ici économisent plusieurs heures plus loin.

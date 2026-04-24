@@ -6,8 +6,147 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
 
-<Planned session="2" blocs={[]}>
-  Règles du parcours, estimation de durée par niveau (2h-3h), setup machine (Node, Python, Claude CLI, tmux), conventions des labs (validate.sh, hints/), stratégie de reprise (checkpoints + localStorage), interaction Anki + Obsidian.
-</Planned>
+<Situation>
+  Avant d'attaquer le Niveau 1, dix minutes pour caler le **mode d'emploi** : rythme
+  conseillé, structure des modules, comment utiliser les labs, quand relancer
+  Claude à côté (ou pas), et comment relier ce parcours à **Anki** et **Obsidian**
+  si tu en utilises déjà.
+</Situation>
+
+## La structure d'un module
+
+Chaque module du parcours suit **5 phases** dans cet ordre :
+
+1. **Situation** — un scénario concret pour ancrer le problème (bloc bleu à gauche).
+2. **Concept** — l'explication principale, avec schémas et tableaux de décision.
+3. **Démo** — bloc terminal ou snippet exécuté qui montre la chose en vrai.
+4. **Check** — un ou deux quiz courts pour vérifier la compréhension avant de continuer.
+5. **Quiz / vérification finale** — pour ancrer et identifier les trous.
+
+> Règle d'or : **ne passe pas à la phase suivante si tu n'as pas répondu au Check précédent**. Chaque quiz est persistant — tes réponses sont sauvegardées dans ton navigateur.
+
+## Les niveaux et leur durée
+
+| Niveau | Focus | Durée estimée | Lab |
+|--------|-------|---------------|-----|
+| 0 — Orientation | Carte, quiz, mode d'emploi | **30 min** | — |
+| 1 — Fondations | Modèles, agentic loop, CLAUDE.md | **2h** | Lab 01 (30 min) |
+| 2 — CLI Mastery | Slash, hooks, checkpointing, permissions | **3h** | Lab 02 (60 min) |
+| 3 — Multi-agents | Subagents, Skills, MCP, Plugins | **3h** | Lab 03 (90 min) |
+| 4 — Production | GitHub Actions, SDK, sandboxing | **2h30** | Lab 04 (60 min) |
+| 5 — Expert | UltraPlan, Context engineering, Patterns | **2h** | Lab 05 (120 min, capstone) |
+
+**Total : ~15h de travail effectif** si tu fais tout. L'objectif n'est pas de foncer — chaque niveau gagne à être digéré sur quelques jours.
+
+## Setup machine
+
+Pour faire les labs, il te faut :
+
+| Outil | Version minimale | Installation |
+|-------|------------------|--------------|
+| **Node.js** | 20.x | `nvm install 20` ou [nodejs.org](https://nodejs.org/) |
+| **Python** | 3.11+ | Pour le Niveau 4 (Agent SDK Python). `pyenv` recommandé. |
+| **Claude Code** | la plus récente | `npm install -g @anthropic-ai/claude-code` |
+| **Git** | n'importe laquelle moderne | Très probablement déjà installé |
+| **tmux** (optionnel) | — | Pour les sessions avancées du Niveau 2 |
+| **uv** (optionnel) | — | Gestion rapide de venvs Python au Niveau 4 |
+
+Le Lab 01 vérifie ton setup complet avec un `validate.sh` coloré. **Fais-le dès le début du Niveau 1**, pas en cours de route.
+
+## Les labs — mode d'emploi
+
+Chaque lab vit dans `labs/lab-0X-nom/`. Cycle type :
+
+```bash
+cd labs/lab-02-hooks
+./setup.sh             # clone starter/ dans work/ (ignoré par git)
+# ... tu travailles dans work/ ...
+./validate.sh          # vérifie les critères (sortie colorée ✓/✗)
+```
+
+Structure d'un lab :
+
+```
+labs/lab-02-hooks/
+├── README.md          # énoncé complet
+├── setup.sh           # initialisation
+├── validate.sh        # critères de validation
+├── starter/           # point de départ
+├── work/              # TON travail (gitignore)
+├── solution/
+│   └── EXPLANATION.md # explication (à ouvrir seulement après validation)
+└── hints/
+    ├── hint-01.md     # indice léger
+    ├── hint-02.md     # indice moyen
+    └── hint-03.md     # indice fort
+```
+
+### Règles des hints
+
+- **Hint 1** = relance cognitive. ("Tu as regardé `X` ?").
+- **Hint 2** = piste concrète. ("Le fichier à modifier est `Y`").
+- **Hint 3** = pseudo-solution. ("Voici la structure finale").
+
+Ouvre-les dans l'ordre. Ouvrir `hint-03.md` avant d'avoir essayé 15 minutes = apprentissage perdu. **Ce n'est pas un examen**, mais c'est toi qui perds le bénéfice si tu triches.
+
+### Règles de validation
+
+Un lab est "passé" quand `./validate.sh` sort en vert sur tous les critères. Tant que ce n'est pas le cas, **ne passe pas au niveau suivant** — les labs construisent les uns sur les autres.
+
+## Quiz et checkpoints
+
+Les quiz inline (dans les modules) sont là pour **ancrer** le concept, pas noter.
+
+- ✓ correct → tu avances.
+- ✗ mauvais → lis l'explication, **refais le quiz** (le bouton "Réessayer" est là pour ça).
+- Tes réponses sont persistées localement. Quand tu reviens sur une page, tu vois où tu en étais.
+
+Un **checkpoint** = un lab validé. À partir du moment où tu connectes ton compte (mode production), tes checkpoints sont stockés côté serveur — tu retrouves ta progression d'une machine à l'autre.
+
+## Intégration Anki (optionnel)
+
+Chaque niveau expose une **page Flashcards** (à venir en Session 4) qui permet d'exporter les concepts-clés au format Anki. Flux recommandé :
+
+1. Fais le niveau normalement.
+2. Une fois validé, exporte le deck du niveau.
+3. Révise 10 min/jour pendant une semaine.
+
+L'objectif n'est pas de mémoriser les flags par cœur — c'est d'ancrer les **réflexes de décision** (quel modèle, quel mécanisme d'orchestration, quel permission mode).
+
+## Intégration Obsidian (optionnel)
+
+Si tu tiens un vault Obsidian, le parcours fournit :
+
+- Une **carte d'écosystème** exportable en Canvas (à venir).
+- Des **liens croisés** entre concepts (chaque module liste ses dépendances et ce qu'il permet de débloquer).
+- Les **ADRs** du Niveau 5 (Co-work Design) au format standard, copiables dans ton vault.
+
+Tu peux aussi archiver tes propres notes par niveau — c'est une excellente façon de consolider.
+
+## Quand ouvrir un vrai Claude Code en parallèle
+
+**À partir du Niveau 1**. Chaque module a au moins une démo que tu peux rejouer dans ton terminal. Règle simple :
+
+- **Tu lis une commande** → tu la tapes dans ton terminal en parallèle.
+- **Tu vois un `CLAUDE.md`** → tu essaies de l'adapter à un de tes propres projets.
+- **Tu termines un lab** → tu identifies UN endroit où appliquer ce que tu viens d'apprendre dans ta journée de travail suivante.
+
+Apprendre sans appliquer = oubli en 48h. La tuyauterie de ce parcours est conçue pour **produire des réflexes**, pas des connaissances passives.
+
+## Stratégie de reprise
+
+Tu t'arrêtes mercredi, tu reprends lundi. Protocole :
+
+1. Va sur la page d'accueil — le sommaire latéral indique les modules "en cours".
+2. Si tu ne te souviens plus où tu en étais, ouvre le dernier module consulté — les Checks persistants te montrent ton niveau de réponse.
+3. Relis la **section "Situation"** (5 sec) puis la **section "Check"** (10 sec). Si tu réponds sans hésitation, passe à la suite. Sinon, relis le Concept.
+
+Pas besoin de tout reprendre depuis le début : la structure modulaire est faite pour des reprises rapides.
+
+## Tu es prêt
+
+Tu connais la carte, tu connais ton profil, tu connais les règles. **Va au [Niveau 1 — Fondations](/01-fondations/)** et commence par la Situation de la page d'accueil.
+
+Bonne route.
