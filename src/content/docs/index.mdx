@@ -1,0 +1,62 @@
+---
+title: Claude Code Mastery Path
+description: Parcours d'autoformation modulaire pour maîtriser l'écosystème Claude — du CLI au déploiement d'agents en production.
+template: splash
+hero:
+  tagline: Apprendre Claude Code comme un ingénieur — situations réelles, labs terminal, feedback binaire.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Commencer le parcours
+      link: /00-orientation/
+      icon: right-arrow
+      variant: primary
+    - text: Voir la référence
+      link: /reference/slash-commands/
+      icon: open-book
+draft: false
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import ProgressTracker from '../../components/interactive/ProgressTracker.tsx';
+
+## 5 niveaux, 1 capstone
+
+<CardGrid stagger>
+  <Card title="0 — Orientation" icon="rocket">
+    Carte interactive de l'écosystème, quiz de profilage, parcours personnalisé.
+  </Card>
+  <Card title="1 — Fondations" icon="puzzle">
+    Modèles, agentic loop, context window, CLAUDE.md, mémoire.
+  </Card>
+  <Card title="2 — CLI Mastery" icon="laptop">
+    Slash commands, flags, checkpointing, hooks, permission modes, sessions.
+  </Card>
+  <Card title="3 — Multi-agents" icon="setting">
+    Subagents, agent teams, skills, MCP, plugins, challenge d'architecture.
+  </Card>
+  <Card title="4 — Production" icon="cloud-download">
+    GitHub Actions, Agent SDK, sandboxing, routines, managed agents.
+  </Card>
+  <Card title="5 — Expert" icon="star">
+    UltraPlan, UltraReview, Cowork, Context engineering, patterns avancés.
+  </Card>
+</CardGrid>
+
+## Le pattern de chaque module
+
+Chaque module suit un format invariant : **Situation → Concept → Démo → Check → Quiz → Référence**.
+Aucune phrase ne commence par *"Dans ce module, nous allons…"* — on t'expose un scénario concret, puis la solution.
+
+<ProgressTracker
+  client:only="react"
+  title="Ta progression"
+  modules={[
+    { id: 'orientation', label: '0 — Orientation', href: '/00-orientation/', requires: ['quiz.orientation-profile'] },
+    { id: 'fondations', label: '1 — Fondations', href: '/01-fondations/', requires: ['quiz.fondations-models', 'lab.lab-01-setup'] },
+    { id: 'cli-mastery', label: '2 — CLI Mastery', href: '/02-cli-mastery/', requires: ['quiz.cli-slash', 'lab.lab-02-hooks'] },
+    { id: 'multi-agents', label: '3 — Multi-agents', href: '/03-multi-agents/', requires: ['quiz.agents-choice', 'lab.lab-03-agents'] },
+    { id: 'production', label: '4 — Production', href: '/04-production/', requires: ['quiz.prod-routines', 'lab.lab-04-routines'] },
+    { id: 'expert', label: '5 — Expert', href: '/05-expert/', requires: ['lab.lab-05-capstone'] },
+  ]}
+/>

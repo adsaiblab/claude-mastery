@@ -1,0 +1,31 @@
+---
+import Default from '@astrojs/starlight/components/Header.astro';
+
+/**
+ * Header étendu — on garde le Header Starlight par défaut (title, search,
+ * theme picker, language picker) et on ajoute plus tard le badge "Expert"
+ * quand la session Supabase est reconnue.
+ */
+const user = Astro.locals.user ?? null;
+const isExpert = Astro.locals.isExpert ?? false;
+---
+
+<div class="cm-header-wrapper">
+  <Default {...(Astro.props as any)}><slot /></Default>
+  {isExpert && (
+    <span class="badge-expert" style="margin-left: 0.5rem; align-self: center;" title={user?.email}>
+      Expert
+    </span>
+  )}
+</div>
+
+<style>
+  .cm-header-wrapper {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+  }
+  .cm-header-wrapper :global(> :first-child) {
+    flex: 1;
+  }
+</style>

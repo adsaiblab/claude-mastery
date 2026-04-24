@@ -1,0 +1,17 @@
+node_modules
+dist
+.astro
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+npm-debug.log
+yarn-error.log
+*.log
+coverage
+.DS_Store
+labs/**/solution
+labs/**/node_modules

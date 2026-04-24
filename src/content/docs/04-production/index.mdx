@@ -1,0 +1,28 @@
+---
+title: Niveau 4 — Production
+description: GitHub Actions, Agent SDK (Python/TS), sandboxing, routines, managed agents.
+sidebar:
+  order: 1
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+> Durée estimée : **4h** · 6 modules + 1 lab
+
+Claude sort du terminal : CI, backends, pipelines non-interactifs, agents managés. Ce niveau te donne les outils pour **embarquer Claude en production** sans perdre le contrôle.
+
+## Modules
+
+1. **GitHub Actions** — exécuter Claude dans un workflow (issue triage, PR review).
+2. **Agent SDK — Python** — lancer des conversations programmatiques côté backend.
+3. **Agent SDK — TypeScript** — version Node, streaming, tool use.
+4. **Sandboxing** — conteneurs, FS restrictions, network policies.
+5. **Routines** — tâches planifiées, cron, triggers webhooks.
+6. **Managed Agents** — Claude as a Service, scaling, quotas.
+
+## Lab 04 — Claude in CI
+
+Déployer un GitHub Action qui review chaque PR avec Claude, ajoute un commentaire structuré, et bloque le merge si score < seuil.
+
+<Planned session="5" blocs={["Blocs 18-23"]} />

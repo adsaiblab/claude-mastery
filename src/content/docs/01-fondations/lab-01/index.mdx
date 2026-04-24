@@ -1,0 +1,33 @@
+---
+title: Lab 01 — Setup complet
+description: Configure ton premier projet Claude Code from scratch — CLAUDE.md, settings, permission modes.
+sidebar:
+  order: 7
+  badge:
+    text: Lab
+    variant: tip
+draft: false
+---
+
+import Planned from '../../../../components/Planned.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~45 min** · Shell scripts dans [`labs/lab-01-setup/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-01-setup)
+
+<LabProgress
+  client:only="react"
+  labId="lab-01-setup"
+  title="Lab 01 — Checklist"
+  steps={[
+    { id: 'init', label: 'Cloner le starter et lancer setup.sh', hint: 'bash labs/lab-01-setup/setup.sh' },
+    { id: 'claude-md', label: 'Écrire un CLAUDE.md adapté (<150 instructions)' },
+    { id: 'settings', label: 'Configurer .claude/settings.json (permissions.allow minimal)' },
+    { id: 'mode', label: 'Tester les permission modes (default, acceptEdits, plan)' },
+    { id: 'session', label: 'Nommer la session et utiliser /rewind' },
+    { id: 'validate', label: 'Exécuter validate.sh — tous les checks verts', hint: 'bash labs/lab-01-setup/validate.sh' },
+  ]}
+/>
+
+<Planned session="3" blocs={["Bloc 6 — Mémoire", "Bloc 7 — Permission modes", "Bloc 18 §2 — CLAUDE.md efficace"]}>
+  Rédaction complète : énoncé scénarisé, starter/ incomplet, 3 hints progressifs, solution commentée avec EXPLANATION.md. Les scripts `setup.sh`/`validate.sh` existent déjà en squelette et sont activés en Session 3.
+</Planned>

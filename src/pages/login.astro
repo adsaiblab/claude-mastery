@@ -1,0 +1,76 @@
+---
+export const prerender = false;
+/**
+ * Page de login — magic link Supabase.
+ *
+ * En mode local (PUBLIC_ENV=local), cette page affiche un message
+ * explicitant que l'auth est désactivée (tout le monde est Expert).
+ *
+ * En prod, elle envoie un email magic link via Supabase Auth.
+ * Seuls les emails de EXPERT_USER_EMAILS sont élevés en Expert.
+ */
+
+import { isLocalMode } from '../lib/auth';
+
+const local = isLocalMode();
+const returnTo = Astro.url.searchParams.get('returnTo') ?? '/';
+const error = Astro.url.searchParams.get('error');
+const sent = Astro.url.searchParams.get('sent');
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connexion — Claude Code Mastery</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/styles/custom.css" />
+  </head>
+  <body style="font-family: 'Inter', system-ui; background: #0f172a; color: #f8fafc; min-height: 100vh; display: grid; place-items: center;">
+    <main style="max-width: 440px; padding: 2rem; border: 1px solid #334155; border-radius: 16px; background: #1e293b;">
+      <h1 style="margin-top: 0;">Accès Expert</h1>
+      <p style="color: #94a3b8;">
+        La section Expert du parcours est protégée. Saisis ton email — tu recevras un lien magique.
+      </p>
+
+      {local && (
+        <div class="cm-explanation cm-explanation-correct" style="margin-bottom: 1.25rem;">
+          <strong>Mode local.</strong> L'auth est désactivée : <code>dev@local</code> est reconnu comme Expert.
+          <br />
+          <a href={returnTo} style="color: #a5b4fc;">→ Continuer vers {returnTo}</a>
+        </div>
+      )}
+
+      {error && (
+        <div class="cm-explanation cm-explanation-wrong" style="margin-bottom: 1rem;">
+          {error}
+        </div>
+      )}
+
+      {sent && (
+        <div class="cm-explanation cm-explanation-correct" style="margin-bottom: 1rem;">
+          Lien envoyé. Vérifie ta boîte mail.
+        </div>
+      )}
+
+      {!local && !sent && (
+        <form method="POST" action="/api/auth/magic-link">
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <label for="email" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="toi@domaine.com"
+            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; margin-bottom: 1rem;"
+          />
+          <button type="submit" class="cm-button cm-button-primary" style="width: 100%;">
+            Envoyer le lien magique
+          </button>
+        </form>
+      )}
+    </main>
+  </body>
+</html>

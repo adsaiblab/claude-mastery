@@ -1,0 +1,13 @@
+---
+title: Sandboxing
+description: Isoler Claude — Docker, FS restrictions, network policies, timeouts.
+sidebar:
+  order: 5
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+<Planned session="5" blocs={["Bloc 21 — Sandboxing"]}>
+  Image Docker officielle `anthropic/claude-code`, bind mounts read-only, user non-root, network policies (egress restreint à `api.anthropic.com`), `--dangerously-skip-permissions` + containerisation, limites cgroups (CPU/RAM), timeouts de session, secrets via env vs vaults, audit logging.
+</Planned>

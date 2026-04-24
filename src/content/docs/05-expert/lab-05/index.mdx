@@ -1,0 +1,34 @@
+---
+title: Lab 05 — Co-work sur projet réel
+description: Exécuter UltraPlan → UltraReview → Implement → Judge sur un module existant.
+sidebar:
+  order: 6
+  badge:
+    text: Lab
+    variant: tip
+draft: false
+---
+
+import Planned from '../../../../components/Planned.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~120 min** · Scripts dans [`labs/lab-05-cowork/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-05-cowork)
+
+<LabProgress
+  client:only="react"
+  labId="lab-05-cowork"
+  title="Lab 05 — Checklist"
+  steps={[
+    { id: 'baseline', label: 'Choisir un module + produire une version one-shot (baseline)' },
+    { id: 'ultraplan', label: 'Exécuter UltraPlan (subagent dédié, plan.md versionné)' },
+    { id: 'ultrareview', label: 'Exécuter UltraReview (challenger le plan, itérer)' },
+    { id: 'implement', label: 'Implementer via subagent avec plan figé' },
+    { id: 'judge', label: 'Juger les deux versions sur 5 critères + score' },
+    { id: 'compare', label: 'Produire diff.md comparant baseline vs cycle complet' },
+    { id: 'validate', label: 'validate.sh — artefacts présents + score cycle > baseline', hint: 'bash labs/lab-05-cowork/validate.sh' },
+  ]}
+/>
+
+<Planned session="6" blocs={["Bloc 24-27"]}>
+  Énoncé complet, starter avec module exemple, grille de jugement, 3 hints, solution commentée (version Expert seulement avec exemple FinaCES réel).
+</Planned>

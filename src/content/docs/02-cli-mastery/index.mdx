@@ -1,0 +1,28 @@
+---
+title: Niveau 2 — CLI Mastery
+description: Devenir fluent — slash commands, flags, checkpointing, hooks, permission modes, sessions.
+sidebar:
+  order: 1
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+> Durée estimée : **3h** · 6 modules + 1 lab
+
+Maintenant que tu comprends comment Claude pense, on devient rapide avec **les outils du terminal**. L'objectif : réduire la friction entre ton intention et l'exécution à zéro.
+
+## Modules
+
+1. **CLI flags** — flip-cards interactives pour toutes les flags.
+2. **Slash commands** — les 60+ commandes disponibles en session.
+3. **Checkpointing** — scénario de désastre → rewind menu.
+4. **Hooks** — command / http / prompt / agent, exit codes, matchers.
+5. **Permission modes** — default, acceptEdits, plan, auto, bypass.
+6. **Sessions avancées** — continue, resume, fork, naming, tags.
+
+## Lab 02 — Hooks pipeline
+
+Créer un hook qui auto-formate après chaque édition ET bloque les `git push` directs sur `main`. Validation avec `validate.sh` qui injecte un faux `tool_input` pour tester les deux branches.
+
+<Planned session="3" blocs={["Blocs 9-11, 17-19"]} />

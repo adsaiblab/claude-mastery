@@ -1,0 +1,17 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@lib/*": ["src/lib/*"],
+      "@styles/*": ["src/styles/*"],
+      "@data/*": ["src/data/*"]
+    },
+    "types": ["@astrojs/starlight/types"]
+  },
+  "include": ["src/**/*", ".astro/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

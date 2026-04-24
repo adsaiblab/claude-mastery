@@ -1,0 +1,34 @@
+---
+title: Lab 04 — Claude in CI
+description: GitHub Action qui review chaque PR, commente, et bloque le merge si score trop bas.
+sidebar:
+  order: 8
+  badge:
+    text: Lab
+    variant: tip
+draft: false
+---
+
+import Planned from '../../../../components/Planned.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~75 min** · Scripts dans [`labs/lab-04-ci/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-04-ci)
+
+<LabProgress
+  client:only="react"
+  labId="lab-04-ci"
+  title="Lab 04 — Checklist"
+  steps={[
+    { id: 'secret', label: 'Configurer ANTHROPIC_API_KEY dans les secrets du repo' },
+    { id: 'workflow', label: 'Créer .github/workflows/claude-review.yml (trigger pull_request)' },
+    { id: 'prompt', label: 'Écrire prompt de review structuré (score 0-10 + commentaires ligne)' },
+    { id: 'comment', label: 'Poster un commentaire de PR formaté avec le résultat' },
+    { id: 'gate', label: 'Bloquer le merge si score < 7 (exit 1 + required check)' },
+    { id: 'dry-run', label: 'Tester sur une PR de démo (act ou PR réelle)', hint: 'act pull_request -W .github/workflows/claude-review.yml' },
+    { id: 'validate', label: 'validate.sh — YAML lint + simulation OK', hint: 'bash labs/lab-04-ci/validate.sh' },
+  ]}
+/>
+
+<Planned session="5" blocs={["Bloc 18 — GitHub Actions"]}>
+  Énoncé complet, starter avec `claude-review.yml` incomplet + PR de démo, 3 hints, solution commentée.
+</Planned>

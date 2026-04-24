@@ -1,0 +1,33 @@
+---
+title: Lab 02 — Hooks pipeline
+description: Crée un hook PostToolUse qui auto-formate + un hook PreToolUse qui bloque les git push sur main.
+sidebar:
+  order: 8
+  badge:
+    text: Lab
+    variant: tip
+draft: false
+---
+
+import Planned from '../../../../components/Planned.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~60 min** · Scripts dans [`labs/lab-02-hooks/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-02-hooks)
+
+<LabProgress
+  client:only="react"
+  labId="lab-02-hooks"
+  title="Lab 02 — Checklist"
+  steps={[
+    { id: 'settings', label: 'Définir PreToolUse et PostToolUse dans .claude/settings.json' },
+    { id: 'script', label: 'Créer .claude/hooks/validate-push.sh (executable)' },
+    { id: 'block-main', label: 'Bloquer les git push sur main (exit 2 + stderr explicite)' },
+    { id: 'allow-feature', label: 'Laisser passer les git push sur feature/*' },
+    { id: 'format', label: 'Auto-formater après Edit/Write (prettier ou black selon extension)' },
+    { id: 'validate', label: 'Exécuter validate.sh — les 2 scénarios passent', hint: 'bash labs/lab-02-hooks/validate.sh' },
+  ]}
+/>
+
+<Planned session="3" blocs={["Bloc 11 — Hooks", "Bloc 17 — Hooks référence"]}>
+  Énoncé complet, starter/ avec `settings.json` incomplet, 3 hints, solution commentée. Le `validate.sh` ci-dessus (inspiré Doc A lignes 546-615) est déjà scaffolded.
+</Planned>

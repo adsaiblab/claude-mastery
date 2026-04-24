@@ -1,0 +1,48 @@
+{
+  "$schema": "https://coolify.io/schemas/app.schema.json",
+  "name": "claude-mastery",
+  "description": "Claude Code Mastery Path — Astro SSR + Supabase self-hosted",
+  "buildPack": "dockerfile",
+  "dockerfilePath": "./Dockerfile",
+  "dockerComposePath": "./docker-compose.yml",
+  "ports": [
+    {
+      "container": 4321,
+      "host": 4321,
+      "protocol": "tcp"
+    }
+  ],
+  "healthcheck": {
+    "path": "/",
+    "port": 4321,
+    "interval": 30,
+    "timeout": 5,
+    "retries": 3,
+    "startPeriod": 20
+  },
+  "env": {
+    "required": [
+      "PUBLIC_ENV",
+      "PUBLIC_SITE_URL",
+      "PUBLIC_SUPABASE_URL",
+      "PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "EXPERT_USER_EMAILS"
+    ],
+    "optional": [
+      "PUBLIC_APP_VERSION"
+    ]
+  },
+  "resources": {
+    "cpu": "0.5",
+    "memory": "512Mi"
+  },
+  "notes": [
+    "PUBLIC_ENV doit être 'production' en prod (swap l'adapter DB vers Supabase).",
+    "PUBLIC_SITE_URL est l'URL canonique utilisée pour les redirects d'auth magic-link.",
+    "SUPABASE_SERVICE_ROLE_KEY est secret — ne jamais l'exposer au client.",
+    "EXPERT_USER_EMAILS est une liste séparée par virgules (ex: moi@dom.com,co@dom.com).",
+    "Supabase doit déjà tourner sur le même Coolify via stack supabase self-hosted.",
+    "Migrations DB à jouer séparément via psql ou supabase CLI (cf. supabase/migrations/0001_init.sql)."
+  ]
+}

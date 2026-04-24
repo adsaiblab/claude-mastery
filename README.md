@@ -1,0 +1,95 @@
+# Claude Code Mastery Path
+
+Plateforme d'auto-formation modulaire sur l'écosystème Claude — 5 niveaux progressifs, labs interactifs, quiz, flashcards.
+
+Stack : **Astro 5 SSR** + **Starlight** + **React 19** + **Tailwind** + **Supabase** (self-hosted en prod, JSON local en dev).
+
+## Setup local (mode dev)
+
+```bash
+cp .env.example .env          # PUBLIC_ENV=local — tout fonctionne sans Supabase
+npm install
+npm run dev                    # → http://localhost:4321
+```
+
+En mode `local` :
+- La DB est un fichier JSON (`src/data/progress.json`), écrit avec un mutex.
+- L'auth est stubée : tu es reconnu comme `dev@local` et tu as accès à la section Expert.
+
+## Modes
+
+| `PUBLIC_ENV` | DB adapter | Auth |
+|--------------|------------|------|
+| `local` (défaut dev) | `src/data/progress.json` | stub `dev@local`, Expert auto |
+| `production` | Supabase (client `@supabase/supabase-js`) | magic link + Supabase Auth |
+
+L'abstraction est dans [`src/lib/db.ts`](src/lib/db.ts) — un seul import, swap transparent.
+
+## Architecture
+
+```
+claude-mastery/
+├── src/
+│   ├── content/docs/           # MDX — 5 niveaux + référence + patterns
+│   ├── components/             # Astro (Header, Footer, Planned, Situation)
+│   │   └── interactive/        # React (Quiz, FlipCard, LabProgress, …)
+│   ├── lib/                    # db.ts, auth.ts, storage.ts, types.ts
+│   ├── middleware/             # auth + expert gate
+│   ├── pages/                  # login, /api/auth/*
+│   ├── data/progress.json      # DB locale (gitignore)
+│   └── styles/                 # custom.css + tailwind.css
+├── supabase/migrations/        # 0001_init.sql (RLS + policies)
+├── labs/                       # 5 labs, chacun avec setup.sh + validate.sh
+├── Dockerfile                  # Multi-stage Node 20 (deps → build → runner)
+├── docker-compose.yml
+└── .coolify/                   # Config deploy Coolify
+```
+
+## Scripts
+
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Serveur de dev (port 4321) |
+| `npm run build` | `astro check && astro build` |
+| `npm run preview` | Preview du build SSR |
+| `npm run typecheck` | `astro check` uniquement |
+| `npm run labs:validate` | Lance tous les `validate.sh` |
+
+## Labs
+
+Chaque lab est auto-contenu :
+
+```bash
+cd labs/lab-02-hooks
+./setup.sh         # clone starter/ dans work/
+# … travaille dans work/ …
+./validate.sh      # sortie colorée binaire (✓ / ✗)
+```
+
+Structure détaillée : [`labs/README.md`](labs/README.md).
+
+## Déploiement
+
+Voir [`.coolify/README.md`](.coolify/README.md). Résumé :
+
+1. Stack Supabase self-hosted déjà up sur le Coolify.
+2. Nouvelle Application → Dockerfile build → port 4321.
+3. Env vars depuis `.env.example` (valeurs prod).
+4. `psql -f supabase/migrations/0001_init.sql`.
+
+## Contenu — état d'avancement
+
+La plateforme est livrée en **6 sessions**. À chaque session, du contenu passe de "Planned" à "Completed".
+
+- **Session 1** ✓ — Infra + composants React + auth + DB adapter.
+- **Session 2** — Orientation (00) + splash + flashcards + quiz scoré.
+- **Session 3** — Fondations (01) + CLI Mastery (02) + Lab 01, 02.
+- **Session 4** — Multi-agents (03) + référence + patterns + Lab 03.
+- **Session 5** — Production (04) + Lab 04.
+- **Session 6** — Expert (05) + Lab 05 + polish.
+
+Les pages non encore écrites affichent un bloc `<Planned>` explicite — pas de placeholders silencieux.
+
+## Licence
+
+Usage personnel. Tout contenu issu des docs publiques Anthropic est référencé — toute section `⚠️ À vérifier` signale un point potentiellement post-cutoff à valider en live.

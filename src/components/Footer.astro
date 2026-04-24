@@ -1,0 +1,29 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+const year = new Date().getFullYear();
+const version = import.meta.env.PUBLIC_APP_VERSION ?? '0.1.0';
+---
+
+<Default {...(Astro.props as any)}><slot /></Default>
+
+<footer class="cm-footer">
+  <div>
+    <strong>Claude Code Mastery Path</strong> · v{version} · © {year}
+  </div>
+  <div style="opacity: 0.6;">
+    Contenu pédagogique indépendant. Claude® est une marque d'Anthropic.
+  </div>
+</footer>
+
+<style>
+  .cm-footer {
+    margin-top: 3rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+</style>

@@ -1,0 +1,35 @@
+---
+title: Lab 03 — Pipeline multi-agent
+description: Enchaîner Explorer → Planner → Implementer → Tester → Judge via subagents.
+sidebar:
+  order: 8
+  badge:
+    text: Lab
+    variant: tip
+draft: false
+---
+
+import Planned from '../../../../components/Planned.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~90 min** · Scripts dans [`labs/lab-03-pipeline/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-03-pipeline)
+
+<LabProgress
+  client:only="react"
+  labId="lab-03-pipeline"
+  title="Lab 03 — Checklist"
+  steps={[
+    { id: 'explorer', label: 'Créer subagent explorer.md (tools: Read, Grep, Glob)' },
+    { id: 'planner', label: 'Créer subagent planner.md (output: plan.md structuré)' },
+    { id: 'implementer', label: 'Créer subagent implementer.md (tools: Edit, Write, Bash)' },
+    { id: 'tester', label: 'Créer subagent tester.md (lance tests + reporte)' },
+    { id: 'judge', label: 'Créer subagent judge.md (score qualité 0-10 + verdict pass/fail)' },
+    { id: 'hook-stop', label: 'Hook Stop qui relance le pipeline si judge score < 7' },
+    { id: 'orchestration', label: 'Slash-command /pipeline qui chaine les 5 subagents' },
+    { id: 'validate', label: 'validate.sh — pipeline complet passe sur repo exemple', hint: 'bash labs/lab-03-pipeline/validate.sh' },
+  ]}
+/>
+
+<Planned session="4" blocs={["Bloc 12 — Subagents", "Bloc 13 — Agent Teams", "Bloc 11 — Hooks"]}>
+  Énoncé complet, starter avec 5 fichiers `.claude/agents/*.md` incomplets, 3 hints, solution commentée. Hook `Stop` inspiré Doc A §"Qualité via Judge".
+</Planned>

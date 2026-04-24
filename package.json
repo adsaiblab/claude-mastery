@@ -1,0 +1,48 @@
+{
+  "name": "claude-mastery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code Mastery Path — parcours d'autoformation modulaire",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "build:nocheck": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check",
+    "lint": "eslint \"src/**/*.{ts,tsx,astro}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,astro,mdx,css}\"",
+    "labs:validate": "bash scripts/validate-all-labs.sh",
+    "db:seed": "node scripts/seed-local-db.mjs"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/mdx": "^4.0.3",
+    "@astrojs/node": "^9.5.5",
+    "@astrojs/react": "^4.1.2",
+    "@astrojs/starlight": "^0.30.3",
+    "@astrojs/starlight-tailwind": "^3.0.0",
+    "@astrojs/tailwind": "^5.1.4",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "astro": "^5.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "prettier": "^3.4.2",
+    "prettier-plugin-astro": "^0.14.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

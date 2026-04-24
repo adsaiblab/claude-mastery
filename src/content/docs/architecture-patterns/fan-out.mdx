@@ -1,0 +1,13 @@
+---
+title: Pattern — Fan-out / Fan-in
+description: Paralléliser N subagents sur des sous-tâches indépendantes puis agréger.
+sidebar:
+  order: 2
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
+  Diagramme, cas d'usage (explorer N dossiers, analyser N PRs, tester N modules), implémentation : orchestrateur qui lance subagents avec `background: true` puis consomme leurs résultats. Pièges : ordonnancement des résultats, gestion des échecs partiels, coût linéaire en tokens.
+</Planned>

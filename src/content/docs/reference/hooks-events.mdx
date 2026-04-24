@@ -1,0 +1,13 @@
+---
+title: Référence — Hooks & événements
+description: Tous les événements de hook, payload, codes de retour.
+sidebar:
+  order: 4
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+<Planned session="3" blocs={["Bloc 11 — Hooks", "Bloc 17 — Hooks référence"]}>
+  Liste des événements : `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop`, `PreCompact`, `SessionStart`. Payload JSON par événement (stdin), codes de retour (exit 0 = OK, exit 2 = blocage + stderr renvoyé à Claude, autre = warning), matcher patterns (`tool_name`, `tool_input.file_path` regex), scoping user/project.
+</Planned>

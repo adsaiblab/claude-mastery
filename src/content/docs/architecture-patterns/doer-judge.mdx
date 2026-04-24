@@ -1,0 +1,13 @@
+---
+title: Pattern — Doer / Judge
+description: Un agent exécute, un autre évalue et boucle si la qualité n'est pas atteinte.
+sidebar:
+  order: 1
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
+  Diagramme, cas d'usage (tests, review, refactor), implémentation : subagent `doer` + subagent `judge` + hook `Stop` qui relance si verdict < seuil. Pièges : boucle infinie (cap `maxIterations`), dérive du prompt entre itérations, coût tokens.
+</Planned>

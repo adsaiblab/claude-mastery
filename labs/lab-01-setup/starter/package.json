@@ -1,0 +1,10 @@
+{
+  "name": "lab-01-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js",
+    "test": "node --test src/*.test.js"
+  }
+}

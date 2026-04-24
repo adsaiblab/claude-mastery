@@ -1,0 +1,15 @@
+name: Claude PR Review
+
+# TODO : trigger, jobs, permissions, étapes
+# - trigger : pull_request (opened, synchronize)
+# - secret : ANTHROPIC_API_KEY
+# - output : commentaire sur la PR
+# - gate : exit 1 si score < 7
+on:
+  workflow_dispatch:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO — à compléter"

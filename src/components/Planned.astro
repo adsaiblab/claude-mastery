@@ -1,0 +1,79 @@
+---
+/**
+ * Bloc "Planifié" — marque explicite pour le contenu qui arrive dans
+ * une session ultérieure. Ne JAMAIS afficher une page totalement vide :
+ * ce composant explique au visiteur l'état exact et pointe les sources
+ * Doc B depuis lesquelles le module sera rédigé.
+ *
+ * Usage MDX :
+ *   <Planned session="3" blocs={["Bloc 12 — Subagents", "Bloc 13 — Agent Teams"]}>
+ *     Ce module couvrira la délégation entre agents.
+ *   </Planned>
+ */
+interface Props {
+  session: string | number;
+  blocs?: string[];
+}
+const { session, blocs = [] } = Astro.props;
+---
+
+<aside class="cm-planned" role="note" aria-label={`Planifié pour Session ${session}`}>
+  <div class="cm-planned-header">
+    <span class="cm-planned-badge">Session {session}</span>
+    <span>En construction</span>
+  </div>
+  <div class="cm-planned-body">
+    <slot />
+    {blocs.length > 0 && (
+      <>
+        <p class="cm-planned-sources-label">Sources Doc B :</p>
+        <ul class="cm-planned-sources">
+          {blocs.map((b) => <li>{b}</li>)}
+        </ul>
+      </>
+    )}
+  </div>
+</aside>
+
+<style>
+  .cm-planned {
+    border: 1px dashed var(--sl-color-accent);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    background: color-mix(in srgb, var(--sl-color-accent) 6%, transparent);
+  }
+  .cm-planned-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+  }
+  .cm-planned-badge {
+    background: var(--sl-color-accent);
+    color: white;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+  }
+  .cm-planned-body :global(p:first-child) {
+    margin-top: 0;
+  }
+  .cm-planned-sources-label {
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+  .cm-planned-sources {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+  }
+</style>

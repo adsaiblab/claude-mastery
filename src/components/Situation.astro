@@ -1,0 +1,21 @@
+---
+/**
+ * Bloc "Situation" — introduit chaque module par un scénario concret
+ * et émotionnel avant le concept. Voir pattern invariant du Doc A §"Design pédagogique".
+ *
+ * Usage MDX :
+ *   <Situation>
+ *     Tu travailles sur un refactoring de 15 fichiers. À mi-parcours, Claude fait une erreur.
+ *     Tu veux revenir en arrière sans tout recommencer.
+ *   </Situation>
+ */
+interface Props {
+  label?: string;
+}
+const { label = 'Situation' } = Astro.props;
+---
+
+<aside class="situation-block" role="note" aria-label={label}>
+  <span class="situation-label">{label}</span>
+  <slot />
+</aside>

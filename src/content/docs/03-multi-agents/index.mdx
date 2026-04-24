@@ -1,0 +1,28 @@
+---
+title: Niveau 3 — Multi-agents
+description: Subagents, agent teams, skills, MCP, plugins — penser en équipe d'agents.
+sidebar:
+  order: 1
+draft: false
+---
+
+import Planned from '../../../components/Planned.astro';
+
+> Durée estimée : **3h** · 6 modules + 1 lab
+
+Un seul agent atteint vite ses limites : context qui sature, tâches séquentielles, coût en tokens. Ce niveau te fait passer **du "Claude, fais X" au "voici mon équipe, répartissez-vous"**.
+
+## Modules
+
+1. **Subagents** — workers isolés, 5 scopes, frontmatter complet.
+2. **Agent Teams** — sessions coordonnées, split-panes, SendMessage.
+3. **Skills** — compétences chargées à la demande (custom + bundlés).
+4. **MCP** — connecter des serveurs d'outils externes.
+5. **Plugins** — marketplace, installation, création.
+6. **Challenge Architecture** — 3 scénarios → concevoir le bon pattern.
+
+## Lab 03 — Pipeline multi-agent
+
+Enchaîner **Explorer → Planner → Implementer → Tester → Judge** via subagents, avec un hook `Stop` qui bloque si la qualité n'est pas atteinte.
+
+<Planned session="4" blocs={["Blocs 12-13"]} />
