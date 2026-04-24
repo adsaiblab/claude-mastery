@@ -6,8 +6,174 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="4" blocs={["Bloc 12-16 — synthèse"]}>
-  3 scénarios avec contraintes (équipe, volume, latence, sécurité) → composant `<ArchitectureChallenge>` avec approches comparées. Scénarios prévus : (1) pipeline QA sur PR GitHub, (2) synthèse quotidienne multi-projets, (3) refactoring large codebase > context window.
-</Planned>
+<Situation>
+  Tu as 5 mécanismes en main : **subagent, agent team, skill, MCP, hook, plugin**.
+  Toutes les briques se ressemblent dans leur promesse — "ça étend Claude". Mais
+  choisir la mauvaise brique coûte cher : architecture fragile, context gâché,
+  collègues qui comprennent pas. Ce module te donne la grille de décision et
+  3 scénarios à trancher.
+</Situation>
+
+## La grille — quelle brique pour quoi
+
+| Besoin | Bonne brique | Pourquoi |
+|--------|-------------|----------|
+| Déléguer une recherche isolée qui rend une synthèse | **Subagent** | Context isolé, prompt autoportant |
+| Faire plusieurs streams de travail en parallèle | **Agent team** | Vraies sessions persistantes |
+| Charger du savoir seulement quand pertinent | **Skill** | À la demande, peu coûteux en context |
+| Connecter un système externe comme un tool | **MCP** | Tools typés, pas de parsing stdout |
+| Exécuter une règle déterministe sur un événement | **Hook** | Code, pas prompt — toujours appliqué |
+| Packager plusieurs de ces briques + versionner | **Plugin** | Distribution, update, sécurité |
+
+**Règle mnémotechnique** :
+
+- Question ouverte → **subagent**
+- Parallélisme humain-visible → **team**
+- Savoir conditionnel → **skill**
+- Système externe → **MCP**
+- Garde-fou sur événement → **hook**
+- Partage d'équipe → **plugin**
+
+## Arbre de décision
+
+```
+Je veux …
+│
+├─ … exécuter du code automatiquement à un moment précis
+│    → Hook (PreToolUse / PostToolUse / SessionStart / Stop)
+│
+├─ … connecter un système externe (GitHub, DB, Slack…)
+│    → MCP server
+│
+├─ … donner à Claude du savoir conditionnel
+│    ├─ Utilisé tout le temps → CLAUDE.md (pas un skill)
+│    └─ Utilisé parfois       → Skill
+│
+├─ … déléguer une sous-tâche bornée
+│    → Subagent
+│
+├─ … faire travailler plusieurs streams en parallèle avec vrais terminaux
+│    → Agent team
+│
+└─ … distribuer un ensemble à mon équipe / à la communauté
+     → Plugin qui bundle le tout
+```
+
+## Scénario 1 — Pipeline QA sur chaque PR GitHub
+
+**Contexte** : ton équipe veut qu'à chaque PR ouverte, un agent fasse une review automatique, commente les problèmes, et approuve si tout va bien.
+
+**Contraintes** :
+
+- Headless (GitHub Actions, pas d'humain).
+- Doit créer un commentaire de review sur GitHub.
+- Doit échouer le CI si score < 7.
+
+<Quiz
+  client:visible
+  id="challenge-1"
+  question="Quelle architecture choisis-tu ?"
+  options={[
+    { text: "Un subagent `reviewer` lancé par une simple ligne Bash dans l'Action.", correct: false, explanation: "Il faut aussi le MCP GitHub pour poster le commentaire, et un mécanisme qui fait échouer le CI. Un plugin packaged est plus propre." },
+    { text: "Un plugin `qa-pipeline` qui bundle : subagent `reviewer`, MCP `server-github` pour poster, hook `Stop` qui exit 2 si score < 7, slash-command `/qa`.", correct: true, explanation: "Exact. Le plugin packe toutes les briques, versionné dans le repo, installable en une commande par l'Action. C'est le cas type où un plugin apporte de la valeur." },
+    { text: "Un agent team avec 3 teammates.", correct: false, explanation: "Agent team = humain aux commandes. En CI, tu veux un pipeline déterministe sans interaction." },
+    { text: "Un skill `qa` qui décrit les règles de review.", correct: false, explanation: "Un skill décrit quoi faire mais n'orchestre pas le pipeline. Tu as besoin d'un bundle." }
+  ]}
+/>
+
+## Scénario 2 — Synthèse quotidienne multi-projets
+
+**Contexte** : chaque matin tu veux une synthèse de ce qui s'est passé sur 4 repos différents + tickets Linear + messages Slack du channel `#incidents`.
+
+**Contraintes** :
+
+- Doit s'exécuter automatiquement tous les matins à 8h.
+- Doit finir en < 5 minutes.
+- Tu veux le résultat dans ton inbox (email ou Slack DM).
+
+<Quiz
+  client:visible
+  id="challenge-2"
+  question="Quelle architecture choisis-tu ?"
+  options={[
+    { text: "Un cron qui lance `claude --headless` avec un prompt figé, des MCP servers (`github`, `linear`, `slack`) activés, et un subagent `summarizer` par repo lancé en parallèle.", correct: true, explanation: "Exact. Tu parallélises avec des subagents (un par repo, context isolé), MCP pour les 3 systèmes, headless pour le cron. L'email final est posté via MCP Slack ou un script wrapper." },
+    { text: "Un agent team avec un teammate par repo.", correct: false, explanation: "Un team nécessite que tu sois humain aux commandes. Pour un cron, tu veux du headless." },
+    { text: "Un plugin `daily-digest`.", correct: false, explanation: "Tu pourrais packager ce workflow en plugin, mais le plugin ne remplace pas le cron qui le déclenche. Le plugin viendrait en sus, pas à la place." },
+    { text: "Un hook `SessionStart` qui fait la synthèse.", correct: false, explanation: "Un hook démarre quand toi tu ouvres une session — pas le matin à 8h sans toi. Cron est le déclencheur juste." }
+  ]}
+/>
+
+## Scénario 3 — Refactoring qui dépasse le context window
+
+**Contexte** : tu veux refactorer 80 fichiers pour migrer d'une lib à une autre. Le repo entier fait 250k tokens — impossible à tenir en un context.
+
+**Contraintes** :
+
+- Tu veux garder une vue d'ensemble de la migration.
+- Chaque fichier doit être traité de façon cohérente avec le plan.
+- Tu veux pouvoir reprendre si interrompu.
+
+<Quiz
+  client:visible
+  id="challenge-3"
+  question="Quelle architecture choisis-tu ?"
+  options={[
+    { text: "Un seul Claude en --continue qui avance fichier par fichier.", correct: false, explanation: "Context sature vers le 20ᵉ fichier. Tu perds la cohérence du plan. Classique raté." },
+    { text: "Main principal = planner qui tient la vue d'ensemble et produit un `plan.md` persistant ; subagents `implementer` dispatchés fichier par fichier (context reset à chaque fichier) ; hook `PostToolUse` qui update `progress.md` après chaque fichier.", correct: true, explanation: "Exact. Le main garde le plan, chaque implementer démarre clean sur un fichier, le progress.md sur disque permet de reprendre. C'est le pattern 'orchestrateur + workers' qui scale au-delà du context." },
+    { text: "80 teammates en parallèle.", correct: false, explanation: "Impossible à orchestrer humainement. Et coûteux : 80 contexts à monter." },
+    { text: "Un plugin qui contient 80 agents.", correct: false, explanation: "Un plugin ne résout pas le problème de context. Il packagerait peut-être l'architecture ci-dessus, mais ce n'est pas la brique centrale." }
+  ]}
+/>
+
+## Les pièges d'architecture les plus courants
+
+### Piège A — mettre en hook ce qui devrait être skill
+
+Un hook qui formate du code est légitime. Un hook qui injecte **des instructions** à chaque session devient une règle que personne ne peut désactiver contextuellement. Un skill se charge seulement quand pertinent.
+
+### Piège B — MCP pour tout
+
+Chaque MCP server activé coûte du context (spec des tools). Active seulement ceux nécessaires au projet. Pour un repo doc-only, pas besoin de MCP GitHub.
+
+### Piège C — subagent quand on voulait skill
+
+Un subagent = nouveau Claude lancé. Coûteux. Si tu veux juste "ajouter du savoir à l'agent principal", un skill suffit. Subagent = pour **faire** quelque chose, pas pour **savoir**.
+
+### Piège D — pas de plugin quand ça devient 5+ briques partagées
+
+Tu as 3 agents + 2 hooks + un MCP config utilisés par 4 devs. Continuer à tout copier à la main = divergence en 2 semaines. Plugin = unification.
+
+## Check — récap global
+
+<Quiz
+  client:visible
+  id="architecture-recap-1"
+  scenario="Tu veux qu'à chaque fois que l'utilisateur mentionne 'RFC', Claude charge le template + les règles de ton entreprise."
+  question="Bonne brique ?"
+  options={[
+    { text: "Subagent", correct: false, explanation: "Un subagent exécute une tâche — il ne 'charge pas' dans l'agent principal." },
+    { text: "Skill (description contient 'RFC, design doc, proposal')", correct: true, explanation: "Exact. Le skill se charge automatiquement quand sa description matche, sans que tu tapes une commande." },
+    { text: "Hook UserPromptSubmit qui injecte les règles", correct: false, explanation: "Injecterait à CHAQUE prompt — pas seulement ceux qui mentionnent RFC. Coût context excessif." },
+    { text: "MCP", correct: false, explanation: "MCP = systèmes externes. Un template local n'a rien d'externe." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="architecture-recap-2"
+  scenario="Tu veux interdire les `git push` directs sur main, pour tout le monde dans ton équipe."
+  question="Bonne brique ?"
+  options={[
+    { text: "Règle dans CLAUDE.md", correct: false, explanation: "CLAUDE.md = instruction, pas garde-fou. L'agent pourrait 'oublier'." },
+    { text: "Hook PreToolUse Bash matcher qui exit 2 sur `git push ... main`, versionné dans `.claude/settings.json`", correct: true, explanation: "Exact. Déterministe, partagé via git, ne dépend pas de la vigilance de l'agent. Les règles non-négociables vont dans un hook." },
+    { text: "Skill 'git-safety'", correct: false, explanation: "Un skill décrit une règle mais ne l'applique pas mécaniquement." },
+    { text: "Subagent 'git-guard'", correct: false, explanation: "Un subagent ne tourne pas automatiquement avant chaque Bash — seul un hook le fait." }
+  ]}
+/>
+
+## Prochaine étape
+
+Place au [Lab 03 — Pipeline multi-agent](/03-multi-agents/lab-03/) qui te fait concevoir et livrer une pipeline complète Planner → Implementer → Judge.

@@ -9,10 +9,44 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../../components/Planned.astro';
+import Situation from '../../../../components/Situation.astro';
 import LabProgress from '../../../../components/interactive/LabProgress.tsx';
 
 > **Durée : ~90 min** · Scripts dans [`labs/lab-03-pipeline/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-03-pipeline)
+
+<Situation>
+  Une feature arrive en fin de sprint. Tu veux qu'elle passe par un vrai pipeline
+  qualité : un planner qui cadre, un implementer qui applique, un judge qui relit
+  avant commit — et un **hook Stop qui refuse la fin de tour si la qualité n'est
+  pas atteinte**. Dans ce lab, tu cables cette pipeline de bout en bout.
+</Situation>
+
+## Objectif
+
+Livrer un setup où un prompt utilisateur enclenche automatiquement :
+
+1. **Planner** (subagent, opus) → produit un `plan.md` structuré.
+2. **Implementer** (subagent, sonnet, isolation worktree) → applique le plan.
+3. **Judge** (subagent, opus, read-only) → score 0-10 avec verdict.
+4. **Hook Stop** → si score < 7, renvoie stderr à l'agent avec les concerns, exit 2.
+5. **Slash-command `/pipeline`** → encapsule le tout en une commande unique.
+
+## Démarrer
+
+```bash
+cd labs/lab-03-pipeline
+./setup.sh              # crée work/ avec repo exemple + starter
+cd work/
+```
+
+Tu dois créer :
+
+- `.claude/agents/planner.md`, `implementer.md`, `judge.md`
+- `.claude/commands/pipeline.md` (slash-command custom)
+- `.claude/hooks/quality-gate.sh` (hook Stop)
+- `.claude/settings.json` (déclaration hook + permissions)
+
+## Valider
 
 <LabProgress
   client:only="react"
@@ -30,6 +64,37 @@ import LabProgress from '../../../../components/interactive/LabProgress.tsx';
   ]}
 />
 
-<Planned session="4" blocs={["Bloc 12 — Subagents", "Bloc 13 — Agent Teams", "Bloc 11 — Hooks"]}>
-  Énoncé complet, starter avec 5 fichiers `.claude/agents/*.md` incomplets, 3 hints, solution commentée. Hook `Stop` inspiré Doc A §"Qualité via Judge".
-</Planned>
+```bash
+bash labs/lab-03-pipeline/validate.sh
+```
+
+Le script exécute le scénario complet :
+
+1. Lance `/pipeline "ajoute une fonction `divide(a, b)` avec gestion /0"`.
+2. Vérifie que `plan.md` a été créé et contient les sections attendues.
+3. Vérifie que l'implementer a produit du code dans un worktree isolé.
+4. Force un cas **avec bug volontaire** → le judge doit scorer < 7 → le hook Stop doit renvoyer exit 2.
+5. Re-lance avec fix → score ≥ 7 → exit 0.
+
+## Hints
+
+- [Hint 1 — frontmatter des subagents (name, description, tools, model, isolation)](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-pipeline/hints/hint-01.md)
+- [Hint 2 — structure du plan.md attendu par l'implementer](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-pipeline/hints/hint-02.md)
+- [Hint 3 — parser la sortie du judge en bash pour décider exit 0/2](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-pipeline/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-pipeline/solution/EXPLANATION.md) pour comparer ton découpage des prompts subagents.
+- Bonus : transforme la pipeline en **plugin** `doer-judge` installable (`claude plugin install ./`).
+
+## Ce qu'on vérifie vraiment
+
+1. Les 3 fichiers `.claude/agents/*.md` existent avec frontmatter `name/description/tools/model` valides.
+2. `planner.md` a `tools: Read, Grep, Glob` (pas d'écriture).
+3. `judge.md` a `tools: Read, Grep` (strictement read-only) + `model: opus`.
+4. `implementer.md` a `isolation: worktree`.
+5. `.claude/commands/pipeline.md` existe et enchaîne les 3 subagents dans l'ordre.
+6. `.claude/hooks/quality-gate.sh` est **exécutable** et déclaré sur l'événement `Stop`.
+7. Quand le judge retourne un score < 7, le hook **exit 2** avec stderr listant les concerns.
+8. Quand le score ≥ 7, le hook **exit 0** sans interrompre.
+9. Pas de secret dans `.claude/settings.json`.

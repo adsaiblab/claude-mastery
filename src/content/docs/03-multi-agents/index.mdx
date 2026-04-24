@@ -6,23 +6,35 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
 
 > Durée estimée : **3h** · 6 modules + 1 lab
 
-Un seul agent atteint vite ses limites : context qui sature, tâches séquentielles, coût en tokens. Ce niveau te fait passer **du "Claude, fais X" au "voici mon équipe, répartissez-vous"**.
+<Situation>
+  Un seul agent atteint vite ses limites : context qui sature, tâches séquentielles,
+  coût en tokens sur des missions longues. Ce niveau te fait passer **du "Claude,
+  fais X" au "voici mon équipe, répartissez-vous"**. Tu vas apprendre à déléguer,
+  paralléliser, connecter des systèmes externes, et packager le tout pour ton équipe.
+</Situation>
 
 ## Modules
 
-1. **Subagents** — workers isolés, 5 scopes, frontmatter complet.
-2. **Agent Teams** — sessions coordonnées, split-panes, SendMessage.
-3. **Skills** — compétences chargées à la demande (custom + bundlés).
-4. **MCP** — connecter des serveurs d'outils externes.
-5. **Plugins** — marketplace, installation, création.
-6. **Challenge Architecture** — 3 scénarios → concevoir le bon pattern.
+1. [**Subagents**](/03-multi-agents/subagents/) — workers isolés, 5 scopes, frontmatter complet.
+2. [**Agent Teams**](/03-multi-agents/agent-teams/) — sessions coordonnées, split-panes, SendMessage.
+3. [**Skills**](/03-multi-agents/skills/) — compétences chargées à la demande (custom + bundlés).
+4. [**MCP**](/03-multi-agents/mcp/) — connecter des serveurs d'outils externes.
+5. [**Plugins**](/03-multi-agents/plugins/) — marketplace, installation, création.
+6. [**Challenge Architecture**](/03-multi-agents/challenge-architecture/) — 3 scénarios → concevoir le bon pattern.
 
 ## Lab 03 — Pipeline multi-agent
 
-Enchaîner **Explorer → Planner → Implementer → Tester → Judge** via subagents, avec un hook `Stop` qui bloque si la qualité n'est pas atteinte.
+Enchaîner **Planner → Implementer → Judge** via subagents, avec un hook `Stop` qui bloque si la qualité n'est pas atteinte → [Lab 03](/03-multi-agents/lab-03/).
 
-<Planned session="4" blocs={["Blocs 12-13"]} />
+## Après ce niveau
+
+Tu sauras :
+
+- Décomposer un problème en subagents spécialisés plutôt que tout entasser dans le main.
+- Paralléliser via agent teams quand plusieurs streams de travail coexistent.
+- Utiliser skills/MCP/plugins pour étendre Claude proprement.
+- Choisir **la bonne brique** pour chaque besoin (grille et arbre de décision).

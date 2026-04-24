@@ -1,13 +1,257 @@
 ---
 title: Plugins
-description: Marketplace Claude Code — installation, création, distribution de bundles.
+description: Marketplace Claude Code — installation, création, distribution de bundles agents + skills + hooks.
 sidebar:
   order: 6
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="4" blocs={["Bloc 16 — Plugins"]}>
-  Structure d'un plugin (`.claude-plugin/plugin.json`, agents/, skills/, commands/, hooks/), `claude plugin install <name>`, marketplace officiel vs marketplaces tiers, packaging (skills + subagents + slash-commands + hooks ensemble), versioning, sécurité (review du code avant install).
-</Planned>
+<Situation>
+  Tu as mis au point une pipeline `Planner + Implementer + Judge` qui marche bien
+  chez toi. Deux collègues la veulent. Tu pourrais envoyer un zip de
+  `.claude/agents/`, mais demain tu corrigeras un bug dans le judge — comment le
+  propager ? Les **plugins** résolvent ça : un bundle versionné, installable en
+  une commande, mis à jour comme un package npm.
+</Situation>
+
+## Concept — qu'est-ce qu'un plugin
+
+Un plugin Claude Code est un **bundle distribuable** qui peut contenir :
+
+- Des **subagents** (`agents/`)
+- Des **skills** (`skills/`)
+- Des **slash-commands** (`commands/`)
+- Des **hooks** (`hooks/`)
+- Des **serveurs MCP** (déclarés dans `plugin.json`)
+
+C'est la **plus haute unité de partage** dans l'écosystème Claude Code. Un plugin = un mini-écosystème cohérent qu'un utilisateur peut activer ou retirer d'un coup.
+
+## Anatomie
+
+```
+my-plugin/
+├── .claude-plugin/
+│   └── plugin.json            ← manifest
+├── agents/
+│   ├── planner.md
+│   └── judge.md
+├── skills/
+│   └── rfc-template/
+│       └── SKILL.md
+├── commands/
+│   └── pipeline.md
+├── hooks/
+│   └── settings.json
+└── README.md
+```
+
+`plugin.json` minimum :
+
+```json
+{
+  "name": "doer-judge",
+  "version": "1.2.0",
+  "description": "Pipeline Planner + Implementer + Judge avec hook Stop de qualité.",
+  "author": "equipe-dev@example.com",
+  "homepage": "https://github.com/example/doer-judge-plugin",
+  "keywords": ["quality-gate", "multi-agent"],
+  "requires": {
+    "claude-code": ">=2.5.0"
+  }
+}
+```
+
+## Installation — `claude plugin`
+
+```bash
+# Installer depuis le marketplace officiel
+claude plugin install doer-judge
+
+# Installer depuis une URL Git
+claude plugin install https://github.com/example/doer-judge-plugin
+
+# Installer depuis un chemin local (développement)
+claude plugin install ./my-plugin
+
+# Lister les plugins installés
+claude plugin list
+
+# Mettre à jour
+claude plugin update doer-judge
+
+# Désactiver sans désinstaller
+claude plugin disable doer-judge
+
+# Retirer complètement
+claude plugin uninstall doer-judge
+```
+
+Alternativement, la commande interactive `/plugins` dans une session ouvre un TUI avec le marketplace.
+
+## Les 2 marketplaces
+
+| Marketplace | Qui publie | Confiance |
+|-------------|-----------|-----------|
+| **Officiel Anthropic** | Anthropic + partenaires validés | Haute — review manuelle |
+| **Tiers / communautaire** | Tout le monde (ex: GitHub publics) | Variable — review le code toi-même |
+
+**Règle de sécurité** : un plugin **exécute du code** sur ta machine (hooks, scripts MCP). Avant d'installer un plugin tiers, lis au minimum :
+
+- `plugin.json` → quelles permissions sont demandées.
+- `hooks/*.sh` → quels scripts tournent automatiquement.
+- `agents/*.md` → quel `tools:` est autorisé.
+
+## Scope et précédence
+
+Un plugin installé côté user (`~/.claude/plugins/`) s'applique à **tous** tes repos. Les plugins projet (`<repo>/.claude-plugin/plugin.json` ou déclaration dans `.claude/settings.json`) sont versionnés et partagés avec l'équipe.
+
+En cas de conflit de noms (deux plugins fournissent un agent `reviewer`), la précédence est : **projet > user > bundled**.
+
+## Créer un plugin — du local au marketplace
+
+### Étape 1 — scaffolding
+
+```bash
+claude plugin init my-plugin
+cd my-plugin
+# crée .claude-plugin/plugin.json + arborescence type
+```
+
+### Étape 2 — développement
+
+Tu bosses sur `my-plugin/` comme un repo normal. Pour tester chez toi :
+
+```bash
+claude plugin install ./my-plugin --link
+```
+
+`--link` crée un lien symbolique — tes modifs sont actives immédiatement, pas besoin de réinstaller.
+
+### Étape 3 — publication
+
+Deux options :
+
+- **Git public** : pousse sur GitHub. N'importe qui peut faire `claude plugin install https://github.com/toi/my-plugin`.
+- **Marketplace officiel** : soumets via `claude plugin publish`. Ça ouvre une PR au registry officiel avec review Anthropic (24-72h).
+
+## Versioning — SemVer
+
+Les plugins suivent SemVer : `MAJOR.MINOR.PATCH`. La commande `claude plugin update` met à jour en respectant la plage `requires` du user :
+
+```json
+{
+  "plugins": {
+    "doer-judge": "^1.2.0"    // autorise 1.x.x, pas 2.x.x
+  }
+}
+```
+
+**Règle** : un changement qui casse une commande existante → MAJOR. Ajout non-breaking → MINOR. Fix bug → PATCH.
+
+## Sécurité — ce qui change avec un plugin
+
+Sans plugin, ton `.claude/` contient **ton** code. Avec plugin, du **code tiers** tourne :
+
+- Les hooks du plugin exécutent des scripts shell à chaque événement.
+- Les MCP servers déclarés par le plugin ont accès aux tools.
+- Les subagents du plugin peuvent avoir `tools: Edit, Write, Bash`.
+
+**Protections minimales** avant d'installer un plugin tiers :
+
+1. Lire `plugin.json` (permissions demandées).
+2. Grep `hooks/` pour `curl`, `wget`, `rm`, `sudo`.
+3. Vérifier qu'il n'envoie pas de données à un endpoint externe sans raison claire.
+4. Installer d'abord en `user` scope (pas project) pour évaluer.
+
+## Exemples de plugins utiles
+
+| Plugin | Contenu | Usage |
+|--------|---------|-------|
+| `doer-judge` | Planner + Implementer + Judge + hook Stop | Qualité automatique |
+| `rfc-toolkit` | Skill RFC + agent reviewer + `/rfc-new` | Productivité écriture |
+| `ops-pack` | MCP sentry, datadog, pagerduty + agents incident | Bug triage |
+| `data-science` | Skills pandas/jupyter + agent notebook-writer | Analyse de données |
+
+## Démo — créer et tester un plugin minimal
+
+```bash
+mkdir ~/plugins/hello && cd ~/plugins/hello
+cat > .claude-plugin/plugin.json <<EOF
+{
+  "name": "hello",
+  "version": "0.1.0",
+  "description": "Dit bonjour à chaque session.",
+  "author": "toi@example.com"
+}
+EOF
+
+mkdir hooks
+cat > hooks/settings.json <<EOF
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "prompt", "command": "echo 'Salut, on bosse ?'" }] }
+    ]
+  }
+}
+EOF
+
+claude plugin install ~/plugins/hello --link
+claude
+# à l'ouverture de session, "Salut, on bosse ?" est injecté comme message système
+```
+
+## Piège #1 — plugin qui override des hooks système
+
+Un plugin peut définir un hook `PreToolUse` qui bloque tout. Si tu installes à l'aveugle, ton CLI devient inutilisable. **Précaution** : installer d'abord en scope user et tester avec `claude --no-plugins` pour bypasser.
+
+```bash
+claude --no-plugins    # démarre sans aucun plugin, utile pour debug
+```
+
+## Piège #2 — dépendances en chaîne
+
+Un plugin peut en `requires` un autre. À l'installation, tout se télécharge. Pas de limite dure : vérifie `claude plugin list` après install pour voir ce qui a été amené.
+
+## Piège #3 — plugin abandonné
+
+Un plugin tiers peut ne plus être maintenu. Avant d'en adopter un pour ton équipe, regarde :
+
+- Dernier commit (< 6 mois idéalement)
+- Issues ouvertes / fermées
+- Compatibilité avec la version actuelle de Claude Code
+
+## Check
+
+<Quiz
+  client:visible
+  id="plugin-when"
+  scenario="Tu as 3 agents + 2 hooks + 1 MCP config qui marchent bien chez toi, et ton équipe de 5 dev veut en profiter."
+  question="Qu'est-ce qui est le plus adapté ?"
+  options={[
+    { text: "Envoyer un zip de `.claude/` à chacun.", correct: false, explanation: "Pas versionné, pas updatable, divergence garantie dans 2 semaines." },
+    { text: "Packager en plugin avec `plugin.json` puis `claude plugin install` depuis le repo Git commun.", correct: true, explanation: "Exact. Version, update, désactivation — tout ce qui manque à une copie manuelle. Et les collègues restent en phase." },
+    { text: "Committer tout dans leur repo de projet.", correct: false, explanation: "Possible si c'est spécifique au projet, mais un plugin est plus propre pour un ensemble d'agents génériques réutilisables." },
+    { text: "Un subagent unique qui fait les 3.", correct: false, explanation: "Ne packagé ni les hooks ni le MCP, et une soupe monolithique." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="plugin-security"
+  scenario="Un collègue te dit : 'installe ce plugin tiers trouvé sur GitHub, il a un hook qui gère les notifs Slack.'"
+  question="Que vérifies-tu avant `claude plugin install` ?"
+  options={[
+    { text: "Rien, c'est Claude Code qui me protège.", correct: false, explanation: "Claude Code fait tourner le code du plugin — il ne l'audite pas. C'est à toi de vérifier." },
+    { text: "Je lis `plugin.json` (permissions), grep `hooks/` pour les commandes sensibles, je vérifie qu'aucun endpoint externe suspect n'apparaît.", correct: true, explanation: "Exact. Un plugin exécute du code sur ta machine. Review avant install = hygiène minimale." },
+    { text: "Je l'installe mais uniquement en mode plan.", correct: false, explanation: "Le mode plan ne protège pas contre un hook qui exécute un script." },
+    { text: "J'installe et je `/cleanup-team` si ça me plaît pas.", correct: false, explanation: "`/cleanup-team` concerne les teammates, pas les plugins. Et un script malicieux a déjà tourné." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu connais tous les mécanismes : subagents, teams, skills, MCP, plugins. Reste à savoir **lequel dégainer quand** → [Challenge Architecture](/03-multi-agents/challenge-architecture/).

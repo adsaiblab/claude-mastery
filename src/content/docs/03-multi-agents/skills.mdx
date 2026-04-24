@@ -6,8 +6,213 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="4" blocs={["Bloc 14 — Skills"]}>
-  Frontmatter skill (`name`, `description`, `allowed-tools`, `model`), répertoires `~/.claude/skills/` vs `.claude/skills/`, skills bundlés (`pdf-extractor`, `docx-writer`, etc.), invocation automatique vs manuelle via `/skill`, différence skill vs subagent vs slash-command.
-</Planned>
+<Situation>
+  Tu dois régulièrement extraire du texte de PDFs clients, ou générer des fichiers
+  Excel à partir d'analyses, ou parler à une API Stripe. Tu **pourrais** écrire
+  ces instructions dans CLAUDE.md, mais elles ne servent que 5% du temps — et
+  chargées en permanence, elles coûtent du context. Les **skills** résolvent
+  exactement ce cas : **du savoir chargé seulement quand pertinent**.
+</Situation>
+
+## Concept — skill vs subagent vs slash-command
+
+| Mécanisme | Qu'est-ce | Quand utiliser |
+|-----------|-----------|----------------|
+| **Skill** | Bloc de savoir/instructions chargé **automatiquement** quand Claude détecte un besoin | "Quand on manipule des PDFs, utilise ces étapes" |
+| **Subagent** | Worker isolé avec son propre context | Sous-tâche bornée déléguée |
+| **Slash-command** | Commande nommée déclenchée par toi | Action qu'un humain déclenche explicitement |
+
+**Règle** : si c'est **Claude** qui doit décider d'activer la compétence → skill. Si c'est **toi** → slash-command. Si ça doit tourner dans un context isolé → subagent.
+
+## Anatomie d'un skill
+
+Un skill est un dossier avec `SKILL.md` + fichiers optionnels (scripts, templates) :
+
+```
+.claude/skills/pdf-extractor/
+├── SKILL.md                  ← instructions chargées à la demande
+├── extract.py                ← script utilitaire
+└── examples/
+    └── invoice-sample.pdf
+```
+
+Structure de `SKILL.md` :
+
+```markdown
+---
+name: pdf-extractor
+description: Extract structured data from PDF invoices. Use when user asks to parse, read, or analyze PDF content.
+allowed-tools: Read, Bash
+model: sonnet
+---
+
+# PDF Extractor
+
+## When to use
+Utilisateur mentionne PDF, facture, invoice, ou demande d'extraire du texte d'un document.
+
+## Steps
+1. Vérifie que `pdftotext` est installé : `which pdftotext`
+2. Lance `pdftotext -layout <fichier> -` pour stdout
+3. Parse le résultat ligne par ligne
+4. Retourne un JSON `{ invoice_id, date, total, items[] }`
+
+## Example
+...
+```
+
+Le champ **clé** est `description` — c'est ce qui permet à Claude de décider **quand** activer le skill. Une description vague = skill jamais chargé ou chargé de travers.
+
+## Chargement — les 3 règles
+
+1. **À la demande** : au début d'une session, Claude ne charge **que** `SKILL.md` (pas les scripts). Si la description matche, il charge le reste.
+2. **Sur action** : Claude peut aussi lire les scripts au moment d'exécuter.
+3. **Bornage** : `allowed-tools` limite ce que le skill peut faire — pareil qu'un subagent.
+
+## Les 2 scopes
+
+| Scope | Chemin | Usage |
+|-------|--------|-------|
+| **User** | `~/.claude/skills/<name>/SKILL.md` | Tes skills perso |
+| **Project** | `<repo>/.claude/skills/<name>/SKILL.md` | Skills d'équipe versionnés |
+
+Plus les skills **bundlés** Anthropic, chargés automatiquement sans setup : `pdf-extractor`, `docx-writer`, `xlsx-writer`, `image-analyzer`, etc. Tu les vois via :
+
+```
+/skill list
+```
+
+## Invocation — automatique vs manuelle
+
+### Automatique (le cas normal)
+
+Tu poses une question, Claude détecte qu'un skill pertinent existe, le charge :
+
+```
+User : "Extrais le total de facture-2026-03.pdf"
+Claude : [détecte PDF + extract] → charge pdf-extractor
+       → suit les steps de SKILL.md
+```
+
+### Manuelle
+
+Tu forces le chargement :
+
+```
+/skill pdf-extractor
+```
+
+Utile pour : tester un skill en cours d'écriture, ou quand Claude hésite.
+
+## Piège #1 — description trop vague
+
+```markdown
+description: Helps with files.
+```
+
+Claude ne chargera jamais ce skill — trop générique. La description doit contenir les **déclencheurs** (mots-clés, patterns de demande).
+
+```markdown
+description: Extract structured data from PDF invoices. Use when user mentions PDF, invoice, facture, or asks to parse a document.
+```
+
+## Piège #2 — skill-monolithe
+
+Un skill de 600 lignes qui couvre 8 cas d'usage = jamais complètement chargé ou chargé mal. **Préfère plusieurs petits skills** avec des descriptions distinctes.
+
+## Piège #3 — skill qui duplique CLAUDE.md
+
+Si l'info est utilisée **tout le temps**, elle va dans CLAUDE.md. Si elle est utilisée **parfois**, elle va dans un skill. Confondre les deux produit soit du context gâché, soit du savoir jamais activé.
+
+## Skills bundlés Anthropic (Q1 2026)
+
+| Skill | Cas d'usage |
+|-------|-------------|
+| `pdf-extractor` | Extraction de texte et tables de PDFs |
+| `docx-writer` | Génération de fichiers Word |
+| `xlsx-writer` | Tableaux Excel à partir de données |
+| `image-analyzer` | Description, OCR, analyse d'images |
+| `slack-formatter` | Messages Slack avec blocs riches |
+| `sql-formatter` | Format SQL sur plusieurs dialectes |
+
+Ils sont **enabled par défaut**. Désactiver :
+
+```json
+{
+  "skills": {
+    "disabled": ["image-analyzer"]
+  }
+}
+```
+
+## Démo — créer un skill "RFC template"
+
+```
+mkdir -p .claude/skills/rfc-template
+```
+
+`.claude/skills/rfc-template/SKILL.md` :
+
+```markdown
+---
+name: rfc-template
+description: Generate or review an RFC document following the company template. Use when user mentions RFC, design doc, or proposal.
+allowed-tools: Read, Write, Edit
+---
+
+# RFC Template
+
+## Format strict
+# <Title>
+
+## Context
+## Proposal
+## Alternatives considered
+## Risks
+## Rollout plan
+
+## Règles
+- Titre ≤ 80 chars.
+- Section "Alternatives" avec AU MOINS 2 options.
+- Pas de "TL;DR" — la section "Context" sert ce rôle.
+
+## Reviewer mode
+Si l'utilisateur fournit un RFC existant, relis en vérifiant chaque section et liste les manquements.
+```
+
+Désormais, si tu dis « écris-moi une RFC pour migrer vers Postgres 17 », Claude charge le skill et suit le format.
+
+## Check
+
+<Quiz
+  client:visible
+  id="skill-vs-claudemd"
+  scenario="Ton équipe a une convention spécifique pour nommer les migrations SQL (`YYYYMMDD_HHMM__short_desc.sql`). Elle est utilisée à chaque fois qu'on touche à la base, soit ~5% des sessions."
+  question="Où la définis-tu ?"
+  options={[
+    { text: "Dans CLAUDE.md, pour qu'elle soit toujours en context.", correct: false, explanation: "Inutilement coûteux : 95% des sessions n'écrivent pas de migration, la convention prend du context pour rien." },
+    { text: "Dans un skill `sql-migration-naming` avec une description ciblée.", correct: true, explanation: "Exact. Le skill se charge seulement quand la conversation mentionne SQL/migration — context coûteux uniquement quand pertinent." },
+    { text: "Dans un subagent dédié.", correct: false, explanation: "Subagent = contexte isolé pour exécuter une tâche. Ici on a juste une règle de nommage — un skill suffit." },
+    { text: "Dans un slash-command `/migrate`.", correct: false, explanation: "Possible mais exige que le dev pense à taper la commande. Le skill se charge tout seul dès que le sujet vient." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="skill-description"
+  scenario="Tu écris un skill et tu rédiges : `description: Helps with data processing.`"
+  question="Pourquoi ce skill risque de ne jamais être chargé ?"
+  options={[
+    { text: "La description est trop longue.", correct: false, explanation: "Elle est courte — c'est même le problème inverse." },
+    { text: "`data processing` est tellement générique que Claude ne saura jamais quand l'activer.", correct: true, explanation: "Exact. Une description utile contient les **déclencheurs concrets** (mots-clés, types de fichiers, patterns de requête). 'Helps with data processing' ne décrit rien de distinctif." },
+    { text: "Il manque un champ `model`.", correct: false, explanation: "`model` est optionnel." },
+    { text: "Les skills ne peuvent pas décrire du data processing.", correct: false, explanation: "Ils peuvent tout faire — le problème est la vague description, pas le sujet." }
+  ]}
+/>
+
+## Prochaine étape
+
+Les skills donnent du savoir à Claude. Les **MCP servers** lui donnent des **outils externes** → [MCP](/03-multi-agents/mcp/).

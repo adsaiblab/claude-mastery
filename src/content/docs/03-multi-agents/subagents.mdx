@@ -1,13 +1,228 @@
 ---
 title: Subagents
-description: Workers isolés — propre context, tools restreints, 5 scopes de priorité.
+description: Workers isolés — 5 scopes, frontmatter complet, quand déléguer vs faire soi-même.
 sidebar:
   order: 2
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="4" blocs={["Bloc 12 — Subagents"]}>
-  Frontmatter exhaustif (name, description, model, tools, permissionMode, maxTurns, skills, mcpServers, hooks, memory, background, effort, isolation, color, initialPrompt), 5 scopes (managed/CLI/project/user/plugin), délégation automatique vs @-mention vs `--agent`, mémoire persistante par scope.
-</Planned>
+<Situation>
+  Tu lances Claude sur une question vague : « regarde d'où vient cette lenteur ».
+  Il ouvre 40 fichiers pour comprendre, ton context sature avant même qu'il ait
+  une hypothèse, et tu dois `/compact` au milieu de l'investigation — en perdant
+  la trace des fichiers qu'il avait déjà lus. Un **subagent Explore** aurait fait
+  ce travail dans sa propre fenêtre, et t'aurait rendu une synthèse de 200 mots.
+</Situation>
+
+## Concept — qu'est-ce qu'un subagent
+
+Un **subagent** est un Claude **autonome**, lancé par l'agent principal, avec **sa propre fenêtre de contexte** et **sa propre liste de tools autorisés**. Il reçoit un prompt, travaille, renvoie **un seul message final** au parent.
+
+Trois propriétés qui changent tout :
+
+1. **Contexte isolé** — rien de ce qu'il lit ne pollue ton main.
+2. **Tools restreints** — tu peux donner à un explorer `Read/Grep/Glob` uniquement, zéro risque d'écriture.
+3. **Parallélisable** — tu peux en lancer 3 en parallèle qui explorent des zones différentes.
+
+## Quand utiliser un subagent
+
+| Situation | Faire soi-même | Déléguer à subagent |
+|-----------|---------------|---------------------|
+| Lire 3 fichiers connus | ✓ | |
+| Trouver où `X` est défini | ✓ | |
+| « Comment marche le module auth ? » | | ✓ |
+| Exploration ouverte sur le repo | | ✓ |
+| Audit de sécurité sur 15 fichiers | | ✓ |
+| Review indépendante du code qu'on vient d'écrire | | ✓ |
+| Recherche en parallèle sur 3 sujets | | ✓ |
+
+**Règle** : si la recherche va coûter plus de **3 requêtes** ou **consommer plus de 10% du context principal**, délègue.
+
+## Anatomie d'un subagent — frontmatter complet
+
+```markdown
+---
+name: explorer
+description: Explore le codebase pour répondre à des questions ouvertes. Retourne une synthèse avec chemins de fichiers.
+tools: Read, Grep, Glob
+model: sonnet
+---
+
+Tu es un explorateur. Ta mission : trouver l'information demandée
+et la restituer de façon dense et navigable.
+
+Règles :
+- Toujours citer les chemins (format `file.ts:42`).
+- Synthèse finale <= 300 mots.
+- Ne jamais modifier de fichier.
+```
+
+Champs du frontmatter :
+
+<FlipCard client:visible front="name" back="Identifiant unique (kebab-case). Sert à l'invoquer via Agent({subagent_type: 'name'})." />
+<FlipCard client:visible front="description" back="Phrase qui explique **quand** l'utiliser. L'agent principal lit cette description pour décider s'il délègue." />
+<FlipCard client:visible front="tools" back="Liste blanche de tools. Si omis, hérite de l'agent principal. Restreindre = sécurité + focus." />
+<FlipCard client:visible front="model" back="opus / sonnet / haiku. Défaut = hérite. Un judge bénéficie d'Opus, un tri Haiku suffit." />
+<FlipCard client:visible front="isolation" back="worktree pour un git worktree isolé — parfait pour un implementer qui modifie des fichiers sans polluer ton working dir." />
+
+## Les 5 scopes — où placer tes subagents
+
+| Scope | Chemin | Visibilité | Usage |
+|-------|--------|-----------|-------|
+| **User** | `~/.claude/agents/<name>.md` | Toi, tous tes repos | Tes agents perso (ex: code-reviewer) |
+| **Project** | `<repo>/.claude/agents/<name>.md` | Équipe, versionné | Agents spécifiques au projet |
+| **Plugin** | `<plugin>/agents/<name>.md` | Distribuable | Partage inter-équipes |
+| **Dynamic** | Injecté via `/agent` CLI | Session courante | Agents créés à la volée |
+| **Ephemeral** | Inline dans un prompt | Un seul appel | Test rapide avant de promouvoir |
+
+**Promotion naturelle** : ephemeral → user (`~/.claude/agents/`) → project (`<repo>/.claude/agents/`). Chaque niveau élargit la visibilité.
+
+## 4 archétypes qui reviennent tout le temps
+
+### 1. Explorer (read-only)
+
+```markdown
+---
+name: explorer
+description: Recherche dans le codebase et répond aux questions ouvertes.
+tools: Read, Grep, Glob, WebFetch
+model: sonnet
+---
+Tu es un explorateur. Retourne une synthèse dense avec `file:line` à chaque claim.
+```
+
+### 2. Judge (review indépendante)
+
+```markdown
+---
+name: judge
+description: Review critique du travail fait. Retourne APPROVED ou liste de concerns.
+tools: Read, Grep
+model: opus
+---
+Tu es un reviewer senior. Tu n'as PAS vu la conversation qui a produit ce code.
+Ta mission : relire et challenger.
+```
+
+Le fait qu'il **n'ait pas vu le reasoning** est la feature : il juge sur pièces, pas sur intentions.
+
+### 3. Planner
+
+```markdown
+---
+name: planner
+description: Transforme une demande floue en plan d'implémentation structuré.
+tools: Read, Grep, Glob
+model: opus
+---
+Retourne un plan Markdown avec :
+## Objectif
+## Fichiers à toucher
+## Étapes ordonnées
+## Risques
+```
+
+### 4. Implementer
+
+```markdown
+---
+name: implementer
+description: Exécute un plan déjà validé. NE PREND PAS DE DÉCISIONS D'ARCHI.
+tools: Read, Edit, Write, Bash
+model: sonnet
+isolation: worktree
+---
+Tu reçois un plan. Tu l'exécutes tel quel. Si ambigu, tu t'arrêtes et demandes.
+```
+
+## Invocation — comment déclencher
+
+Depuis Claude Code, tu n'invoques jamais directement un subagent — tu **demandes à l'agent principal de le faire**. Il utilise l'outil `Agent` :
+
+```
+User : Délègue une review à judge sur les changements du dernier tour.
+
+Assistant :
+  → Agent(subagent_type="judge", prompt="Review file X, Y, Z changed this turn.")
+```
+
+Depuis le **SDK** (Python/TS), tu peux invoquer explicitement :
+
+```python
+from claude_agent_sdk import Agent
+
+result = await Agent.run(
+    subagent_type="explorer",
+    prompt="Trouve tous les usages de deprecated_api()",
+    tools_allow=["Read", "Grep", "Glob"],
+)
+```
+
+## Piège #1 — subagent trop verbeux
+
+Un subagent qui rend 3000 mots de dump **pollue le context parent autant qu'une exploration directe**. Le sens d'un subagent est : **faire beaucoup, restituer peu**.
+
+Dans le prompt du subagent, **impose une limite** : "synthèse finale ≤ 300 mots".
+
+## Piège #2 — tools non restreints
+
+Un subagent `explorer` avec `tools: Read, Write, Edit, Bash` peut **modifier ton code pendant qu'il explore**. C'est rarement ce que tu veux. Restreindre les tools est une **fonctionnalité de design**, pas une contrainte paranoïaque.
+
+## Piège #3 — prompt trop vague
+
+L'agent principal ne t'envoie pas toute la conversation — il envoie juste le `prompt`. Si tu dis « fais la suite », le subagent ne sait rien. Le prompt envoyé à un subagent doit être **autoportant**.
+
+## Démo — chainage en un tour
+
+```
+User : "Je veux refactorer auth.ts pour extraire TokenService.
+       Délègue à explorer pour voir ce qui l'utilise,
+       puis à planner pour obtenir un plan.
+       Je valide avant d'implémenter."
+
+Assistant :
+  → Agent(explorer, "Liste tous les callers de auth.ts/login.")
+    ← résumé de 240 mots
+  → Agent(planner, "Avec ce résumé, propose un plan d'extraction.")
+    ← plan de 15 étapes
+  
+  [Affiche plan]  "Plan prêt. Tu valides ?"
+```
+
+Le main a consommé ~1000 tokens. Les deux subagents en ont dépensé 30 000 **dans leur propre fenêtre**. Le context parent reste clean.
+
+## Check
+
+<Quiz
+  client:visible
+  id="subagent-when"
+  scenario="On te demande de renommer une fonction `oldName` en `newName` dans un fichier que tu as déjà lu."
+  question="Tu délègues à un subagent ?"
+  options={[
+    { text: "Oui — par principe, toujours déléguer.", correct: false, explanation: "Déléguer a un coût (tokens, latence). Pour une édition ponctuelle, tu es plus rapide en direct." },
+    { text: "Non — l'action est ciblée, le context est déjà chargé, pas de valeur ajoutée.", correct: true, explanation: "Exact. Un subagent se justifie quand (a) la recherche est large, (b) le résultat peut être synthétisé, ou (c) tu veux un point de vue indépendant (judge)." },
+    { text: "Uniquement si je suis en mode plan.", correct: false, explanation: "Le mode permission n'a rien à voir avec la décision de déléguer." },
+    { text: "Oui, pour isoler l'édition dans un worktree.", correct: false, explanation: "Excessif pour un rename. Le worktree est utile sur des changements massifs ou à risque." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="subagent-judge"
+  scenario="Tu as implémenté une feature, tu veux une review critique avant de commit."
+  question="Pourquoi déléguer à un subagent `judge` plutôt que demander à Claude lui-même de relire ?"
+  options={[
+    { text: "C'est plus rapide.", correct: false, explanation: "Souvent non — lancer un subagent ajoute de la latence." },
+    { text: "Le subagent n'a pas vu la conversation qui a produit le code — il juge sur pièces, sans biais.", correct: true, explanation: "C'est la feature principale. Une review qui connaît les intentions a tendance à les confirmer. Une review aveugle attrape ce qui est réellement dans le code." },
+    { text: "C'est moins cher en tokens.", correct: false, explanation: "Pas forcément — un subagent a son propre context à monter." },
+    { text: "Ça évite les hooks.", correct: false, explanation: "Rien à voir avec les hooks." }
+  ]}
+/>
+
+## Prochaine étape
+
+Un subagent travaille seul. Que se passe-t-il quand tu en coordonnes plusieurs en **équipe** ? → [Agent Teams](/03-multi-agents/agent-teams/).

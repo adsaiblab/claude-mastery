@@ -1,13 +1,235 @@
 ---
 title: MCP — Model Context Protocol
-description: Connecter des serveurs d'outils externes (GitHub, Slack, Linear, bases de données).
+description: Connecter des serveurs d'outils externes — GitHub, Slack, Linear, bases de données.
 sidebar:
   order: 5
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="4" blocs={["Bloc 15 — MCP"]}>
-  Architecture MCP (client/serveur/transports stdio/SSE/HTTP), `claude mcp add` / `claude mcp list` / `claude mcp remove`, scopes (user/project/local), config JSON (`mcpServers`), serveurs officiels (`@modelcontextprotocol/server-filesystem`, `server-github`, `server-slack`), auth OAuth vs token, debugging avec `--mcp-debug`.
-</Planned>
+<Situation>
+  Claude peut lire ton code, mais il ne sait pas que le ticket Linear #412 décrit
+  le bug que tu traites, ni que le message Slack d'hier dans `#incidents`
+  mentionne la root cause. Tu passes la moitié du temps à copier-coller ces
+  contextes dans le prompt. **MCP** connecte Claude directement à ces systèmes
+  externes comme s'ils étaient des outils natifs.
+</Situation>
+
+## Concept — qu'est-ce que MCP
+
+**MCP (Model Context Protocol)** est un protocole ouvert qui définit **comment un modèle parle à un serveur d'outils externe**. Ce n'est pas propriétaire Anthropic : c'est un standard que d'autres outils IA adoptent aussi.
+
+Architecture :
+
+```
+┌──────────────────┐      MCP protocol     ┌──────────────────┐
+│ Claude Code      │ ───────────────────── │ MCP Server       │
+│ (client)         │   tools/list          │ ex: github       │
+│                  │   tools/call          │                  │
+│                  │ ───────────────────── │ • create_issue   │
+│                  │                       │ • list_prs       │
+└──────────────────┘                       │ • get_commit     │
+                                           └──────────────────┘
+```
+
+Le serveur MCP **expose des tools** que Claude peut appeler. Chaque tool a un nom, des arguments typés, et un résultat. Du point de vue de l'agent, ils ressemblent aux tools natifs (`Read`, `Edit`, …).
+
+## Les 3 transports
+
+| Transport | Quand l'utiliser | Exemple |
+|-----------|------------------|---------|
+| **stdio** | Serveur local, lancé par Claude Code | `@modelcontextprotocol/server-filesystem` |
+| **HTTP** | Serveur distant sans streaming | API interne d'entreprise |
+| **SSE** (Server-Sent Events) | Serveur distant avec streaming | MCP hébergé (ex: Linear cloud) |
+
+**Règle** : commence par stdio (le plus simple), passe à HTTP/SSE seulement si tu as besoin de partager le serveur ou si le serveur est trop lourd à lancer localement.
+
+## Installation — `claude mcp`
+
+```bash
+# Ajouter un serveur MCP
+claude mcp add github --env GITHUB_TOKEN=ghp_xxx
+
+# Lister les serveurs configurés
+claude mcp list
+
+# Tester qu'un serveur fonctionne
+claude mcp status github
+
+# Retirer un serveur
+claude mcp remove github
+```
+
+Après installation, les tools du serveur apparaissent dans Claude Code avec le préfixe `mcp__<server>__<tool>` :
+
+```
+mcp__github__create_issue
+mcp__github__list_prs
+mcp__github__get_pr_comments
+```
+
+## Les 3 scopes
+
+| Scope | Fichier | Visibilité |
+|-------|---------|-----------|
+| **User** | `~/.claude.json` | Tous tes repos |
+| **Project** | `<repo>/.mcp.json` | Équipe, versionné (⚠️ pas de secrets) |
+| **Local** | `<repo>/.claude/mcp.json` | Toi uniquement sur ce repo |
+
+Format `.mcp.json` :
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "$GITHUB_TOKEN" }
+    },
+    "linear": {
+      "type": "sse",
+      "url": "https://mcp.linear.app/sse"
+    }
+  }
+}
+```
+
+**Règle de sécurité** : jamais de token en dur dans `.mcp.json` project. Utilise `$VAR` ou un scope local.
+
+## Serveurs officiels (Q1 2026)
+
+<FlipCard client:visible front="server-filesystem" back="Accès fichiers au-delà du working dir. Utile pour lire des ressources partagées hors du repo." />
+<FlipCard client:visible front="server-github" back="create_issue, list_prs, get_pr_comments, create_pr_review, merge_pr. Tout ce que tu fais avec `gh`." />
+<FlipCard client:visible front="server-slack" back="list_channels, post_message, get_thread. Notifier un team ou récupérer une discussion." />
+<FlipCard client:visible front="server-postgres" back="query, list_tables, describe_table. Explorer une DB en lecture directement." />
+<FlipCard client:visible front="server-puppeteer" back="Navigation web, screenshots, interactions — pour tester une UI ou scraper." />
+<FlipCard client:visible front="server-sentry" back="list_issues, get_event, resolve_issue. Connecter ton monitoring." />
+
+## Authentification
+
+Deux patterns selon le serveur :
+
+### Token statique
+
+```json
+{
+  "env": { "GITHUB_TOKEN": "$GITHUB_TOKEN" }
+}
+```
+
+Simple, local, mais le token ne tourne pas — tu es responsable de le rotate.
+
+### OAuth (flow à 3 pattes)
+
+Certains serveurs (Linear, Slack cloud) utilisent OAuth. Au premier appel, Claude Code ouvre un navigateur, tu valides, le token est stocké dans `~/.claude/oauth/<server>.json`.
+
+```bash
+claude mcp auth linear     # déclenche le flow OAuth
+```
+
+Avantages : révocable côté provider, scopes fins, pas de token en clair dans ton shell.
+
+## Debugging — `--mcp-debug`
+
+Quand un serveur MCP fait des siennes (tool call qui échoue, latence, arguments rejetés) :
+
+```bash
+claude --mcp-debug
+```
+
+Affiche les échanges JSON-RPC client ↔ serveur. Indispensable pour :
+
+- Comprendre pourquoi un `tools/call` échoue.
+- Vérifier que le serveur démarre correctement (stdio).
+- Identifier les tools que le serveur expose réellement vs ce que tu attendais.
+
+## Piège #1 — secrets dans .mcp.json project
+
+```json
+{
+  "env": { "GITHUB_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxx" }
+}
+```
+
+Commité, c'est un secret qui fuit. **Toujours** interpoler : `"$GITHUB_TOKEN"`. Le scope local (`<repo>/.claude/mcp.json`) est gitignoré par défaut pour ça.
+
+## Piège #2 — trop de tools MCP
+
+Chaque tool MCP actif prend un peu de context (sa spec est injectée au démarrage). Si tu as 50 tools MCP disponibles et que tu en utilises 3, tu gaspilles.
+
+**Règle** : désactive les serveurs MCP non nécessaires à un projet donné :
+
+```json
+{
+  "mcpServers": {
+    "github": { /* activé */ },
+    "_slack": { /* préfixe underscore → désactivé */ }
+  }
+}
+```
+
+## Piège #3 — serveur stdio qui fuit
+
+Un serveur stdio mal écrit peut laisser un process orphelin à la fermeture de Claude Code. Vérifie :
+
+```bash
+ps aux | grep mcp
+```
+
+Si des process MCP traînent après avoir fermé Claude, c'est un bug du serveur — à remonter au mainteneur.
+
+## Démo — workflow bug triage
+
+```
+User : "Le ticket Linear ENG-412 parle d'une régression. Regarde le ticket,
+       trouve le commit suspect, et propose un fix."
+
+Claude :
+  → mcp__linear__get_issue(id="ENG-412")
+    ← description + étapes repro
+  → Bash("git log --oneline --since=2d")
+    ← liste commits
+  → mcp__github__get_pr(number=1842)
+    ← diff suspect
+  → Edit (fix proposé)
+  → mcp__github__create_pr_review(...)
+    ← review postée
+```
+
+3 systèmes (Linear / git / GitHub) orchestrés dans un seul tour. C'est la valeur MCP.
+
+## Check
+
+<Quiz
+  client:visible
+  id="mcp-purpose"
+  scenario="Tu veux que Claude puisse créer des issues GitHub directement depuis la conversation."
+  question="Comment tu configures ça ?"
+  options={[
+    { text: "Un subagent qui lance `gh issue create` via Bash.", correct: false, explanation: "Ça marche mais c'est un hack : tu dois parser stdout, gérer les erreurs, passer les args en string. Avec MCP tu as un tool typé." },
+    { text: "Un skill avec des instructions pour appeler l'API GitHub.", correct: false, explanation: "Un skill explique quoi faire ; il ne fournit pas le tool. Tu restes obligé de l'appeler via Bash/curl." },
+    { text: "Installer `@modelcontextprotocol/server-github` via `claude mcp add`.", correct: true, explanation: "Exact. MCP expose `create_issue`, `list_prs`, etc. comme tools natifs typés — Claude les utilise avec les bonnes signatures sans parser du texte." },
+    { text: "Mettre mon token GitHub dans CLAUDE.md.", correct: false, explanation: "Non seulement ça ne donne pas de tool, mais c'est un secret fuité." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="mcp-secrets"
+  scenario="Tu ajoutes un MCP server GitHub dans `.mcp.json` pour que ton équipe profite de la config."
+  question="Comment tu gères le token ?"
+  options={[
+    { text: "Je mets le token en dur : `GITHUB_TOKEN: ghp_xxx`.", correct: false, explanation: "Token fuite dès le premier commit. Jamais en dur dans un fichier versionné." },
+    { text: "J'utilise `$GITHUB_TOKEN` et chaque dev le définit dans son env.", correct: true, explanation: "Exact. L'interpolation `$VAR` garde le fichier sans secret, chaque dev remplit son env localement." },
+    { text: "Je commit un `.mcp.json.template` et chacun copie.", correct: false, explanation: "Possible mais fragile — quelqu'un finira par committer le vrai. L'interpolation est le pattern canonique." },
+    { text: "Je désactive l'auth du serveur MCP.", correct: false, explanation: "Impossible, et ce serait catastrophique côté GitHub de toute façon." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu peux connecter Claude à l'extérieur. Voyons comment **packager et distribuer** des ensembles agents+skills+MCP → [Plugins](/03-multi-agents/plugins/).
