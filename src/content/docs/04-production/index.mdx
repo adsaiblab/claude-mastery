@@ -6,23 +6,35 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
 
 > Durée estimée : **4h** · 6 modules + 1 lab
 
-Claude sort du terminal : CI, backends, pipelines non-interactifs, agents managés. Ce niveau te donne les outils pour **embarquer Claude en production** sans perdre le contrôle.
+<Situation>
+  Claude sort du terminal : CI, backends, pipelines non-interactifs, agents managés.
+  Ce niveau te donne les outils pour **embarquer Claude en production** sans perdre
+  le contrôle — scalabilité, isolation, observabilité, coûts bornés.
+</Situation>
 
 ## Modules
 
-1. **GitHub Actions** — exécuter Claude dans un workflow (issue triage, PR review).
-2. **Agent SDK — Python** — lancer des conversations programmatiques côté backend.
-3. **Agent SDK — TypeScript** — version Node, streaming, tool use.
-4. **Sandboxing** — conteneurs, FS restrictions, network policies.
-5. **Routines** — tâches planifiées, cron, triggers webhooks.
-6. **Managed Agents** — Claude as a Service, scaling, quotas.
+1. [**GitHub Actions**](/04-production/github-actions/) — exécuter Claude dans un workflow (issue triage, PR review, auto-fix).
+2. [**Agent SDK — Python**](/04-production/agent-sdk-python/) — lancer des conversations programmatiques côté backend.
+3. [**Agent SDK — TypeScript**](/04-production/agent-sdk-typescript/) — version Node, streaming, tool use.
+4. [**Sandboxing**](/04-production/sandboxing/) — conteneurs, FS restrictions, network policies.
+5. [**Routines**](/04-production/routines/) — tâches planifiées, cron, triggers webhooks, idempotence.
+6. [**Managed Agents**](/04-production/managed-agents/) — Claude as a Service, scaling, quotas.
 
 ## Lab 04 — Claude in CI
 
-Déployer un GitHub Action qui review chaque PR avec Claude, ajoute un commentaire structuré, et bloque le merge si score < seuil.
+Déployer un GitHub Action qui review chaque PR avec Claude, ajoute un commentaire structuré, et bloque le merge si score < seuil → [Lab 04](/04-production/lab-04/).
 
-<Planned session="5" blocs={["Blocs 18-23"]} />
+## Après ce niveau
+
+Tu sauras :
+
+- Intégrer Claude dans un workflow GitHub Actions en toute sécurité (tools, permissions, concurrence).
+- Développer un backend agentique avec les SDK Python/TypeScript.
+- Sandboxer Claude en container avec un network restreint et un FS borné.
+- Concevoir des routines idempotentes avec retry/backoff et DLQ.
+- Choisir entre self-hosted et Managed Agents selon tes contraintes.

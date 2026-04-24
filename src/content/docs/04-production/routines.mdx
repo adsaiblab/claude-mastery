@@ -6,8 +6,304 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="5" blocs={["Bloc 22 — Routines"]}>
-  Scheduled tasks via cron + SDK, triggers webhooks (GitHub, Linear, Slack), patterns idempotence, retry avec backoff, observabilité (logs structurés + metrics), dead-letter queues, exemple routine "synthèse quotidienne PRs" + "alerte sur regression CI".
-</Planned>
+<Situation>
+  Tu veux qu'une synthèse des PRs ouvertes tombe chaque matin à 8h dans Slack,
+  qu'une régression CI déclenche un agent de diagnostic, qu'un ticket Linear
+  critique soit auto-trié sous 30 secondes. Ces tâches partagent trois
+  propriétés : **planifiées ou déclenchées**, **sans humain**, **doivent être
+  fiables**. Bienvenue dans les routines Claude.
+</Situation>
+
+## Concept — qu'est-ce qu'une routine
+
+Une **routine** est un run Claude qui tourne **hors d'une session interactive**, déclenché par :
+
+- Un **cron** (temps).
+- Un **webhook** (événement externe : GitHub, Linear, Slack, etc.).
+- Une **queue** (job tiré d'un worker).
+
+Les contraintes changent par rapport à un dev local :
+
+| Dimension | Session interactive | Routine |
+|-----------|---------------------|---------|
+| Qui corrige si ça foire | Toi, en temps réel | Toi, le lendemain matin quand tu vois l'alerte |
+| Idempotence | Pas critique | **Essentielle** |
+| Observabilité | Tu vois le terminal | Logs structurés + metrics |
+| Gestion d'erreur | « Je relance » | Retry + dead-letter queue |
+| Coût | Amorti par ton temps | Multiplié par le nombre d'exécutions |
+
+## Les 3 déclencheurs
+
+### 1. Cron — planifié dans le temps
+
+Simple crontab :
+
+```cron
+# /etc/cron.d/claude-routines
+0 8 * * * claude python /opt/routines/daily_digest.py
+```
+
+Version kubernetes :
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: claude-daily-digest
+spec:
+  schedule: "0 8 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          containers:
+            - name: routine
+              image: your-registry/claude-routine:v1
+              command: ["python", "/opt/routines/daily_digest.py"]
+          restartPolicy: OnFailure
+```
+
+Avantages k8s : historique, deadline, retry built-in, observabilité via les Job events.
+
+### 2. Webhook — déclenché par événement
+
+Endpoint FastAPI minimal :
+
+```python
+from fastapi import FastAPI, Request, HTTPException
+from claude_agent_sdk import query, ClaudeAgentOptions
+import hmac, hashlib, os
+
+app = FastAPI()
+
+@app.post("/webhook/linear")
+async def linear_webhook(request: Request):
+    body = await request.body()
+    signature = request.headers.get("linear-signature", "")
+
+    expected = hmac.new(
+        os.environ["LINEAR_WEBHOOK_SECRET"].encode(),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        raise HTTPException(401, "Invalid signature")
+
+    event = await request.json()
+    if event["type"] == "Issue" and event["data"]["priority"] == 1:
+        # Issue P1 créée → triage
+        await trigger_triage_routine(event["data"])
+
+    return {"ok": True}
+```
+
+Règles indispensables pour un webhook :
+
+1. **Vérifier la signature** (HMAC, toujours).
+2. **Répondre vite** (< 3s) — si Claude prend 30s, enfile dans une queue et répond 202.
+3. **Idempotence** — le webhook peut être rejoué par le provider.
+
+### 3. Queue — worker tire des jobs
+
+```python
+# worker.py — BullMQ / Celery / RQ / SQS, peu importe
+import structlog
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+log = structlog.get_logger()
+
+async def process_job(job):
+    log.info("job_start", job_id=job.id, type=job.type)
+    try:
+        async for msg in query(prompt=job.prompt, options=job.options):
+            ...
+        log.info("job_done", job_id=job.id)
+    except Exception as e:
+        log.exception("job_failed", job_id=job.id, error=str(e))
+        raise   # laisse la queue gérer retry / DLQ
+```
+
+## Idempotence — le principe #1
+
+Un webhook peut être rejoué. Un cron peut se chevaucher. Un retry peut dupliquer. **Ta routine doit être idempotente** :
+
+Mauvais :
+
+```python
+# crée une nouvelle issue à chaque run
+await github.create_issue(title=f"Daily digest {datetime.today()}")
+```
+
+Bon :
+
+```python
+# clé idempotente = date du jour
+issue_key = f"daily-digest-{date.today().isoformat()}"
+existing = await github.find_issue_by_title(issue_key)
+if existing:
+    await github.update_issue(existing.id, body=new_body)
+else:
+    await github.create_issue(title=issue_key, body=new_body)
+```
+
+La règle : **une clé stable par logique de run** (souvent la date + un identifiant). Retry = idempotent.
+
+## Retry avec backoff
+
+```python
+import asyncio
+from claude_agent_sdk import query
+from claude_agent_sdk.errors import RateLimitError, APIError
+
+async def run_with_retry(prompt, options, max_attempts=3):
+    for attempt in range(max_attempts):
+        try:
+            async for msg in query(prompt=prompt, options=options):
+                yield msg
+            return
+        except RateLimitError as e:
+            wait = e.retry_after or (2 ** attempt)
+            await asyncio.sleep(wait)
+        except APIError as e:
+            if attempt == max_attempts - 1:
+                raise
+            await asyncio.sleep(2 ** attempt)
+```
+
+**Exponentiel** + **jitter** pour éviter les thundering herds. Sur un cron qui lance 50 jobs en parallèle à 8h00 pile, tous vont rate-limit ensemble — le jitter les disperse.
+
+## Dead-letter queue
+
+Après N retries échoués, ne perds pas le job — pousse-le dans une DLQ pour inspection manuelle :
+
+```python
+try:
+    await run_with_retry(...)
+except Exception as e:
+    await dlq.send({
+        "job": job.dict(),
+        "error": str(e),
+        "traceback": traceback.format_exc(),
+        "timestamp": datetime.utcnow().isoformat(),
+    })
+    log.error("job_dead_lettered", job_id=job.id)
+```
+
+Un dashboard sur la DLQ = tu vois les routines qui cassent sans les perdre.
+
+## Observabilité — les 3 choses à logger
+
+1. **Traces structurées** (job_id, type, user_id, etc.).
+2. **Metrics** : `routine_duration_ms`, `routine_errors_total`, `routine_cost_usd`.
+3. **Alertes** sur : taux d'échec > X%, durée p95 > Y, coût cumulé > Z.
+
+```python
+from prometheus_client import Counter, Histogram
+
+routine_duration = Histogram("routine_duration_seconds", "Duration", ["type"])
+routine_errors = Counter("routine_errors_total", "Errors", ["type", "reason"])
+
+with routine_duration.labels(type="daily_digest").time():
+    try:
+        ...
+    except RateLimitError:
+        routine_errors.labels(type="daily_digest", reason="rate_limit").inc()
+        raise
+```
+
+## 2 routines qui tournent en prod
+
+### Routine A — Synthèse quotidienne des PRs
+
+```python
+# routines/daily_digest.py
+async def daily_digest():
+    prompt = """
+    Liste les PRs ouvertes dans org/repo-a, org/repo-b, org/repo-c.
+    Pour chaque : titre, auteur, jours ouverts, statut reviews.
+    Signale celles ouvertes depuis > 5 jours ou qui bloquent la release.
+    Format : Markdown avec sections par repo.
+    Poste le résultat dans Slack #daily-digest.
+    """
+    options = ClaudeAgentOptions(
+        model="claude-sonnet-4-6",
+        allowed_tools=["mcp__github__list_prs", "mcp__slack__post_message"],
+        max_turns=8,
+    )
+    async for msg in query(prompt=prompt, options=options):
+        if msg.type == "result":
+            log.info("daily_digest_done", cost=msg.total_cost_usd)
+```
+
+Cron quotidien à 8h. Idempotence via `date.today()` dans le titre du message Slack.
+
+### Routine B — Diagnostic sur régression CI
+
+Webhook GitHub `workflow_run.completed` → si `conclusion=failure` sur `main`, enfile un job :
+
+```python
+async def ci_regression_diagnostic(workflow_run_id):
+    prompt = f"""
+    Le workflow {workflow_run_id} vient d'échouer sur main.
+    1. Lis les logs via `mcp__github__get_workflow_logs`.
+    2. Identifie le premier test en échec.
+    3. Git bisect rapide entre les 5 derniers commits.
+    4. Commente sur le PR du commit suspect avec l'analyse.
+    """
+    options = ClaudeAgentOptions(
+        model="claude-opus-4-7",   # Opus pour raisonner, c'est une tâche complexe
+        allowed_tools=["Read", "Bash(git:*)", "mcp__github__*"],
+        max_turns=15,
+    )
+    await run_with_retry(prompt, options)
+```
+
+## Piège #1 — pas de deadline
+
+Une routine qui tourne 45 min parce qu'elle boucle = facture surprise + job suivant qui chevauche. **Toujours** un timeout au niveau du runtime (k8s `activeDeadlineSeconds`, `timeout` shell, etc.).
+
+## Piège #2 — secrets dans les logs
+
+Un dump du `prompt` dans les logs = potentiel secret visible. Scrub avant de logger.
+
+## Piège #3 — prompt non versionné
+
+Le prompt de la routine évolue. S'il vit dans un `.py` non versionné ou une UI d'admin, tu perds la trace des changements. **Prompt = code**, versionne-le en git comme le reste.
+
+## Check
+
+<Quiz
+  client:visible
+  id="routine-idempotence"
+  scenario="Ton webhook Linear est rejoué 3 fois (retries du provider, jitter réseau)."
+  question="Pourquoi ta routine doit être idempotente ?"
+  options={[
+    { text: "Sinon elle plante au 2ᵉ appel.", correct: false, explanation: "Pas forcément — elle marche, mais elle crée des doublons. Le symptôme est parfois pire qu'un crash franc." },
+    { text: "Sinon tu crées 3 fois les mêmes effets (3 issues, 3 messages Slack, 3 updates) — et les providers rejouent vraiment leurs webhooks.", correct: true, explanation: "Exact. Les webhooks sont 'at-least-once'. Une routine non-idempotente qui crée un Slack post à chaque appel spamme 3× le channel. La clé idempotente (hash, date, job_id) garantit le même résultat peu importe combien de fois on l'appelle." },
+    { text: "Sinon le provider te désactive.", correct: false, explanation: "Le provider ne sait pas si ta routine est idempotente ; ton code doit s'en occuper." },
+    { text: "Sinon Claude répond différemment à chaque call.", correct: false, explanation: "Le problème est l'effet de bord côté Slack/GitHub, pas la réponse du modèle." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="routine-retry"
+  scenario="Tu lances 50 routines en parallèle à 8h00 pile. Toutes appellent l'API Anthropic."
+  question="Quelle protection est la plus efficace contre un rate-limit massif ?"
+  options={[
+    { text: "Augmenter le quota sans autre changement.", correct: false, explanation: "Ça repousse le problème mais ne le règle pas — plus tu scales, plus tu re-heurtes le nouveau plafond." },
+    { text: "Backoff exponentiel **avec jitter** sur les retries, pour disperser les réveils.", correct: true, explanation: "Exact. Sans jitter, 50 jobs réveillent tous à t+2s, t+4s, t+8s — ils se re-empilent. Avec jitter (random 0-X ajouté), ils se dispersent naturellement et le rate-limit se résorbe." },
+    { text: "Passer en synchrone (un job à la fois).", correct: false, explanation: "Tu serialises 50 jobs — le dernier finit 2h plus tard. Correct en dernier recours, pas idéal." },
+    { text: "Stocker la réponse Claude dans un cache.", correct: false, explanation: "Aide pour des prompts identiques, mais ne protège pas un cas où les prompts diffèrent par nature." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais planifier et déclencher. Pour certains cas, **Anthropic héberge** l'agent pour toi → [Managed Agents](/04-production/managed-agents/).

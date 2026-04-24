@@ -6,8 +6,296 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="5" blocs={["Bloc 20 — Agent SDK TypeScript"]}>
-  Package `@anthropic-ai/claude-agent-sdk`, `query()` avec `AsyncIterable`, options identiques à Python, typage complet Zod/TS, intégration Next.js API routes et Express, gestion backpressure streaming, tests avec mocks.
-</Planned>
+<Situation>
+  Ton stack est Node/Next.js. Tu veux que Claude alimente une API route
+  `/api/review` ou un worker BullMQ. Le SDK TypeScript donne la même sémantique
+  que Python, avec typage fort et streaming `AsyncIterable` natif — propre à
+  brancher sur du Server-Sent Events ou du React Server Component.
+</Situation>
+
+## Installation
+
+```bash
+npm install @anthropic-ai/claude-agent-sdk
+```
+
+Env :
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Premier appel — `query()`
+
+```ts
+import { query, type ClaudeAgentOptions } from "@anthropic-ai/claude-agent-sdk";
+
+const options: ClaudeAgentOptions = {
+  systemPrompt: "Tu es un assistant de review TypeScript.",
+  allowedTools: ["Read", "Grep", "Glob"],
+  permissionMode: "default",
+  model: "claude-sonnet-4-6",
+  maxTurns: 8,
+  cwd: "/path/to/repo",
+};
+
+for await (const msg of query({
+  prompt: "Review le fichier src/index.ts",
+  options,
+})) {
+  console.log(msg);
+}
+```
+
+Signatures identiques à Python, **camelCase** au lieu de snake_case. Le parallélisme de design rend les deux SDKs interchangeables dans une même équipe.
+
+## Les types exportés
+
+Tous typés avec `zod` + TypeScript :
+
+```ts
+import type {
+  AssistantMessage,
+  ToolUseBlock,
+  ToolResultBlock,
+  ResultMessage,
+  ClaudeAgentOptions,
+} from "@anthropic-ai/claude-agent-sdk";
+
+for await (const msg of query({ prompt, options })) {
+  switch (msg.type) {
+    case "assistant":
+      for (const block of msg.content) {
+        if (block.type === "text") console.log("ASSISTANT:", block.text);
+      }
+      break;
+    case "tool_use":
+      console.log(`TOOL USE: ${msg.name}(${JSON.stringify(msg.input)})`);
+      break;
+    case "result":
+      console.log(`DONE. Cost: $${msg.totalCostUsd.toFixed(4)}`);
+      break;
+  }
+}
+```
+
+L'union discriminée sur `msg.type` permet un narrowing TypeScript sans `instanceof`.
+
+## Intégration Next.js — API route
+
+`app/api/analyze/route.ts` :
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import { query, type ClaudeAgentOptions } from "@anthropic-ai/claude-agent-sdk";
+
+export async function POST(req: NextRequest) {
+  const { repoPath, question } = await req.json();
+
+  const options: ClaudeAgentOptions = {
+    systemPrompt: "Reviewer sénior.",
+    allowedTools: ["Read", "Grep", "Glob"],
+    permissionMode: "plan",
+    model: "claude-sonnet-4-6",
+    maxTurns: 10,
+    cwd: repoPath,
+  };
+
+  let answer = "";
+  let cost = 0;
+
+  for await (const msg of query({ prompt: question, options })) {
+    if (msg.type === "assistant") {
+      for (const block of msg.content) {
+        if (block.type === "text") answer = block.text;
+      }
+    } else if (msg.type === "result") {
+      cost = msg.totalCostUsd;
+    }
+  }
+
+  return NextResponse.json({ answer, cost });
+}
+```
+
+## Streaming Server-Sent Events
+
+Le cas d'usage classique côté Next.js 15 App Router :
+
+```ts
+export async function POST(req: NextRequest) {
+  const { question, repoPath } = await req.json();
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const msg of query({
+          prompt: question,
+          options: { cwd: repoPath, maxTurns: 10 },
+        })) {
+          const event = `data: ${JSON.stringify({ type: msg.type, msg })}\n\n`;
+          controller.enqueue(encoder.encode(event));
+        }
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+}
+```
+
+Côté client :
+
+```ts
+const es = new EventSource("/api/analyze?q=...");
+es.onmessage = (e) => {
+  const { type, msg } = JSON.parse(e.data);
+  // mettre à jour l'UI progressivement
+};
+```
+
+## Intégration Express (backend classique)
+
+```ts
+import express from "express";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+const app = express();
+app.use(express.json());
+
+app.post("/review", async (req, res) => {
+  try {
+    let finalText = "";
+    for await (const msg of query({
+      prompt: req.body.question,
+      options: {
+        allowedTools: ["Read", "Grep"],
+        maxTurns: 8,
+        cwd: req.body.repoPath,
+      },
+    })) {
+      if (msg.type === "assistant") {
+        for (const b of msg.content) if (b.type === "text") finalText = b.text;
+      }
+    }
+    res.json({ answer: finalText });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+app.listen(3000);
+```
+
+## Backpressure — pourquoi c'est important en streaming
+
+Le SDK produit des messages **plus vite** que le client les consomme souvent. En streaming SSE, si le client est lent, les écritures côté serveur peuvent s'accumuler en mémoire.
+
+Protection pratique : inscris un `abortController` qui coupe la query si le client déconnecte.
+
+```ts
+const controller = new AbortController();
+req.signal?.addEventListener("abort", () => controller.abort());
+
+for await (const msg of query({
+  prompt,
+  options: { ...opts, signal: controller.signal },
+})) {
+  // ...
+}
+```
+
+Si le browser ferme l'onglet, la query s'arrête — pas de run Claude gâché qui continue derrière.
+
+## Tests — mocker le SDK
+
+Pour les tests unitaires, tu ne veux pas appeler l'API réelle :
+
+```ts
+import { vi, describe, it, expect } from "vitest";
+
+vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
+  query: async function* () {
+    yield { type: "assistant", content: [{ type: "text", text: "mocked answer" }] };
+    yield { type: "result", totalCostUsd: 0, usage: {} };
+  },
+}));
+
+describe("POST /review", () => {
+  it("returns the mocked answer", async () => {
+    const { POST } = await import("./route");
+    const res = await POST(new Request("...", { method: "POST", body: "{}" }));
+    expect(await res.json()).toMatchObject({ answer: "mocked answer" });
+  });
+});
+```
+
+Le SDK exporte `query` comme async generator → trivial à mocker.
+
+## Différence vs Python
+
+| Aspect | Python | TypeScript |
+|--------|--------|-----------|
+| Package | `claude-agent-sdk` | `@anthropic-ai/claude-agent-sdk` |
+| Itération | `async for` | `for await` |
+| Options | snake_case (`system_prompt`) | camelCase (`systemPrompt`) |
+| Typage | dataclasses + runtime checks | TypeScript + zod |
+| Mock tests | `pytest-mock` | `vi.mock` / `jest.mock` |
+
+Fonctionnellement équivalents. Le choix se fait sur ton stack backend.
+
+## Piège #1 — `fetch` natif non initialisé
+
+Le SDK utilise le `fetch` global de Node. Sur Node < 18, il n'existe pas. **Vérifie** `node -v` — si < 18, upgrade ou polyfill avec `undici`.
+
+## Piège #2 — Edge Runtime Next.js
+
+Les API routes en `runtime: "edge"` n'ont pas d'accès filesystem. Claude ne peut pas utiliser `Read`/`Edit`. Si tu as besoin de tools filesystem, reste en `runtime: "nodejs"` (défaut).
+
+## Piège #3 — top-level await dans Next.js
+
+Si tu fais un `query(...)` au top-level d'un module, le bundler build time va exécuter ça. **Toujours** encapsule les appels SDK dans une fonction appelée depuis un handler.
+
+## Check
+
+<Quiz
+  client:visible
+  id="sdk-ts-streaming"
+  scenario="Ton frontend veut afficher en temps réel chaque tool que Claude appelle."
+  question="Quelle approche est la plus propre ?"
+  options={[
+    { text: "Attendre la fin et renvoyer un JSON complet.", correct: false, explanation: "Perd tout l'intérêt du stream — l'utilisateur attend sans feedback." },
+    { text: "Une route qui renvoie `text/event-stream` + `EventSource` côté client, qui itère sur le `for await` du SDK et `enqueue` chaque message.", correct: true, explanation: "Exact. SSE est le pattern natif pour ce cas, bas niveau, bien supporté. Le SDK produit déjà un AsyncIterable — il suffit de le brancher." },
+    { text: "WebSocket bidirectionnel.", correct: false, explanation: "Possible mais excessif si le client n'envoie rien en retour. SSE est plus simple et suffit." },
+    { text: "Polling toutes les secondes.", correct: false, explanation: "Perd le streaming, chaque poll manque des événements." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="sdk-ts-abort"
+  scenario="L'utilisateur ferme la page pendant une query longue. Tu veux éviter que le run continue côté serveur."
+  question="Comment le faire proprement ?"
+  options={[
+    { text: "Rien, Node tue le process.", correct: false, explanation: "Faux — Node garde le process, seule la réponse HTTP est orpheline. Le run Claude continue, token consommés." },
+    { text: "Passer `signal: req.signal` dans les options, ou attacher un `AbortController` qui écoute `req.signal` et l'abort quand il fire.", correct: true, explanation: "Exact. Le SDK respecte les AbortSignal standard — c'est le seul moyen de couper proprement un run en cours." },
+    { text: "Décrémenter un compteur dans un setInterval.", correct: false, explanation: "Ne coupe pas la query, juste ton compteur." },
+    { text: "Passer `maxTurns: 1`.", correct: false, explanation: "Rend le run inutile d'avance — ce n'est pas un mécanisme d'annulation." }
+  ]}
+/>
+
+## Prochaine étape
+
+Claude tourne côté backend. Reste à le faire tourner **de façon sûre** : isolation, filesystem, network → [Sandboxing](/04-production/sandboxing/).

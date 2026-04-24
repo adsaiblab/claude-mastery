@@ -1,13 +1,265 @@
 ---
 title: Agent SDK — Python
-description: Lancer Claude Code programmatiquement depuis Python (FastAPI, scripts, workers).
+description: Lancer Claude Code programmatiquement depuis Python — FastAPI, scripts, workers.
 sidebar:
   order: 3
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="5" blocs={["Bloc 19 — Agent SDK Python"]}>
-  Package `claude-agent-sdk`, `query()` async, `ClaudeAgentOptions` (`system_prompt`, `allowed_tools`, `permission_mode`, `model`, `max_turns`, `cwd`), streaming des messages (`AssistantMessage`, `ToolUseBlock`, `ResultMessage`), gestion des erreurs, intégration FastAPI (exemple endpoint `/analyze`), différence avec l'API Anthropic brute.
-</Planned>
+<Situation>
+  Tu veux exposer un endpoint `/analyze` à ton équipe : on poste l'URL d'un repo
+  + une question, Claude répond. Avec la CLI, c'est un tunnel tmux artisanal.
+  Avec l'**Agent SDK Python**, tu as `query(...)` async qui te rend un stream de
+  messages, tu plombes ça dans FastAPI, déployé sur ton infra existante.
+</Situation>
+
+## Concept — SDK vs CLI vs API brute
+
+| Couche | Quoi | Quand l'utiliser |
+|--------|------|------------------|
+| **API brute** (`anthropic`) | HTTP direct à `/v1/messages` | Chat simple, prompt engineering |
+| **Agent SDK** (`claude-agent-sdk`) | Wrapper qui gère tools, sessions, permissions, hooks | Backends agentiques |
+| **Claude Code CLI** | TUI interactive | Dev au quotidien |
+
+L'Agent SDK ajoute par-dessus l'API : boucle agentique, gestion des tools, permission modes, subagents, memory, checkpointing — toute la sémantique Claude Code, mais programmable.
+
+## Installation
+
+```bash
+pip install claude-agent-sdk
+```
+
+Variable d'env requise :
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Premier appel — `query()`
+
+```python
+import anyio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def main():
+    options = ClaudeAgentOptions(
+        system_prompt="Tu es un assistant code Python.",
+        allowed_tools=["Read", "Grep", "Glob"],
+        permission_mode="default",
+        model="claude-sonnet-4-6",
+        max_turns=8,
+        cwd="/path/to/repo",
+    )
+
+    async for message in query(
+        prompt="Trouve tous les TODO dans le repo et résume.",
+        options=options,
+    ):
+        print(message)
+
+anyio.run(main)
+```
+
+Points clés :
+
+- `query()` est **async** et rend un **AsyncIterator** de messages.
+- Chaque itération = un événement (prompt, tool use, tool result, assistant text, result final).
+- Pas de session interactive par défaut — un run, un résultat.
+
+## Les types de messages
+
+```python
+from claude_agent_sdk import (
+    AssistantMessage,    # texte de l'agent
+    ToolUseBlock,        # l'agent appelle un tool
+    ToolResultBlock,     # le résultat du tool
+    ResultMessage,       # fin de run, avec usage + cost
+)
+
+async for msg in query(prompt="...", options=opts):
+    if isinstance(msg, AssistantMessage):
+        for block in msg.content:
+            if hasattr(block, "text"):
+                print("ASSISTANT:", block.text)
+    elif isinstance(msg, ToolUseBlock):
+        print(f"TOOL USE: {msg.name}({msg.input})")
+    elif isinstance(msg, ResultMessage):
+        print(f"DONE. Cost: ${msg.total_cost_usd:.4f}, tokens: {msg.usage}")
+```
+
+Le `ResultMessage` final donne le **coût réel** du run — essentiel pour facturer ou monitorer.
+
+## `ClaudeAgentOptions` — les options qui comptent
+
+| Option | Effet |
+|--------|-------|
+| `system_prompt` | Équivalent CLAUDE.md pour ce run. |
+| `allowed_tools` | Liste blanche. |
+| `disallowed_tools` | Liste noire (prioritaire). |
+| `permission_mode` | `"default"` / `"acceptEdits"` / `"plan"` / `"bypassPermissions"`. |
+| `model` | `"claude-opus-4-7"` / `"claude-sonnet-4-6"` / `"claude-haiku-4-5-20251001"`. |
+| `max_turns` | Garde-fou dur. Défaut 20. |
+| `cwd` | Working directory. Fondamental — définit le scope filesystem. |
+| `mcp_servers` | Dict de MCP servers à connecter. |
+| `hooks` | Hooks custom inline (équivalent `.claude/settings.json`). |
+
+## Intégration FastAPI — endpoint `/analyze`
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+app = FastAPI()
+
+class AnalyzeRequest(BaseModel):
+    repo_path: str
+    question: str
+
+class AnalyzeResponse(BaseModel):
+    answer: str
+    cost_usd: float
+    duration_ms: int
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+async def analyze(req: AnalyzeRequest):
+    import time
+    start = time.perf_counter()
+
+    options = ClaudeAgentOptions(
+        system_prompt="Tu es un assistant de review de code.",
+        allowed_tools=["Read", "Grep", "Glob"],
+        permission_mode="plan",
+        model="claude-sonnet-4-6",
+        max_turns=10,
+        cwd=req.repo_path,
+    )
+
+    final_text = ""
+    cost = 0.0
+
+    try:
+        async for msg in query(prompt=req.question, options=options):
+            if hasattr(msg, "content"):
+                for block in msg.content:
+                    if hasattr(block, "text"):
+                        final_text = block.text   # le dernier AssistantMessage tient la réponse
+            if hasattr(msg, "total_cost_usd"):
+                cost = msg.total_cost_usd
+    except Exception as e:
+        raise HTTPException(500, f"Agent error: {e}")
+
+    return AnalyzeResponse(
+        answer=final_text,
+        cost_usd=cost,
+        duration_ms=int((time.perf_counter() - start) * 1000),
+    )
+```
+
+Lancer :
+
+```bash
+uvicorn main:app --workers 4
+```
+
+## Streaming vers le client
+
+Si tu veux que le frontend voie la progression au fur et à mesure (tools appelés, texte partiel), utilise `StreamingResponse` :
+
+```python
+from fastapi.responses import StreamingResponse
+import json
+
+@app.post("/analyze-stream")
+async def analyze_stream(req: AnalyzeRequest):
+    async def event_generator():
+        async for msg in query(prompt=req.question, options=opts):
+            event = {"type": msg.__class__.__name__, "data": str(msg)}
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+```
+
+Côté navigateur, `EventSource` consomme ça trivialement.
+
+## Gestion d'erreurs
+
+Erreurs typiques à catcher :
+
+```python
+from claude_agent_sdk.errors import (
+    APIError,           # problème HTTP (5xx, timeout)
+    AuthError,          # clé manquante/invalide
+    RateLimitError,     # tu as dépassé les quotas
+    ToolError,          # un tool a échoué à l'exécution
+    MaxTurnsExceeded,   # max_turns atteint avant que l'agent finisse
+)
+
+try:
+    async for msg in query(...):
+        ...
+except RateLimitError as e:
+    await anyio.sleep(e.retry_after)
+    # retry ou fail propre
+except MaxTurnsExceeded:
+    log.warning("Agent n'a pas fini en max_turns — probablement une loop.")
+```
+
+## Différence SDK vs API brute
+
+| Aspect | API brute | Agent SDK |
+|--------|-----------|-----------|
+| Tool use | Tu gères la boucle toi-même | Géré automatiquement |
+| Permission modes | N'existe pas | Natif |
+| CLAUDE.md | À injecter manuellement en system | Chargé automatiquement si `cwd` est un repo claudien |
+| Subagents | À implémenter à la main | `Agent(subagent_type=...)` |
+| Coût signalé | Calculer toi-même | `ResultMessage.total_cost_usd` |
+
+**Règle** : pour du chat pur, API brute. Pour tout ce qui implique du filesystem, des outils, ou une boucle agentique, SDK.
+
+## Piège #1 — cwd non défini
+
+Si tu oublies `cwd`, Claude travaille dans le CWD du process FastAPI — souvent `/app` ou `/root`. Les tools Read/Grep cherchent des fichiers qui n'existent pas dans le contexte attendu. **Toujours** passer `cwd` explicite.
+
+## Piège #2 — max_turns trop haut
+
+`max_turns=50` sur un mauvais prompt = facture à 3 chiffres. Commence à 8-10. Un run qui dépasse 8 tours a souvent un problème de design de prompt, pas de limite.
+
+## Piège #3 — hooks en prod
+
+Tu as des hooks dans `.claude/settings.json` qui appellent des scripts locaux. Sur ton poste ça marche, en prod le script n'existe pas → l'agent plante. Sur backend, mieux vaut **passer les hooks explicitement** dans `ClaudeAgentOptions(hooks=...)` que d'hériter du `.claude/settings.json`.
+
+## Check
+
+<Quiz
+  client:visible
+  id="sdk-py-when"
+  scenario="Tu veux juste poser une question à Claude et récupérer la réponse en JSON — pas de tools, pas de filesystem."
+  question="Quel outil choisis-tu ?"
+  options={[
+    { text: "Agent SDK avec `allowed_tools=[]`.", correct: false, explanation: "Possible mais overkill — tu payes la complexité de la boucle agentique pour rien." },
+    { text: "API brute Anthropic (package `anthropic`).", correct: true, explanation: "Exact. Pour un appel simple sans tools, l'API est plus directe, moins de dépendances, latence moindre." },
+    { text: "Claude Code CLI en mode headless.", correct: false, explanation: "Tu lancerais un process CLI à chaque requête — coût de démarrage + complexité de parsing stdout." },
+    { text: "GitHub Actions.", correct: false, explanation: "Sans rapport — GitHub Actions est pour du CI, pas un endpoint API." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="sdk-py-cost"
+  scenario="Ton endpoint reçoit 1000 requêtes/jour, avec `max_turns=50` et model Opus."
+  question="Quel est le risque principal ?"
+  options={[
+    { text: "Latence trop haute.", correct: false, explanation: "Réel mais pas le plus grave." },
+    { text: "Facture explosive + loops qui ne se terminent jamais.", correct: true, explanation: "Exact. max_turns haut + Opus = chaque run potentiellement cher. Et 50 tours, c'est souvent un signe que le prompt pousse l'agent dans une loop infinie. Plafonner à 8-10 est presque toujours le bon réflexe." },
+    { text: "Pas de streaming possible.", correct: false, explanation: "Le streaming marche indépendamment de max_turns." },
+    { text: "L'API key expire.", correct: false, explanation: "Les API keys ne tournent pas automatiquement." }
+  ]}
+/>
+
+## Prochaine étape
+
+Même logique, écosystème Node → [Agent SDK — TypeScript](/04-production/agent-sdk-typescript/).

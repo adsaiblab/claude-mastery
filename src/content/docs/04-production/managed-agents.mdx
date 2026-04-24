@@ -6,8 +6,210 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="5" blocs={["Bloc 23 — Managed Agents"]}>
-  Offre Managed Agents (agents long-running déclarés côté Anthropic), différence vs Agent SDK self-hosted, quotas et billing, console admin, secrets partagés, intégration avec CI/CD, cas d'usage : agent de support client, agent de triage, agent de monitoring permanent.
-</Planned>
+<Situation>
+  Tu as une routine de triage qui doit tourner 24/7 avec 99.9% de dispo, secrets
+  rotatés, logs archivés, metrics par client. Self-host tu passes deux semaines
+  à faire l'infra ; avec les **Managed Agents** d'Anthropic, tu déclares l'agent,
+  tu point ton webhook, Anthropic s'occupe du runtime. Tu payes à l'usage, tu ne
+  gères pas d'OPs.
+</Situation>
+
+## Concept — managed vs self-hosted
+
+| Dimension | Agent SDK self-hosted | Managed Agent |
+|-----------|----------------------|---------------|
+| Où tourne l'agent | Ton infra (k8s, Fargate, Lambda) | Anthropic |
+| Qui gère scaling / uptime | Toi | Anthropic |
+| Secrets | Tes vaults | Console Managed Agents |
+| Observabilité | Ton Datadog/Grafana | Console Anthropic + export |
+| Prix | API tokens + infra à toi | API tokens + frais gestion |
+| Customization | Totale | Bornée (pas de code arbitraire) |
+| Latence cold-start | Dépend de ton infra | Managé, sub-seconde |
+| Conformité | À toi | SOC2, HIPAA selon offre |
+
+**Règle** : self-hosted si tu as déjà une équipe Ops et des contraintes sur où les données vivent. Managed si tu veux livrer vite sans builder l'infra.
+
+## Ce qu'on déclare — le contrat
+
+Un Managed Agent, c'est :
+
+```yaml
+# agent.yaml (format représentatif)
+name: support-triage-v1
+description: Triage des tickets support Zendesk
+model: claude-sonnet-4-6
+
+trigger:
+  type: webhook
+  url_prefix: https://agents.anthropic.com/my-org/support-triage
+
+system_prompt: |
+  Tu es un agent de triage. Pour chaque ticket :
+  - Catégorise (billing / bug / question).
+  - Priorise (P1/P2/P3).
+  - Propose une réponse de premier niveau.
+
+tools:
+  - mcp__zendesk__*
+  - mcp__slack__post_message
+
+secrets:
+  - ZENDESK_API_TOKEN
+  - SLACK_BOT_TOKEN
+
+limits:
+  max_cost_per_run_usd: 0.50
+  max_duration_seconds: 120
+  max_concurrent_runs: 10
+
+retention:
+  logs_days: 30
+  conversations_days: 7
+```
+
+Tu pushes ce manifest, Anthropic provisionne l'endpoint + l'exécution.
+
+## Cycle de vie
+
+1. **Créer** — `claude agent create -f agent.yaml` ou via la console.
+2. **Tester** — `claude agent run support-triage-v1 --input '{"ticket_id": 42}'`.
+3. **Déployer** — passer en state `active`, le webhook prend les appels prod.
+4. **Monitor** — métriques en console (coût/run, erreurs, latences).
+5. **Rotate** — nouvelle version → `support-triage-v2`, bascule traffic progressive.
+
+## Cas d'usage types
+
+### Agent de support niveau 0
+
+Reçoit les tickets via webhook Zendesk, catégorise, répond aux basiques, escale les cas complexes à un humain avec un résumé.
+
+### Agent de triage bugs
+
+Webhook Sentry/Datadog → lit l'erreur, cherche des tickets GitHub ouverts similaires, ouvre ou met à jour l'issue, assigne au bon team.
+
+### Agent de monitoring permanent
+
+Cron interne : toutes les 15 min, vérifie l'état d'un dashboard, log structuré, alerte si anomalie. Sans machine à maintenir chez toi.
+
+### Agent sales lead qualifier
+
+Webhook CRM → récupère la fiche, cherche le site/LinkedIn via MCP web, scoring, assigne au bon SDR.
+
+## Quotas et billing
+
+Pricing sur 3 axes :
+
+1. **Tokens consommés** (comme API directe).
+2. **Runs** (petit frais par invocation, indépendant de la taille).
+3. **Stockage logs / conversations** (au giga-jour).
+
+Protection contre les dérapages : `max_cost_per_run_usd` dans le manifest. Au-delà, l'agent abort et log l'erreur. **Essentiel** pour se protéger contre une boucle.
+
+## Secrets — console only
+
+Les secrets **ne sont jamais en clair dans le manifest**. Tu les déclares via :
+
+```bash
+claude agent secret set support-triage-v1 ZENDESK_API_TOKEN
+# prompt interactif pour la valeur
+```
+
+Le manifest référence juste le nom — la valeur vit chiffrée côté Anthropic, injectée à l'exécution. Rotation via la même commande.
+
+## Observabilité — 3 vues
+
+1. **Dashboard** : invocations, success rate, latence p50/p95, coût total.
+2. **Traces** : chaque run détaillé (prompts, tool calls, résultats, durée par step).
+3. **Export** : logs exportables vers Datadog/S3/BigQuery via connecteur.
+
+Tu peux brancher tes alertes existantes sur l'export, pas besoin de deux systèmes en parallèle.
+
+## Intégration avec ton CI/CD
+
+Pattern recommandé :
+
+```yaml
+# .github/workflows/deploy-agent.yml
+on:
+  push:
+    paths: ["agents/**/*.yaml"]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/managed-agent-action@v1
+        with:
+          manifest: agents/support-triage.yaml
+          env: production
+          api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+Git-ops standard : le manifest vit dans le repo, les changements passent par PR, review, merge → déploiement automatique.
+
+## Rollback
+
+Deux façons :
+
+- **Par version** : `claude agent rollback support-triage --to v1`.
+- **Par weighted routing** : 10% traffic sur v2, 90% sur v1, puis progression.
+
+Préférable d'utiliser le weighted routing pour un test en prod graduel.
+
+## Limites (par rapport au self-hosted)
+
+- Pas de code Python/TS arbitraire embarqué dans l'agent — tu te limites aux tools listés (+ MCP custom).
+- Latence réseau fixe vers Anthropic (si tu es hors US, ajoute ~100ms par tool call).
+- Restriction des régions (selon offre).
+- Certains outils système (ex: fichiers locaux de ton infra) ne sont pas accessibles — doit passer par un MCP que tu exposes.
+
+**Quand préférer self-hosted** : code custom lourd, données qui ne peuvent pas quitter ton VPC, besoins de custom infra (GPUs pour embedding, DBs internes).
+
+## Piège #1 — `max_cost_per_run` trop généreux
+
+Un run à $50 fois 10 000 exécutions mensuelles = budget explosé. Cap bas au début, monte si besoin.
+
+## Piège #2 — logs non filtrés
+
+Les conversations passent en transit chez Anthropic. Si tu manipules de la PII/santé, vérifie l'offre de ton compte (SOC2/HIPAA) et configure la rétention courte + le scrubbing.
+
+## Piège #3 — dépendance opaque
+
+Tu deviens dépendant d'un service managé. Garde ton **prompt + config en git**, fais en sorte que la logique puisse tourner en self-hosted si besoin. Le manifest + les MCP configs ne doivent pas être uniquement dans la console.
+
+## Check
+
+<Quiz
+  client:visible
+  id="managed-vs-selfhosted"
+  scenario="Tu veux un agent de triage qui tourne 24/7 avec un SLA interne, équipe à 4 dev, pas d'équipe Ops dédiée."
+  question="Managed ou self-hosted ?"
+  options={[
+    { text: "Self-hosted, pour contrôler l'infra.", correct: false, explanation: "Sans équipe Ops, tu payes en temps dev ce que tu pensais économiser. Le SLA 24/7 nécessite monitoring, paging, rotation des secrets — tout ça n'existe pas gratuitement." },
+    { text: "Managed — tu pousses le manifest, Anthropic gère le runtime, tu te concentres sur la logique.", correct: true, explanation: "Exact. Pour une équipe sans Ops dédiée et un besoin 24/7, le coût managé est vite inférieur au coût humain du self-hosted." },
+    { text: "Hybride : logique en managed, secrets self-hosted.", correct: false, explanation: "Ça n'existe pas vraiment — les secrets sont dans la console Managed Agents, pas en double vault." },
+    { text: "Aucun — juste un cron Bash.", correct: false, explanation: "Possible pour un MVP à 10 runs/jour, pas pour du 24/7 avec SLA." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="managed-cost-cap"
+  scenario="Tu déploies un Managed Agent qui reçoit 10 000 webhooks/jour."
+  question="Quelle config protège le mieux ton budget contre un prompt qui ferait boucler l'agent ?"
+  options={[
+    { text: "`max_turns: 50` et Opus.", correct: false, explanation: "Exactement le contraire : max_turns haut + modèle cher = explosion garantie si l'agent boucle." },
+    { text: "`max_cost_per_run_usd: 0.20` + `max_duration_seconds: 60` + modèle Sonnet/Haiku.", correct: true, explanation: "Exact. Cap par run × cap durée × modèle adapté. Le pire cas reste borné même si l'agent rencontre un prompt pathologique." },
+    { text: "Pas de cap — on fait confiance au prompt.", correct: false, explanation: "La confiance n'est pas un levier de budget. Un input utilisateur malformé suffit à déclencher une loop." },
+    { text: "Désactiver les secrets.", correct: false, explanation: "Aucun rapport avec le coût ; et l'agent ne fonctionnerait plus." }
+  ]}
+/>
+
+## Prochaine étape
+
+Place au [Lab 04 — Claude in CI](/04-production/lab-04/) pour mettre en pratique un pipeline GitHub Actions complet qui review tes PRs.

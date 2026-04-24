@@ -9,10 +9,47 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../../components/Planned.astro';
+import Situation from '../../../../components/Situation.astro';
 import LabProgress from '../../../../components/interactive/LabProgress.tsx';
 
 > **Durée : ~75 min** · Scripts dans [`labs/lab-04-ci/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-04-ci)
+
+<Situation>
+  Tu vas livrer un workflow GitHub Actions qui review chaque PR du repo, poste
+  un commentaire structuré (score 0-10 + concerns ligne par ligne), et **bloque
+  le merge** via un required check si le score est insuffisant. Une review
+  auto-déclenchée, déterministe, pour soulager les reviewers humains sur les
+  basiques.
+</Situation>
+
+## Objectif
+
+Livrer un setup où chaque PR ouverte ou mise à jour déclenche :
+
+1. Un job GitHub Action qui checkout la PR.
+2. Un run `anthropics/claude-code-action` avec un prompt structuré + tools restreints (lecture + `gh pr comment`).
+3. Un commentaire unique (mis à jour en place si la PR est push à nouveau).
+4. Un exit code non-zéro si score < 7, qui fait **échouer** un check required côté branch protection.
+
+## Démarrer
+
+```bash
+cd labs/lab-04-ci
+./setup.sh              # crée work/ avec repo démo + workflow starter
+cd work/
+```
+
+Secrets à configurer dans le repo GitHub (Settings → Secrets and variables → Actions) :
+
+- `ANTHROPIC_API_KEY`
+
+Tu dois créer :
+
+- `.github/workflows/claude-review.yml` (workflow complet).
+- Prompt de review avec scoring structuré (extractible par regex).
+- Concurrence + skip-CI marker pour éviter les boucles.
+
+## Valider
 
 <LabProgress
   client:only="react"
@@ -29,6 +66,35 @@ import LabProgress from '../../../../components/interactive/LabProgress.tsx';
   ]}
 />
 
-<Planned session="5" blocs={["Bloc 18 — GitHub Actions"]}>
-  Énoncé complet, starter avec `claude-review.yml` incomplet + PR de démo, 3 hints, solution commentée.
-</Planned>
+```bash
+bash labs/lab-04-ci/validate.sh
+```
+
+Le script exécute deux vérifications :
+
+1. **YAML lint** — `actionlint .github/workflows/claude-review.yml` doit passer sans erreur.
+2. **Simulation `act`** — une PR de démo avec un bug volontaire doit produire un score < 7 et un exit 1 ; une PR clean doit produire score ≥ 7 et exit 0.
+
+## Hints
+
+- [Hint 1 — structure minimale du workflow + permissions](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-ci/hints/hint-01.md)
+- [Hint 2 — prompt de review avec format score extractible](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-ci/hints/hint-02.md)
+- [Hint 3 — mettre à jour un commentaire existant au lieu d'en créer un nouveau](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-ci/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-ci/solution/EXPLANATION.md) pour comparer le découpage du prompt.
+- Active la branch protection côté repo et ajoute `claude-review` comme required check.
+- Bonus : ajoute un deuxième job qui, sur `issue_comment` contenant `@claude`, répond dans le fil.
+
+## Ce qu'on vérifie vraiment
+
+1. Le workflow `.github/workflows/claude-review.yml` se déclenche sur `pull_request: [opened, synchronize]`.
+2. Permissions **minimales** : `contents: read` + `pull-requests: write`. Pas de `write` sur `contents`.
+3. `allowed_tools` est restreint à la lecture + `gh pr comment`/`gh pr review` — pas de wildcard.
+4. `timeout_minutes` ≤ 10.
+5. Le prompt contient un format **extractible** (ex: `Score: N/10`) que le step suivant parse pour décider exit 0/1.
+6. Le commentaire posté est **unique** et mis à jour en place (pas un nouveau commentaire par push).
+7. Un marqueur `[skip ci]` est inclus dans les commits éventuels de Claude pour éviter une boucle.
+8. Le secret `ANTHROPIC_API_KEY` n'apparaît jamais dans les logs (pas de `echo $ANTHROPIC_API_KEY`).
+9. `concurrency.group` est défini pour qu'un nouveau push à la PR annule le run précédent.
