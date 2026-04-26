@@ -1,0 +1,39 @@
+---
+title: 🃏 Flashcards
+description: 6 decks de flashcards pour ancrer les concepts clés du parcours, un deck par niveau.
+sidebar:
+  order: 1
+draft: false
+---
+
+import Situation from '../../../components/Situation.astro';
+
+<Situation>
+  Les flashcards sont conçues pour la **révision active** : tu lis le recto,
+  tu formules ta réponse à voix haute ou écrite, puis tu cliques pour
+  retourner la carte. Si tu hésites > 5 secondes, c'est qu'il faut relire
+  le module correspondant.
+</Situation>
+
+## Comment utiliser ces decks
+
+- **Avant un lab** : révise le deck du niveau pour vérifier que les notions sont fraîches.
+- **Après un module** : retourne sur le deck pour transformer la lecture en mémoire active.
+- **À J+3 et J+7** : repasse les decks déjà vus — c'est le rythme de la consolidation longue.
+
+Chaque deck contient **8 cartes** ciblées sur les notions à recall fréquent
+(commandes, signatures, pièges classiques). Pas une encyclopédie — juste ce
+que tu dois avoir en mémoire vive.
+
+## Les 6 decks
+
+1. [**N0 — Orientation**](/flashcards/n0/) — vocabulaire de base : Claude vs Claude Code, modes, modèles, slash, hooks, MCP, skills.
+2. [**N1 — Fondations**](/flashcards/n1/) — modèles complets, /resume, /clear, CLAUDE.md, plan mode, agentic loop.
+3. [**N2 — CLI Mastery**](/flashcards/n2/) — flags clés, slash commands, hooks events, permission modes, settings.json.
+4. [**N3 — Multi-agents**](/flashcards/n3/) — subagent frontmatter, Agent tool, isolation worktree, MCP transports, skills vs subagents.
+5. [**N4 — Production**](/flashcards/n4/) — GitHub Actions, Agent SDK, idempotence, backoff + jitter, DLQ, HMAC.
+6. [**N5 — Expert**](/flashcards/n5/) — /compact, UltraPlan cycle, Doer/Judge, fan-out, MEMORY typée, cascade modèles.
+
+## Format
+
+Chaque carte a un **recto court** (commande, terme, signature) et un **verso plus dense** (usage, piège, exemple). Clique pour retourner ; touche `Espace` ou `Entrée` au clavier.

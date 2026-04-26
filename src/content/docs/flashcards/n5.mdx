@@ -1,0 +1,85 @@
+---
+title: Deck N5 — Expert
+description: Context engineering, UltraPlan, Doer/Judge, fan-out, MEMORY typée, cascade modèles.
+sidebar:
+  order: 7
+draft: false
+---
+
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+
+> 8 cartes · ~7 min · Source : [Niveau 5 — Expert](/05-expert/)
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+
+  <FlipCard
+    client:visible
+    frontLabel="Slash"
+    backLabel="Quand"
+    front="/compact <focus>"
+    back="Compaction guidée — Claude résume en gardant la sous-partie qui t'intéresse (ex: /compact 'auth flow only'). Préserve la pertinence."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Cycle"
+    backLabel="4 phases"
+    front="UltraPlan / UltraReview"
+    back="1) Plan (Opus, read-only) → 2) Review (Opus, read-only, ≥3 concerns) → 3) Implement (Sonnet, full tools) → 4) Judge (Opus, isolated context, score)."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Pattern"
+    backLabel="Rôles"
+    front="Doer / Judge"
+    back="Doer fait. Judge évalue SANS voir la conv du doer (sinon biais). Hook Stop branche le judge → score → exit 2 si < seuil → re-do."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Pattern"
+    backLabel="Trade-off"
+    front="Fan-out / Fan-in"
+    back="N agents parallèles + 1 aggregator. Gain : temps mur. Coût : N fois les tokens. Limite : aggregator décroche au-delà de ~10 entrées hétérogènes."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Pattern"
+    backLabel="Format"
+    front="Writer / Reviewer"
+    back="Writer génère, Reviewer challenge dans la même session (échange visible). Bon pour ADRs, designs. Différent de Doer/Judge : ici on garde la conv."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Mémoire"
+    backLabel="4 types"
+    front="MEMORY typée"
+    back="user (qui est l'utilisateur) · feedback (corrections + validations) · project (état/initiatives) · reference (où trouver). Indexée dans MEMORY.md."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Doc"
+    backLabel="Format"
+    front="ADR"
+    back="Architecture Decision Record : Contexte / Décision / Conséquences / Alternatives. Versionné dans /docs/adr/. Daté, immuable une fois mergé."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Pattern"
+    backLabel="Économie"
+    front="Cascade de modèles"
+    back="Étape 1 (Haiku) classifie/filtre. Étape 2 (Sonnet) traite la majorité. Étape 3 (Opus) seulement sur les cas durs. 3-5× moins de coût qu'Opus partout."
+  />
+
+</div>
+
+← [N4 — Production](/flashcards/n4/)
+
+---
+
+**Tu as fini les 6 decks.** Repasse-les à J+3 et J+7 — c'est le rythme de la consolidation longue. Et reviens dessus avant chaque capstone réel : 5 minutes de révision active évitent 30 minutes de dérapage.

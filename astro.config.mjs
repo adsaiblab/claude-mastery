@@ -106,6 +106,19 @@ const LEVELS = [
       { label: 'Context engineering', link: '/architecture-patterns/context-engineering/' },
     ],
   },
+  {
+    label: '🃏 Flashcards',
+    collapsed: true,
+    items: [
+      { label: "Vue d'ensemble", link: '/flashcards/' },
+      { label: 'N0 — Orientation', link: '/flashcards/n0/' },
+      { label: 'N1 — Fondations', link: '/flashcards/n1/' },
+      { label: 'N2 — CLI Mastery', link: '/flashcards/n2/' },
+      { label: 'N3 — Multi-agents', link: '/flashcards/n3/' },
+      { label: 'N4 — Production', link: '/flashcards/n4/' },
+      { label: 'N5 — Expert', link: '/flashcards/n5/' },
+    ],
+  },
 ];
 
 export default defineConfig({

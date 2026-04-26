@@ -1,0 +1,81 @@
+---
+title: Deck N4 — Production
+description: GitHub Actions, Agent SDK, idempotence, backoff + jitter, DLQ, HMAC.
+sidebar:
+  order: 6
+draft: false
+---
+
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+
+> 8 cartes · ~7 min · Source : [Niveau 4 — Production](/04-production/)
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+
+  <FlipCard
+    client:visible
+    frontLabel="GitHub Action"
+    backLabel="Triggers utiles"
+    front="anthropic/claude-code-action"
+    back="Déclenchable sur : pull_request (review auto), issue_comment (/claude trigger), schedule (cron), workflow_dispatch (manuel)."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="SDK"
+    backLabel="Import"
+    front="@anthropic-ai/claude-agent-sdk"
+    back="Package npm pour brancher Claude Code dans un backend Node/TS. Streaming, tool use, message handlers. Version Python : claude-agent-sdk."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Concept"
+    backLabel="Règle"
+    front="Clé d'idempotence"
+    back="Doit être DÉTERMINISTE — même input → même clé. Pattern : sha256(scope|date|ressource). JAMAIS de timestamp ou UUID dans la clé."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Formule"
+    backLabel="Composants"
+    front="Backoff + jitter"
+    back="delay = min(max_delay, base × 2^attempt) + uniform(0, base). Le jitter évite les thundering herds — sans lui, 1000 clients retry en sync."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Pattern"
+    backLabel="Format"
+    front="DLQ JSONL"
+    back="Append-only, un objet JSON par ligne (json.dumps + sort_keys=True). Lisible avec tail/grep/jq. Pas d'array géant à parser."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Sécurité"
+    backLabel="Pourquoi"
+    front="hmac.compare_digest"
+    back="Comparaison en TEMPS CONSTANT. Pas == : Python s'arrête au premier byte différent → un attaquant mesure le timing et reconstruit la signature."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Sandbox"
+    backLabel="Couches"
+    front="Container + FS + net"
+    back="3 verrous combinés : container (Docker/Podman) + read-only mounts pour FS critiques + network policy (deny-by-default + allowlist DNS)."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Cron"
+    backLabel="Piège"
+    front="cd /opt/routines &&"
+    back="Sans cd, le cwd cron = / → ta DB SQLite sera créée dans /. Toujours ancrer le cwd + chemin absolu vers .venv/bin/python (PATH cron est minimal)."
+  />
+
+</div>
+
+← [N3 — Multi-agents](/flashcards/n3/) · → [N5 — Expert](/flashcards/n5/)

@@ -1,0 +1,81 @@
+---
+title: Deck N0 — Orientation
+description: Vocabulaire de base — Claude vs Claude Code, modes, modèles, primitives.
+sidebar:
+  order: 2
+draft: false
+---
+
+import FlipCard from '../../../components/interactive/FlipCard.tsx';
+
+> 8 cartes · ~5 min de révision · Source : [Niveau 0 — Orientation](/00-orientation/)
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
+
+  <FlipCard
+    client:visible
+    frontLabel="Terme"
+    backLabel="Définition"
+    front="Claude vs Claude Code"
+    back="Claude = la famille de modèles (LLM). Claude Code = la CLI Anthropic + IDE qui orchestre Claude pour faire du dev (lit, écrit, exécute, raisonne)."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Concept"
+    backLabel="Détail"
+    front="Plan vs Code mode"
+    back="Plan = lecture seule, propose un plan structuré. Code = exécute des modifs réelles (Edit/Write/Bash). Bascule via Shift+Tab."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Modèles"
+    backLabel="Quand"
+    front="Opus / Sonnet / Haiku"
+    back="Opus = raisonnement profond, archi. Sonnet = travail quotidien, edits. Haiku = batch léger, classification, latence faible."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Concept"
+    backLabel="Cycle"
+    front="Agentic loop"
+    back="3 verbes en boucle : observe (lit fichiers/sortie outils) → réfléchit → agit (appelle outils). Continue jusqu'à objectif atteint ou Stop."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Concept"
+    backLabel="Limite"
+    front="Context window"
+    back="Fenêtre de tokens où Claude voit tout (CLAUDE.md, conversation, fichiers lus, sorties outils). Au-delà = compaction automatique → perte de fil."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Primitive"
+    backLabel="Rôle"
+    front="Slash commands"
+    back="Raccourcis tapés dans la conv : /resume, /clear, /compact, /agents, /memory… Aussi extensibles via skills custom."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Primitive"
+    backLabel="Rôle"
+    front="Hooks"
+    back="Scripts shell branchés sur des événements (PreToolUse, PostToolUse, Stop…). Permettent de bloquer/loguer/transformer une action."
+  />
+
+  <FlipCard
+    client:visible
+    frontLabel="Primitive"
+    backLabel="Rôle"
+    front="MCP"
+    back="Model Context Protocol — protocole standard pour brancher des outils externes (Linear, Slack, DB) à Claude via serveur stdio ou HTTP."
+  />
+
+</div>
+
+→ Suivant : [Deck N1 — Fondations](/flashcards/n1/)
