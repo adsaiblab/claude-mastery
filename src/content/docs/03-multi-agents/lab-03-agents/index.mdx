@@ -1,0 +1,99 @@
+---
+title: Lab 03 alt — Fan-out audit multi-modules
+description: Auditer N modules d'un repo en parallèle via subagents fan-out + agrégateur.
+sidebar:
+  order: 9
+  badge:
+    text: Lab alt
+    variant: tip
+draft: false
+---
+
+import Situation from '../../../../components/Situation.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~75 min** · Scripts dans [`labs/lab-03-agents/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-03-agents)
+
+<Situation>
+  Variant du Lab 03. On reprend les subagents — mais cette fois pas en pipeline
+  séquentiel : en **fan-out**. Tu as un monorepo avec 3 services indépendants à
+  auditer. Plutôt qu'un explorateur en série qui mange ton context, tu dispatches
+  un subagent **auditor** par service, en parallèle, puis tu agrèges. Le
+  pattern qui permet d'auditer 50 modules sans saturer la fenêtre.
+</Situation>
+
+## Objectif
+
+Livrer un setup où une slash-command `/audit-all` :
+
+1. Détecte automatiquement les services dans `services/*`.
+2. Lance **un subagent `auditor` par service en parallèle** (fan-out).
+3. Chaque auditor produit `audit/<service>.md` avec score + concerns.
+4. Un subagent `aggregator` fusionne les rapports en `audit-report.md` (table récap).
+5. Un hook **PreToolUse** garde-fou bloque toute écriture hors `audit/` par les auditors.
+
+## Démarrer
+
+```bash
+cd labs/lab-03-agents
+./setup.sh              # crée work/ avec monorepo de démo + starter
+cd work/
+```
+
+Tu dois créer dans `.claude/` :
+
+- `agents/auditor.md` — read-only (Read, Grep, Glob), produit `audit/<service>.md`.
+- `agents/aggregator.md` — Read + Write, produit uniquement `audit-report.md`.
+- `commands/audit-all.md` — slash-command qui dispatche le fan-out.
+- `hooks/guard-readonly.sh` — bloque `auditor` s'il tente Edit/Write hors `audit/`.
+- `settings.json` — déclare le hook + permissions.
+
+## Valider
+
+<LabProgress
+  client:only="react"
+  labId="lab-03-agents"
+  title="Lab 03 alt — Checklist"
+  steps={[
+    { id: 'auditor', label: 'Subagent auditor.md (Read/Grep/Glob, pas d\'écriture)' },
+    { id: 'aggregator', label: 'Subagent aggregator.md (Read + Write contraint à audit-report.md)' },
+    { id: 'cmd', label: 'Slash-command /audit-all qui lance les auditors en parallèle' },
+    { id: 'hook', label: 'Hook PreToolUse garde-fou (bloque écritures hors audit/)' },
+    { id: 'fanout', label: 'Slash-command détecte services/* et fan-out' },
+    { id: 'aggregate', label: 'audit-report.md généré avec table par service' },
+    { id: 'validate', label: 'validate.sh — fan-out OK + garde-fou actif', hint: 'bash labs/lab-03-agents/validate.sh' },
+  ]}
+/>
+
+```bash
+bash labs/lab-03-agents/validate.sh
+```
+
+Le script exécute :
+
+1. Vérifie subagents et tools (auditor strictement read-only).
+2. Vérifie que la slash-command mentionne plusieurs services et un pattern de fan-out.
+3. Vérifie le hook `guard-readonly.sh` exécutable et déclaré sur `PreToolUse`.
+4. Simule un appel hostile (auditor essaie d'écrire `services/auth/hack.txt`) → hook doit refuser (exit 2).
+
+## Hints
+
+- [Hint 1 — fan-out via Agent() multiples dans le même message](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-agents/hints/hint-01.md)
+- [Hint 2 — restreindre les tools n'est pas suffisant : ajouter un hook PreToolUse](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-agents/hints/hint-02.md)
+- [Hint 3 — agrégation déterministe : table par service avec scores extraits par regex](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-agents/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-03-agents/solution/EXPLANATION.md) pour comparer ta stratégie de fan-out.
+- Bonus : ajoute un mode `--changed-only` qui ne lance le fan-out que sur les services modifiés depuis le dernier commit.
+- Bonus 2 : route les auditors en `model: haiku` et l'aggregator en `model: sonnet` — mesure le gain coût.
+
+## Ce qu'on vérifie vraiment
+
+1. `auditor.md` a `tools: Read, Grep, Glob` strictement (pas d'Edit/Write/Bash).
+2. `aggregator.md` peut écrire mais pas exécuter Bash.
+3. `commands/audit-all.md` mentionne les 3 services ET un pattern de parallélisation (plusieurs `Agent()` ou `@auditor` répétés).
+4. `hooks/guard-readonly.sh` parse le payload PreToolUse et exit 2 si `tool_input.file_path` n'est pas dans `audit/`.
+5. `settings.json` déclare `PreToolUse` avec matcher `Edit|Write` ET le hook.
+6. La structure `audit/` existe et est versionnée (ou créée par setup).
+7. Pas de fan-out faux : si la commande lance les auditors **en série**, le test échoue (heuristique : la commande utilise un wording de parallélisme).
