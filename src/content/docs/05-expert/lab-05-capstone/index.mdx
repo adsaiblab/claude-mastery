@@ -1,0 +1,109 @@
+---
+title: Lab 05 alt — Capstone (repo perso, freeform)
+description: Capstone open-ended — applique tout ce que tu as appris à un vrai repo, livraison freeform.
+sidebar:
+  order: 9
+  badge:
+    text: Lab alt
+    variant: tip
+draft: false
+---
+
+import Situation from '../../../../components/Situation.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~3-5h sur ton repo perso** · Templates dans [`labs/lab-05-capstone/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-05-capstone)
+
+<Situation>
+  Lab final, format **capstone** : tu sors du sandbox et tu poses Claude Code
+  sur **ton vrai repo** — perso, side-project, ou un module isolable de ton job.
+  Pas de starter à compléter. Tu choisis une mission parmi quatre archétypes,
+  tu la scopes, tu la livres, tu la débriefes. Le validate vérifie la
+  **structure de la livraison**, pas la correctness — c'est toi qui juges si
+  la mission est réussie.
+</Situation>
+
+## Pourquoi un capstone freeform
+
+Les labs précédents te tenaient la main : starter, tests, validate binaire.
+La vraie compétence, c'est **scoper toi-même** une mission — choisir le bon
+archétype, savoir quand t'arrêter, capitaliser le retour d'expérience.
+Ce lab te force à le faire une fois proprement, avec des templates qui te
+donnent le minimum de structure pour ne pas dériver.
+
+## Choisir une mission (4 archétypes)
+
+Tu choisis **un seul** des quatre :
+
+1. **Audit & rapport** — tu lances un fan-out d'auditeurs (cf. [Lab 03 alt](/03-multi-agents/lab-03-agents/)) sur ton repo et tu produis un rapport priorisé. Idéal si ton repo a > 6 mois de dette technique.
+2. **Refactor guidé** — tu choisis un module pénible (200-500 lignes), tu poses un cycle UltraPlan/UltraReview/Implement (cf. [Lab 05](/05-expert/lab-05/)), et tu compares avec ton instinct one-shot.
+3. **Agent custom** — tu crées un subagent spécialisé pour une tâche que tu fais à la main 1×/semaine (review d'un type de PR, génération d'un type de test, etc.). Livraison = `.claude/agents/<nom>.md` + 3 cas d'usage validés.
+4. **Routine automatisée** — tu poses une routine cron ou webhook (cf. [Lab 04 alt](/04-production/lab-04-routines/)) avec idempotence + DLQ sur un workflow récurrent réel (digest, sync, ETL).
+
+**Règle** : si tu hésites entre deux, prends celui qui te débloquera **demain matin**, pas celui qui paraît le plus impressionnant.
+
+## Démarrer
+
+```bash
+cd labs/lab-05-capstone
+./setup.sh              # crée work/ avec les 4 templates Markdown
+cd work/
+```
+
+`setup.sh` te crée quatre fichiers à remplir :
+
+- `mission.md` — repo cible, archétype, critères de succès
+- `plan.md` — étapes, budget temps, points de check
+- `session-log.md` — journal de ce que tu as réellement fait (commandes, prompts, dérapages)
+- `retrospective.md` — ce qui a marché, ce qui a foiré, ce que tu garderais
+
+## Valider
+
+<LabProgress
+  client:only="react"
+  labId="lab-05-capstone"
+  title="Lab 05 alt — Checklist"
+  steps={[
+    { id: 'mission', label: 'mission.md rempli — repo cible + archétype + 3 critères de succès' },
+    { id: 'plan', label: 'plan.md rempli — ≥ 4 étapes numérotées + budget temps' },
+    { id: 'execution', label: 'Exécution sur ton repo — au moins 1 commit ou 1 artefact livré' },
+    { id: 'log', label: 'session-log.md rempli — chronologie + ≥ 2 prompts cités' },
+    { id: 'retro', label: 'retrospective.md rempli — sections "marché" + "foiré" + "à retenir"' },
+    { id: 'validate', label: 'validate.sh — structure + non-vide', hint: 'bash labs/lab-05-capstone/validate.sh' },
+  ]}
+/>
+
+```bash
+bash labs/lab-05-capstone/validate.sh
+```
+
+Le script vérifie :
+
+1. Les 4 fichiers existent dans `work/` et sont **non-vides** (> 200 octets chacun).
+2. `mission.md` contient les sections `## Repo cible`, `## Archétype`, `## Critères de succès`.
+3. `plan.md` contient `## Étapes` avec au moins 4 items numérotés.
+4. `retrospective.md` contient les 3 sections obligatoires.
+5. `session-log.md` cite **au moins 2 prompts** (lignes commençant par `>` ou bloc ` ```prompt `).
+
+Pas de check sur la correctness du code livré — c'est ton repo, tu juges.
+
+## Hints
+
+- [Hint 1 — scoper la mission : règle des 3-5h, pas plus](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-capstone/hints/hint-01.md)
+- [Hint 2 — savoir quand s'arrêter : critères de sortie explicites](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-capstone/hints/hint-02.md)
+- [Hint 3 — retrospective utile : pas du journal, des décisions futures](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-capstone/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-capstone/solution/EXPLANATION.md) — exemple complet d'un capstone "Audit & rapport" sur ce repo (claude-mastery lui-même).
+- Sauvegarde ta `retrospective.md` dans la mémoire long-terme de tes prochains projets : c'est de l'or pour calibrer ton temps.
+- Bonus : refais le même lab dans 3 mois avec un autre archétype — tu verras la différence.
+
+## Ce qu'on vérifie vraiment
+
+1. Tu as **scopé toi-même** une mission qui te débloque concrètement.
+2. Tu as **un livrable réel** (commit, PR, agent, routine) — pas juste de la doc.
+3. Le `session-log.md` montre **les prompts qui ont marché** (et ceux qui ont dérapé).
+4. La rétrospective contient **au moins une décision réutilisable** pour ton prochain capstone.
+5. Tu as respecté ton budget temps initial (ou tu as documenté pourquoi tu l'as dépassé).
+6. Les artefacts sont **suffisants** pour que tu reprennes ce travail froid dans 6 semaines.
