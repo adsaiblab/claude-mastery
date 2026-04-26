@@ -1,13 +1,112 @@
 ---
 title: Pattern — Writer / Reviewer
-description: Un agent produit (code, doc, plan), un autre critique avec des critères explicites.
+description: Un agent produit, un autre critique avec des critères explicites.
 sidebar:
   order: 3
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+> Fiche de référence — pattern combinatoire. Pour le contexte global, voir [Advanced Patterns](/05-expert/advanced-patterns/).
 
-<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
-  Diagramme, cas d'usage (docs techniques, plans d'architecture, PRs), différence avec doer/judge (pas de boucle auto obligatoire, review humaine possible), critères de review versionnés (fichier `review-criteria.md`), sortie structurée (JSON avec score + comments par critère).
-</Planned>
+## Schéma
+
+```
+Writer : draft v1 ──► file
+Reviewer : annote, propose ──► comments
+Writer : applique ou justifie ──► file v2
+... (max N tours)
+Done
+```
+
+Différent du [Doer/Judge](/architecture-patterns/doer-judge/) : ici on **collabore en N tours** plutôt que single-shot + verdict.
+
+## Quand l'utiliser
+
+- Production de contenu : doc technique, ADR, README, copy.
+- Plans d'architecture (le Reviewer challenge le Writer).
+- PRs avec exigences éditoriales (style, longueur, format).
+- Tests à formuler (le Reviewer cherche les cas oubliés).
+
+## Quand **ne pas** l'utiliser
+
+- Code qui doit juste compiler — utilise un linter, pas un Reviewer.
+- Itération rapide où la review humaine est plus fiable.
+- Tâches sans critères formulables.
+
+## Implémentation
+
+**1. Subagent Writer** :
+
+```markdown
+---
+name: writer
+description: Produit du contenu structuré selon brief + critères.
+tools: Read, Write, Edit
+model: sonnet
+---
+Tu écris. Tu lis review-criteria.md avant chaque draft.
+Quand le Reviewer rend des concerns : applique ou justifie le refus dans une note.
+```
+
+**2. Subagent Reviewer** :
+
+```markdown
+---
+name: reviewer
+description: Lit le draft et propose changements selon critères.
+tools: Read, Grep
+model: opus
+---
+Tu n'écris pas le contenu — tu rends `review.md` avec :
+- Concerns P0 (bloquants)
+- Concerns P1 (forts)
+- Suggestions P2 (cosmétique)
+Référence chaque concern à une ligne du critère.
+```
+
+**3. Critères versionnés** (`review-criteria.md`) :
+
+```markdown
+- C1 : aucun jargon non défini au premier emploi
+- C2 : chaque section ≤ 200 mots
+- C3 : titre actionnable
+- C4 : pas de phrases passives sauf justification
+- C5 : exemple concret par concept
+```
+
+Le critère est **dans le repo**. Il évolue par PR. Sans ce fichier, le Reviewer dérive.
+
+## Boucle d'itération
+
+| Tour | Writer | Reviewer |
+|------|--------|----------|
+| 1 | draft initial | trouve 5-8 concerns |
+| 2 | applique P0+P1 | confirme + cherche P2 |
+| 3 | finalise | accepte ou rare nouveau P0 |
+
+**Cap dur** : 3 tours. Au-delà, le brief est probablement flou — reprends à la racine.
+
+## Différence avec Doer/Judge
+
+| Aspect | Writer/Reviewer | Doer/Judge |
+|--------|----------------|------------|
+| Itérations | N tours collaboratifs | 1 livraison + verdict |
+| Sortie | Contenu finalisé | Score + concerns |
+| Boucle | Naturelle | Forcée par hook |
+| Coût | Moyen (2-3 tours) | Bas (1 livraison) |
+| Use case | Contenu | Code/decision |
+
+## Pièges
+
+| Piège | Fix |
+|-------|-----|
+| Reviewer complaisant | Lui imposer ≥ 3 concerns minimum sur draft initial |
+| Writer qui contre-attaque chaque concern | Forcer "applique OU justifie en 1 ligne" |
+| Critères absents | Versionner `review-criteria.md` |
+| Boucle infinie | Cap 3 tours |
+
+## Voir aussi
+
+- [Doer/Judge](/architecture-patterns/doer-judge/)
+- [Co-work Claude Design](/05-expert/cowork-claude-design/) — version où l'humain est dans la boucle
+- [UltraPlan/UltraReview](/05-expert/ultraplan-ultrareview/)

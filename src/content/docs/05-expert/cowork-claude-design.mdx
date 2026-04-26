@@ -6,8 +6,212 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="6" blocs={["Bloc 25 — Co-work Design"]}>
-  Pattern de co-design (tour de parole explicite, critères de décision partagés, artefacts intermédiaires versionnés), Claude comme challenger sur tradeoffs d'archi, documentation des décisions (ADRs), pièges à éviter (sur-confiance, divergence silencieuse), exemple concret issu du projet FinaCES (section Expert uniquement).
-</Planned>
+<Situation>
+  Tu dois dessiner l'archi d'un nouveau service. Seul, tu tournes en rond sur un
+  détail pendant 40 min. Avec un pair humain, tu avances vite — mais personne
+  n'est dispo. Avec Claude, **si tu lui confies juste "dessine-moi l'archi"**,
+  tu obtiens un premier jet plausible mais jamais challengé. **Co-work Design**
+  est une discipline qui fait de Claude un vrai pair qui débat — pas un outil
+  qui livre.
+</Situation>
+
+## Concept — Claude comme pair, pas comme outil
+
+La différence :
+
+| Usage outil | Co-work pair |
+|-------------|-------------|
+| « Dessine-moi l'archi » | « Voici ma piste A et ma piste B. Laquelle et pourquoi ? » |
+| Claude propose, tu acceptes ou pas | Vous décidez ensemble avec critères écrits |
+| Pas d'artefact entre les tours | ADRs, diagrammes, changelog versionnés |
+| Divergence non détectée | Convergence ou désaccord explicité |
+
+Le shift : **tu n'attends pas une réponse — tu alimentes une conversation structurée**.
+
+## Les 4 règles du co-design
+
+### Règle 1 — tour de parole explicite
+
+Dans un pair design humain, on dit "tiens, je te passe la main". Avec Claude, dis-le aussi :
+
+```
+User : « Ma piste A pour le cache : Redis central.
+         Ma piste B : cache in-process par instance.
+         Challenge-moi pendant 1 tour — trouve 3 objections par piste.
+         Puis rends-moi la main. »
+```
+
+Sans cette structure, Claude écrit des pages. Avec, il reste focalisé.
+
+### Règle 2 — critères de décision partagés
+
+Avant de discuter, écris **ensemble** la grille :
+
+```markdown
+# Critères de décision — cache
+
+- Latence p99 ≤ 5ms : poids 3
+- Opérationnellement simple : poids 2
+- Coût infra < 200€/mois : poids 2
+- Cohérence cross-instance : poids 3
+- Scalabilité à 10x : poids 1
+```
+
+Maintenant quand Claude défend une piste, il la mappe aux critères. Tu vois où ça tient, où ça coince.
+
+### Règle 3 — artefacts intermédiaires versionnés
+
+Chaque passage Claude ↔ toi produit un artefact dans le repo :
+
+```
+design/
+├── options.md         ← pistes candidates, mise à jour à chaque tour
+├── criteria.md         ← critères, évolue rarement
+├── adr-001-cache.md    ← ADR à la sortie
+└── diagrams/
+    └── cache-arch.mmd  ← diagramme Mermaid
+```
+
+Pas de "ah mais on avait dit X au tour 3 je crois". Tout est dans un fichier git.
+
+### Règle 4 — désaccord explicité
+
+Si Claude te pousse sur une piste et que tu n'es pas convaincu, écris-le :
+
+```
+User : « Tu défends Redis central mais je reste sceptique sur la latence p99 sous charge.
+         Avant de trancher, explore le cas in-process + message bus pour invalidation.
+         Pas juste mentionner — modélise. »
+```
+
+Claude n'est pas ton supérieur. Sa proposition n'est **qu'une** proposition.
+
+## Le template de séance — 4 moments
+
+```
+1. Cadrage (5 min)      : objectif + critères + contraintes → criteria.md
+2. Exploration (15 min) : 3 pistes minimum décrites → options.md
+3. Comparaison (10 min) : mapping pistes × critères → scoring explicite
+4. ADR (5 min)          : décision + raisons + rejected alternatives → adr-XXX.md
+```
+
+Horloge réelle : 35 min pour une décision structurée. Seul, ça prend facilement 2h avec du doute résiduel.
+
+## ADR — Architecture Decision Record
+
+Format bref, non-négociable :
+
+```markdown
+# ADR-042 : Cache layer for user sessions
+
+## Status
+Accepted — 2026-04-24
+
+## Context
+Sessions utilisateur lues à chaque requête API. ~2000 req/s en pic.
+Latence actuelle : 18ms p99 (trop haut pour SLA 10ms).
+
+## Decision
+Cache in-process par instance avec invalidation via Redis pub/sub.
+
+## Alternatives considered
+- Redis central direct : rejeté, latence réseau ajoute 4-6ms
+- Memcached : rejeté, pas d'invalidation event-driven native
+- No cache : rejeté, coût DB trop élevé
+
+## Consequences
+- Complexité opérationnelle : +1 (pub/sub channel)
+- Cohérence : eventually consistent sur qqs ms après invalidate — acceptable
+- Coût : +40€/mois Redis
+
+## Review
+Revisit dans 6 mois si le trafic passe au-dessus de 10k req/s.
+```
+
+Court, signé par une décision, révocable. Claude peut t'aider à le rédiger à la fin de la séance.
+
+## Pattern — Claude comme challenger
+
+Une fois la décision posée, **force Claude à la challenger** :
+
+```
+User : « Imagine-toi dans 6 mois. Cette décision a mal tourné. Écris un post-mortem fictif :
+         qu'est-ce qui a foiré, et pourquoi on aurait dû le voir venir ? »
+```
+
+Le "pre-mortem" révèle des risques que la discussion "normale" a loupés. C'est un classique efficace.
+
+## Claude comme rédacteur de diagrammes
+
+Claude écrit bien du Mermaid, du PlantUML, du Graphviz. Utile pour fixer visuellement une archi :
+
+```
+User : « Rends-moi le diagramme Mermaid de l'archi qu'on vient de décider,
+         avec les flux d'invalidation en pointillé. »
+
+Claude :
+  ```mermaid
+  graph LR
+    Client --> API1[API instance 1]
+    Client --> API2[API instance 2]
+    API1 <-->|read/write| Cache1[in-proc cache]
+    API2 <-->|read/write| Cache2[in-proc cache]
+    API1 -.invalidate.-> Redis
+    Redis -.pub/sub.-> API2
+  ```
+```
+
+Commit dans `design/diagrams/`. Lisible dans le README, mis à jour quand l'archi bouge.
+
+## Piège #1 — sur-confiance
+
+Claude produit du texte fluide et structuré. On croit parce que ça sonne bien. **Contre-mesure** : checklist "concrete facts" à la fin de chaque séance — lister les faits concrets (chiffres, lib versions, API contracts) et **les vérifier** (doc officielle, expérience).
+
+## Piège #2 — divergence silencieuse
+
+À chaque tour, Claude reformule un peu. Après 10 tours, ton plan initial a dérivé sans que tu aies explicitement voté. **Contre-mesure** : réécriture périodique de l'état courant dans `options.md`, et diff visuel vs version précédente.
+
+## Piège #3 — one-way street
+
+Tu parles, Claude valide, tu parles, Claude valide. Pas une conversation, un monologue avec hochage de tête. **Contre-mesure** : ton prompt doit explicitement demander du désaccord. "Liste 3 raisons pour lesquelles mon idée est mauvaise."
+
+## Quand NE PAS co-worker
+
+- Décision triviale (choix de nom de variable).
+- Décision hors scope Claude (budget, politique org).
+- Urgence (prod down → action, pas délibération).
+
+## Check
+
+<Quiz
+  client:visible
+  id="codesign-criteria"
+  scenario="Tu démarres un co-work archi avec Claude sans écrire de critères de décision. Vous discutez 45 min, vous décidez de Redis."
+  question="Quel est le risque principal ?"
+  options={[
+    { text: "Aucun, tant qu'une décision est prise.", correct: false, explanation: "Sans critères écrits, tu ne sais pas pourquoi Redis a gagné. Dans 3 mois quand ça change de contexte, personne ne sait s'il faut revisiter." },
+    { text: "Tu as pris une décision sans savoir pourquoi — quand le contexte changera, tu ne sauras pas revisiter proprement.", correct: true, explanation: "Exact. Les critères écrits (criteria.md) sont le filet de sécurité de la décision. Sans eux, l'ADR est plus faible et la révision future impossible." },
+    { text: "Claude risque d'halluciner du code Redis.", correct: false, explanation: "Pas le risque principal dans une phase de design — il n'est pas encore en train d'écrire de code." },
+    { text: "Le diagramme Mermaid sera incorrect.", correct: false, explanation: "Le diagramme, lui, se vérifie à l'œil — ce n'est pas là que ça loupe." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="codesign-challenge"
+  scenario="Claude valide enthousiastement chacune de tes propositions d'archi."
+  question="Signal qu'il faut ajuster comment ?"
+  options={[
+    { text: "C'est bon — il confirme la qualité de mes idées.", correct: false, explanation: "Dangereux — un pair qui valide tout ne challenge rien. Tu utilises Claude comme un miroir, pas comme un pair." },
+    { text: "Demande-lui explicitement de trouver les failles : 'liste 3 raisons pour lesquelles cette approche va mal tourner'.", correct: true, explanation: "Exact. Par défaut, Claude est coopératif. Tu dois lui imposer un rôle de challenger via le prompt. C'est un ajustement de ton côté, pas une limite du modèle." },
+    { text: "Change de modèle, Sonnet est trop gentil.", correct: false, explanation: "Le modèle n'est pas le problème — le prompt l'est." },
+    { text: "Passe en co-design avec un humain.", correct: false, explanation: "Possible mais pas nécessaire — ajuster le prompt résout le problème à court terme." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu sais collaborer sur le design. Voyons maintenant un **catalogue de patterns avancés** pour orchestrer du multi-agent complexe → [Advanced Patterns](/05-expert/advanced-patterns/).

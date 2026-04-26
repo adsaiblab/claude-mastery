@@ -1,6 +1,6 @@
 ---
-title: Lab 05 — Co-work sur projet réel
-description: Exécuter UltraPlan → UltraReview → Implement → Judge sur un module existant.
+title: Lab 05 — Mon système d'agents
+description: Assembler subagents + hooks + memory + cycle UltraPlan sur un projet réel.
 sidebar:
   order: 6
   badge:
@@ -9,26 +9,95 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../../components/Planned.astro';
+import Situation from '../../../../components/Situation.astro';
 import LabProgress from '../../../../components/interactive/LabProgress.tsx';
 
 > **Durée : ~120 min** · Scripts dans [`labs/lab-05-cowork/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-05-cowork)
+
+<Situation>
+  Lab final : tu vas livrer **ton propre système** d'agents sur un module
+  existant. Subagents typés (planner, implementer, judge), hook Stop pour
+  garde-fou, mémoire typée pour la continuité, cycle UltraPlan/UltraReview
+  comparé à un baseline one-shot. Tu finis le parcours avec un setup
+  reproductible que tu peux poser sur ton vrai projet demain matin.
+</Situation>
+
+## Objectif
+
+1. Choisir un module non trivial (50-200 lignes) à modifier ou refactorer.
+2. Produire une **baseline one-shot** : prompt unique, sans cycle, mesurer.
+3. Exécuter le **cycle complet** UltraPlan → UltraReview → Implement → Judge avec subagents dédiés.
+4. Comparer les deux livrables sur grille fixe et conclure.
+
+## Démarrer
+
+```bash
+cd labs/lab-05-cowork
+./setup.sh              # crée work/ avec le module à modifier + grille de jugement
+cd work/
+```
+
+Tu dois créer dans `.claude/agents/` :
+
+- `ultra-planner.md` (Opus, tools lecture seule).
+- `ultra-reviewer.md` (Opus, tools lecture seule).
+- `ultra-implementer.md` (Sonnet, tools full + `isolation: worktree`).
+- `ultra-judge.md` (Opus, tools lecture seule, **prompt explicite** : pas de hérissage de la conv).
+
+Et dans `.claude/`:
+
+- `hooks/check-score.sh` qui parse `verdict.md` et exit 2 si score < 7.
+- `settings.json` avec hook Stop branché sur `ultra-judge` + `check-score.sh`.
+- `memory/MEMORY.md` + au moins une mémoire `project_<sujet>.md` de continuité.
+
+## Valider
 
 <LabProgress
   client:only="react"
   labId="lab-05-cowork"
   title="Lab 05 — Checklist"
   steps={[
-    { id: 'baseline', label: 'Choisir un module + produire une version one-shot (baseline)' },
-    { id: 'ultraplan', label: 'Exécuter UltraPlan (subagent dédié, plan.md versionné)' },
-    { id: 'ultrareview', label: 'Exécuter UltraReview (challenger le plan, itérer)' },
-    { id: 'implement', label: 'Implementer via subagent avec plan figé' },
-    { id: 'judge', label: 'Juger les deux versions sur 5 critères + score' },
-    { id: 'compare', label: 'Produire diff.md comparant baseline vs cycle complet' },
+    { id: 'baseline', label: 'Produire la version one-shot (baseline.md + code dans baseline/)' },
+    { id: 'plan', label: 'Exécuter ultra-planner — produire plan.md versionné' },
+    { id: 'review', label: 'Exécuter ultra-reviewer — revised-plan.md avec ≥ 3 concerns' },
+    { id: 'implement', label: 'Exécuter ultra-implementer en worktree — tests verts' },
+    { id: 'judge', label: 'Exécuter ultra-judge sur les 2 versions — verdict-baseline.md + verdict-cycle.md' },
+    { id: 'memory', label: 'Mémoire typée : MEMORY.md + project_<sujet>.md mis à jour' },
+    { id: 'compare', label: 'diff.md : tableau comparatif baseline vs cycle (durée, tokens, score, concerns)' },
     { id: 'validate', label: 'validate.sh — artefacts présents + score cycle > baseline', hint: 'bash labs/lab-05-cowork/validate.sh' },
   ]}
 />
 
-<Planned session="6" blocs={["Bloc 24-27"]}>
-  Énoncé complet, starter avec module exemple, grille de jugement, 3 hints, solution commentée (version Expert seulement avec exemple FinaCES réel).
-</Planned>
+```bash
+bash labs/lab-05-cowork/validate.sh
+```
+
+Le script vérifie :
+
+1. Les 4 subagents existent dans `.claude/agents/` avec frontmatter conforme (name, description, tools, model).
+2. `settings.json` branche le hook Stop sur `ultra-judge` + `check-score.sh`.
+3. Les 4 artefacts sont produits : `plan.md`, `revised-plan.md`, `verdict-baseline.md`, `verdict-cycle.md`.
+4. `verdict-cycle.md` score > `verdict-baseline.md` score (sinon le cycle n'apporte rien — refais).
+5. `MEMORY.md` indexe au moins un fichier mémoire typé.
+6. `diff.md` contient un tableau comparatif quantifié (4 colonnes minimum).
+
+## Hints
+
+- [Hint 1 — répartition des modèles entre les 4 subagents](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-cowork/hints/hint-01.md)
+- [Hint 2 — éviter que le judge hérite du contexte](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-cowork/hints/hint-02.md)
+- [Hint 3 — formuler les critères de jugement pour qu'ils soient parsables](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-cowork/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-05-cowork/solution/EXPLANATION.md) — version Expert avec retour d'expérience sur un cas réel.
+- Pose ce setup sur ton propre repo cette semaine — c'est l'objectif réel du lab.
+- Bonus : ajoute un 5ᵉ subagent `ultra-historian` qui consolide les mémoires en fin de cycle.
+
+## Ce qu'on vérifie vraiment
+
+1. Les 4 rôles sont **distincts** (pas de planner qui code, pas de judge qui voit la conv).
+2. Le hook Stop est **réversible** (on peut le désactiver sans casser le projet).
+3. Le score cycle bat le score baseline d'au moins **2 points** sur 10.
+4. La mémoire typée indexe correctement (frontmatter, pointeur dans MEMORY.md).
+5. Le `diff.md` montre que le **temps humain** post-livraison est inférieur côté cycle (le critère qui justifie le coût).
+6. Les artefacts sont **suffisants** pour qu'un autre dev reprenne le travail froid.

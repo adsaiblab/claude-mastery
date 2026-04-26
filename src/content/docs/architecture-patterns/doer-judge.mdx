@@ -6,8 +6,117 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+> Fiche de référence — pattern combinatoire. Pour le contexte global, voir [Advanced Patterns](/05-expert/advanced-patterns/).
 
-<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
-  Diagramme, cas d'usage (tests, review, refactor), implémentation : subagent `doer` + subagent `judge` + hook `Stop` qui relance si verdict < seuil. Pièges : boucle infinie (cap `maxIterations`), dérive du prompt entre itérations, coût tokens.
-</Planned>
+## Schéma
+
+```
+Doer (Sonnet)  ──── livre artefact ────►  Judge (Opus, frais)
+   ▲                                              │
+   └────── concerns si score < seuil ─────────────┘
+```
+
+Le Judge n'a **pas vu** la conversation du Doer — il lit froid les artefacts.
+
+## Quand l'utiliser
+
+- Tâches où la qualité est mesurable mais subjective : code review, tests, doc, ADR.
+- Pipelines automatisés où un humain ne peut pas valider chaque sortie.
+- Tâches itératives qui bénéficient d'un garde-fou.
+
+## Quand **ne pas** l'utiliser
+
+- Tâche triviale (Judge est plus cher que la tâche).
+- Tâche dont le critère de qualité n'est pas formulable (sinon le Judge devient subjectif).
+- Quand un humain peut valider rapidement (le Judge ajoute de la latence).
+
+## Implémentation minimale
+
+**1. Subagent Judge** (`.claude/agents/judge.md`) :
+
+````markdown
+---
+name: judge
+description: Note un livrable sur grille fixe. N'a pas vu la conversation.
+tools: Read, Grep, Bash
+model: opus
+---
+Tu reçois un artefact. Notes-le sur 5 critères (chacun /2) :
+- Correctness
+- Lisibilité
+- Tests
+- Conformité conventions
+- Risques résiduels
+
+Rends `verdict.md` au format :
+
+```
+Score: N/10
+P0: <list>
+P1: <list>
+```
+````
+
+**2. Hook Stop** (`.claude/settings.json`) :
+
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [
+        { "type": "agent", "agent": "judge" },
+        { "type": "command", "command": ".claude/hooks/check-score.sh", "timeout": 10 }
+      ]
+    }]
+  }
+}
+```
+
+**3. Script gate** :
+
+```bash
+#!/usr/bin/env bash
+score=$(grep -oP 'Score:\s*\K\d+' verdict.md || echo 0)
+if [ "$score" -lt 7 ]; then
+  echo "Concerns: $(grep '^P0' verdict.md)" >&2
+  exit 2
+fi
+exit 0
+```
+
+## Cap d'itérations
+
+Une boucle Doer/Judge peut tourner indéfiniment. **Toujours** un cap dur :
+
+```bash
+# .claude/memory/iteration_count.txt
+count=$(cat .claude/memory/iteration_count.txt 2>/dev/null || echo 0)
+if [ "$count" -ge 3 ]; then
+  echo "Cap iterations atteint, reprends la main" >&2
+  exit 2
+fi
+echo $((count+1)) > .claude/memory/iteration_count.txt
+```
+
+3 itérations max est un bon défaut. Au-delà, le problème est dans le plan, pas l'exécution.
+
+## Pièges
+
+| Piège | Conséquence | Fix |
+|-------|-------------|-----|
+| Judge hérite du contexte du Doer | Mêmes biais, validation complaisante | `Agent()` frais avec subagent dédié |
+| Critères flous (ex: "que ce soit bien") | Score subjectif, instabilité | Grille concrète /N par critère |
+| Boucle infinie | Cost runaway | Cap `maxIterations` dans le hook |
+| Judge en Sonnet | Manque de jugement profond | Opus pour le Judge |
+
+## Coût typique
+
+- Doer Sonnet : 30-60k tokens par tour
+- Judge Opus : 10-20k tokens
+- 1.5-2x le coût d'un single-shot, mais qualité +2 à +3 points sur grille
+
+## Voir aussi
+
+- [Advanced Patterns](/05-expert/advanced-patterns/)
+- [UltraPlan/UltraReview](/05-expert/ultraplan-ultrareview/) — extension à 4 phases
+- [Hooks référence](/reference/hooks-events/)

@@ -6,8 +6,110 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+> Fiche de référence — pattern combinatoire. Pour le contexte global, voir [Context Engineering — Niveau 5](/05-expert/context-engineering/).
 
-<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
-  Diagramme, techniques : (1) subagent "researcher" qui renvoie un résumé court, (2) `/compact` périodique, (3) mémoire typée (MEMORY.md index + fichiers thématiques), (4) fork pour explorer sans polluer, (5) stratification system > CLAUDE.md > memory > files > chat. Anti-patterns : tout dans CLAUDE.md, pas de résumé entre phases, contexte qui explose silencieusement.
-</Planned>
+## Schéma
+
+```
+Main (orchestrateur)
+  ├─ tient plan.md + progress.md
+  ├─ délègue à un subagent par sous-tâche
+  │   └─ subagent fresh, fait le boulot, rend synthèse ≤ 300 mots
+  └─ update progress.md
+```
+
+Le main ne grossit jamais. Les subagents démarrent à 0 chaque fois. Seuls les **artefacts persistants** traversent.
+
+## Stratification
+
+```
+┌──────────────────────────────────────────────┐
+│ 1. System prompt (Claude Code)               │  ← stable
+├──────────────────────────────────────────────┤
+│ 2. CLAUDE.md (managed > user > project)      │
+├──────────────────────────────────────────────┤
+│ 3. MEMORY.md + mémoires typées               │
+├──────────────────────────────────────────────┤
+│ 4. Fichiers lus pendant la session            │
+├──────────────────────────────────────────────┤
+│ 5. Historique conversationnel                 │  ← volatile
+└──────────────────────────────────────────────┘
+```
+
+**Levier** : ce qui doit être permanent monte. Ce qui doit être éphémère reste bas.
+
+## Techniques
+
+### 1. Subagent "researcher"
+
+Plutôt que charger 30 fichiers dans le main, délègue :
+
+```python
+Agent(explorer, "Trouve les usages de deprecated_api(). Synthèse ≤ 300 mots.")
+  → consomme 40k dans sa fenêtre
+  → rend 300 mots au main
+```
+
+### 2. /compact périodique
+
+Tous les 30 tours environ. Avant : extrais explicitement les détails précieux dans `MEMORY.md` (file paths, IDs, valeurs).
+
+### 3. Mémoire typée
+
+```
+.claude/memory/
+├── MEMORY.md (index)
+├── project_<sujet>.md
+├── feedback_<topic>.md
+├── reference_<system>.md
+└── user_<topic>.md
+```
+
+Format frontmatter `name`, `description`, `type`. Le main lit l'index, charge à la demande.
+
+### 4. Fork pour explorer
+
+```bash
+claude --fork-session <id>
+```
+
+Deux streams indépendants. Si l'exploration est inutile, tu la jettes.
+
+### 5. Cascade de modèles
+
+Triage en Haiku, exécution en Sonnet, jugement en Opus. 60-80% d'économie sur pipelines longs.
+
+## Métriques
+
+| Métrique | Signal |
+|----------|--------|
+| `/status` > 60% | Comprimer / forker bientôt |
+| Agent redemande un fichier déjà lu | Réactivité en baisse |
+| `...` dans tool results | Truncation, des détails échappent |
+| Tool result > 20k tokens | Filtrer (`head_limit`, glob plus étroit, déléguer) |
+
+## Anti-patterns
+
+| AP | Conséquence | Fix |
+|----|-------------|-----|
+| Tout dans CLAUDE.md | 30k tokens chargés à chaque session | CLAUDE.md = règles, MEMORY.md = faits |
+| Pas de résumé entre phases | Phase N traîne le contexte des phases 1..N-1 | `/compact` ou subagent par phase |
+| Explosion silencieuse | Agent saturé sans alerte | `/status` régulier, réagir > 60% |
+| Subagent qui rend 5000 mots | Le main hérite du gain à zéro | Imposer "synthèse ≤ 300 mots" |
+
+## Pattern combiné — orchestrateur + workers
+
+Pour des tâches dépassant la fenêtre :
+
+1. Main = orchestrateur, tient `plan.md` + `progress.md`.
+2. Pour chaque sous-tâche, délègue à un subagent neuf.
+3. Subagent fait, rend synthèse, **disparaît**.
+4. Main update progress.md.
+
+C'est ce qui permet de travailler sur des **repos de 500k lignes**.
+
+## Voir aussi
+
+- [Context Engineering — Niveau 5](/05-expert/context-engineering/)
+- [Advanced Patterns](/05-expert/advanced-patterns/)
+- [UltraPlan/UltraReview](/05-expert/ultraplan-ultrareview/)

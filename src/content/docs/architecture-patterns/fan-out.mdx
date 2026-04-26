@@ -6,8 +6,97 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+> Fiche de référence — pattern combinatoire. Pour le contexte global, voir [Advanced Patterns](/05-expert/advanced-patterns/).
 
-<Planned session="4" blocs={["Bloc 27 — Patterns avancés"]}>
-  Diagramme, cas d'usage (explorer N dossiers, analyser N PRs, tester N modules), implémentation : orchestrateur qui lance subagents avec `background: true` puis consomme leurs résultats. Pièges : ordonnancement des résultats, gestion des échecs partiels, coût linéaire en tokens.
-</Planned>
+## Schéma
+
+```
+                       ┌──→ subagent A (chunk 1) ──┐
+Main : split + dispatch├──→ subagent B (chunk 2) ──┼──→ Main : merge
+                       └──→ subagent C (chunk 3) ──┘
+```
+
+## Quand l'utiliser
+
+- Audit multi-modules (un agent par dossier).
+- Recherche de pattern dans un grand repo (un agent par chunk).
+- Génération de variantes parallèles (3 propositions de copy).
+- Analyse de N PRs / N issues.
+
+## Critères d'éligibilité
+
+| Critère | Pourquoi |
+|---------|----------|
+| Branches **indépendantes** | Sinon il faut un canal de coordination → revient au séquentiel |
+| Sortie **bornée** par branche | Sinon le main sature à la fusion |
+| Fusion **déterministe** (concat, vote, max) | Sinon la valeur ajoutée est perdue |
+
+Si une seule de ces 3 conditions n'est pas remplie, fan-out **n'est pas le pattern**.
+
+## Implémentation Python
+
+```python
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def audit(path: str) -> str:
+    options = ClaudeAgentOptions(
+        cwd=path,
+        max_turns=5,
+        system_prompt="Audit ce module. Rends ≤ 300 mots.",
+    )
+    parts = []
+    async for msg in query(prompt="audit", options=options):
+        parts.append(str(msg))
+    return f"## {path}\n" + "\n".join(parts)
+
+async def main():
+    paths = ["services/auth", "services/billing", "services/notif"]
+    results = await asyncio.gather(*(audit(p) for p in paths))
+    print("\n\n".join(results))
+```
+
+## Implémentation Claude Code (interactif)
+
+Lance plusieurs `Agent()` dans un seul message — ils s'exécutent en parallèle :
+
+```
+[Agent A: explorer services/auth]
+[Agent B: explorer services/billing]
+[Agent C: explorer services/notif]
+```
+
+Le main reçoit les 3 retours, agrège, présente.
+
+## Variantes
+
+### Fan-out symétrique
+
+Tous les subagents font la **même tâche** sur des données différentes (audit par module). Fusion = concat.
+
+### Fan-out asymétrique
+
+Subagents avec **rôles différents** sur la même tâche (un focus sécurité, un focus perf, un focus maintenabilité). Fusion = synthèse multi-vue.
+
+### Fan-out + vote
+
+N subagents répondent à la même question, le main vote (majorité ou max-confidence). Utile quand la décision est critique mais bruitée.
+
+## Pièges
+
+| Piège | Fix |
+|-------|-----|
+| Branches qui ont besoin de se voir | Repenser : ce n'est pas du fan-out |
+| Sortie illimitée par branche | Imposer un cap ≤ N mots dans le prompt |
+| Échecs partiels invisibles | `asyncio.gather(..., return_exceptions=True)` + log |
+| Coût linéaire en tokens | Cascader Haiku/Sonnet selon complexité par branche |
+
+## Coût typique
+
+Linéaire en N (le nombre de branches). Sur 10 branches Sonnet à 30k tokens : ~300k tokens en parallèle vs 300k en série — **même coût**, **durée /10**.
+
+## Voir aussi
+
+- [Advanced Patterns](/05-expert/advanced-patterns/)
+- [Agent Teams](/03-multi-agents/agent-teams/)
+- [Doer/Judge](/architecture-patterns/doer-judge/)

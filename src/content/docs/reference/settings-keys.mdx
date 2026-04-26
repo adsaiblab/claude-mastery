@@ -1,13 +1,105 @@
 ---
 title: Référence — settings.json
-description: Toutes les clés acceptées dans .claude/settings.json et ~/.claude/settings.json.
+description: Clés acceptées dans .claude/settings.json.
 sidebar:
   order: 6
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+## Localisation et priorité
 
-<Planned session="3" blocs={["Bloc 10 — Permissions", "Bloc 11 — Hooks"]}>
-  Clés : `permissions` (`allow`, `deny`, `ask`, `defaultMode`, `additionalDirectories`), `hooks`, `env`, `mcpServers`, `model`, `cleanupPeriodDays`, `includeCoAuthoredBy`, `statusLine`, `outputStyle`, `enableAllProjectMcpServers`, priorité de fusion user/project/local.
-</Planned>
+| Fichier | Scope | Versionné |
+|---------|-------|-----------|
+| `~/.claude/settings.json` | User (toutes sessions) | non |
+| `<repo>/.claude/settings.json` | Project (équipe) | oui |
+| `<repo>/.claude/settings.local.json` | Local (machine) | non (à gitignorer) |
+
+Précédence : **Local > Project > User**. Les listes sont fusionnées, les scalaires écrasés.
+
+## Clés racines
+
+| Clé | Type | Usage |
+|-----|------|-------|
+| `permissions` | object | Allow/deny/ask de tools, FS, network. |
+| `hooks` | object | Hooks par événement (cf. [hooks-events](/reference/hooks-events/)). |
+| `env` | object | Variables d'env injectées dans les Bash tool. |
+| `mcpServers` | object | Serveurs MCP scopés au projet. |
+| `model` | string | Modèle par défaut (override par `--model`). |
+| `cleanupPeriodDays` | int | Rétention des transcripts locaux. |
+| `includeCoAuthoredBy` | bool | Ajoute la trailer `Co-Authored-By: Claude` aux commits. |
+| `statusLine` | object | Customise la ligne de statut. |
+| `outputStyle` | enum | `default` / `minimal` / `verbose`. |
+| `enableAllProjectMcpServers` | bool | Whitelist auto des MCPs du projet. |
+| `apiKeyHelper` | string | Script qui retourne la clé API (au lieu de l'env). |
+
+## `permissions`
+
+| Sous-clé | Type | Usage |
+|----------|------|-------|
+| `allow` | list | Patterns toujours autorisés. Ex: `"Read"`, `"Bash(git:*)"`. |
+| `deny` | list | Patterns toujours bloqués. |
+| `ask` | list | Patterns qui demandent confirmation. |
+| `defaultMode` | enum | `default` / `acceptEdits` / `plan` / `bypassPermissions`. |
+| `additionalDirectories` | list | Chemins hors cwd accessibles. |
+
+```json
+{
+  "permissions": {
+    "allow": ["Read", "Grep", "Glob", "Bash(git:*)"],
+    "deny": ["Bash(rm:*)", "WebFetch"],
+    "ask": ["Edit", "Write"],
+    "defaultMode": "default",
+    "additionalDirectories": ["~/notes/"]
+  }
+}
+```
+
+## `mcpServers`
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "$GH_TOKEN" }
+    },
+    "supabase": {
+      "url": "https://mcp.example.com/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
+## `statusLine`
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/scripts/statusline.sh"
+  }
+}
+```
+
+Le script reçoit sur stdin un JSON avec `model`, `cwd`, `tokens_used`, etc.
+
+## `env`
+
+```json
+{
+  "env": {
+    "NODE_ENV": "development",
+    "PYTHONUNBUFFERED": "1"
+  }
+}
+```
+
+Injecté dans **toutes** les Bash tool calls. À ne pas confondre avec les env vars du shell parent.
+
+## Bonnes pratiques
+
+- Settings versionnés (project) = règles **équipe**. Un dev arrivant lit ce fichier pour comprendre les contraintes.
+- Settings non versionnés (local) = préférences **personnelles** ou secrets locaux.
+- Ne **jamais** mettre de secret en clair — utilise `apiKeyHelper` ou les env vars.

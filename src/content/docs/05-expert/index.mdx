@@ -1,26 +1,40 @@
 ---
 title: Niveau 5 — Expert
-description: UltraPlan/UltraReview, co-work Claude Design, context engineering, patterns avancés.
+description: Context engineering, UltraPlan/UltraReview, co-work design, patterns avancés.
 sidebar:
   order: 1
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
 
-> Durée estimée : **5h** · 4 modules + 1 lab · Section réservée (Auth Expert)
+> Durée estimée : **5h** · 4 modules + 1 lab · Section Expert
 
-Tu maîtrises les bases. Ce niveau t'amène aux **techniques de collaboration avancée avec Claude** observées sur des projets réels — planification itérative profonde, design en pair-programming, ingénierie du contexte à grande échelle.
+<Situation>
+  Tu maîtrises les bases (slash, hooks, subagents, MCP, plugins, production).
+  Ce niveau te donne les **techniques de collaboration avancée** observées chez
+  les utilisateurs experts : ingénierie du contexte à grande échelle, cycles
+  de planification rigoureux, co-design en pair, catalogues de patterns
+  réutilisables. Pas de magie — de la discipline.
+</Situation>
 
 ## Modules
 
-1. **UltraPlan / UltraReview** — cycles de planification/relecture itératifs avec budget de tokens maîtrisé.
-2. **Co-work Claude Design** — Claude comme pair designer (interfaces, architectures, schémas).
-3. **Context Engineering** — sélection, compression, stratification du contexte.
-4. **Advanced Patterns** — doer/judge, fan-out/fan-in, writer/reviewer, mémoire cross-session.
+1. [**Context Engineering**](/05-expert/context-engineering/) — sélection, compression, stratification du contexte. Tirer le maximum de la fenêtre.
+2. [**UltraPlan / UltraReview**](/05-expert/ultraplan-ultrareview/) — cycle 4 phases (Plan → Review → Implement → Judge) avec critères de sortie explicites.
+3. [**Co-work Claude Design**](/05-expert/cowork-claude-design/) — Claude comme pair designer : critères, ADR, diagrammes Mermaid, désaccord explicité.
+4. [**Advanced Patterns**](/05-expert/advanced-patterns/) — catalogue : doer/judge, fan-out/fan-in, writer/reviewer, mémoire cross-session, cascade de modèles.
 
-## Lab 05 — Co-work sur projet réel
+## Lab 05 — Mon système d'agents
 
-Prendre un module existant, exécuter un cycle **UltraPlan → UltraReview → Implement → Judge** et comparer la qualité vs approche "one-shot".
+Assembler ton propre setup multi-agent sur un projet réel : subagents typés, hooks, MEMORY, cycle UltraPlan/UltraReview → [Lab 05](/05-expert/lab-05/).
 
-<Planned session="6" blocs={["Blocs 24-27 + retours d'expérience FinaCES"]} />
+## Après ce niveau
+
+Tu sauras :
+
+- Surveiller et dompter ton context window (5 couches, /compact, fork, mémoire typée).
+- Mener un cycle UltraPlan/UltraReview avec budget tokens et critères de sortie.
+- Co-designer une archi avec Claude — critères partagés, ADR, pre-mortem.
+- Composer des patterns multi-agent (doer/judge, fan-out, writer/reviewer, cascade) selon le besoin.
+- Capitaliser cross-session via une discipline de mémoire typée.

@@ -1,13 +1,127 @@
 ---
 title: Référence — Hooks & événements
-description: Tous les événements de hook, payload, codes de retour.
+description: Événements de hook, payload, exit codes.
 sidebar:
   order: 4
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+## Les 8 événements
 
-<Planned session="3" blocs={["Bloc 11 — Hooks", "Bloc 17 — Hooks référence"]}>
-  Liste des événements : `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop`, `PreCompact`, `SessionStart`. Payload JSON par événement (stdin), codes de retour (exit 0 = OK, exit 2 = blocage + stderr renvoyé à Claude, autre = warning), matcher patterns (`tool_name`, `tool_input.file_path` regex), scoping user/project.
-</Planned>
+| Événement | Quand | Cas d'usage |
+|-----------|-------|-------------|
+| `SessionStart` | Au démarrage d'une session | Charger contexte, vérifier env. |
+| `UserPromptSubmit` | Avant que le prompt utilisateur soit envoyé | Filtrage, redaction. |
+| `PreToolUse` | Avant exécution d'un tool | Bloquer, valider, logger. |
+| `PostToolUse` | Après exécution d'un tool | Format, lint, audit. |
+| `Notification` | Quand Claude affiche un toast système | Push vers Slack. |
+| `PreCompact` | Avant `/compact` | Sauvegarder détails précis. |
+| `Stop` | Quand Claude finit son tour | Quality-gate, judge auto. |
+| `SubagentStop` | Quand un subagent finit | Agréger résultats. |
+
+## Configuration
+
+```json
+{
+  "hooks": {
+    "<event>": [
+      {
+        "matcher": "<tool_name regex>",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/script.sh",
+            "timeout": 30
+          },
+          {
+            "type": "agent",
+            "agent": "judge"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Payload (stdin JSON)
+
+Chaque hook reçoit sur stdin un JSON avec au moins :
+
+| Champ | Type | Présence |
+|-------|------|----------|
+| `session_id` | string | toujours |
+| `transcript_path` | string | toujours |
+| `cwd` | string | toujours |
+| `event` | string | toujours |
+
+Champs spécifiques :
+
+| Événement | Champs supplémentaires |
+|-----------|----------------------|
+| `PreToolUse` | `tool_name`, `tool_input` |
+| `PostToolUse` | `tool_name`, `tool_input`, `tool_response` |
+| `UserPromptSubmit` | `prompt` |
+| `Stop` / `SubagentStop` | `stop_hook_active` (bool, anti-boucle) |
+| `PreCompact` | `trigger` (`manual` / `auto`) |
+
+## Exit codes
+
+| Code | Effet |
+|------|-------|
+| `0` | OK. stdout est ignoré (sauf `Stop` où il peut s'afficher). |
+| `2` | **Blocage**. stderr est renvoyé à Claude qui peut adapter. |
+| autre | Warning logué, exécution continue. |
+
+## Matcher
+
+Le champ `matcher` filtre par regex sur des champs du payload :
+
+| Pattern | Matche |
+|---------|--------|
+| `Bash` | seulement le tool `Bash`. |
+| `Edit\|Write` | les tools `Edit` ou `Write`. |
+| `*` ou absent | tout. |
+
+## Scopes
+
+- **User** : `~/.claude/settings.json` — appliqué à toutes tes sessions.
+- **Project** : `<repo>/.claude/settings.json` — versionné, partagé équipe.
+- **Local** : `<repo>/.claude/settings.local.json` — non versionné (gitignored).
+
+L'ordre de précédence : Local > Project > User.
+
+## Anti-patterns
+
+| Anti-pattern | Conséquence | Fix |
+|--------------|-------------|-----|
+| Hook `PostToolUse` sans timeout | Bloque la session si le script hang. | `timeout: <s>` toujours. |
+| Hook `Stop` qui relance Claude infiniment | Boucle. | Vérifier `stop_hook_active` dans le payload. |
+| Echo de secrets dans stderr | Fuite dans la conv. | Filtrer avant exit 2. |
+| Hook qui modifie un fichier sans annoncer | Confusion utilisateur. | Logger ou déléguer à Claude via exit 2. |
+
+## Exemple — quality gate Stop
+
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [
+        { "type": "agent", "agent": "judge", "prompt": "Note." },
+        { "type": "command", "command": ".claude/hooks/check-score.sh", "timeout": 10 }
+      ]
+    }]
+  }
+}
+```
+
+```bash
+#!/usr/bin/env bash
+# .claude/hooks/check-score.sh
+score=$(grep -oP 'Score:\s*\K\d+' verdict.md || echo 0)
+if [ "$score" -lt 7 ]; then
+  echo "Score $score/10 — concerns: $(grep '^- P0' verdict.md)" >&2
+  exit 2
+fi
+exit 0
+```

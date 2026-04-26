@@ -1,13 +1,62 @@
 ---
 title: Référence — Variables d'environnement
-description: Toutes les env vars lues par Claude Code.
+description: Env vars lues par Claude Code.
 sidebar:
   order: 3
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+## Authentification
 
-<Planned session="3" blocs={["Bloc 7 — CLI/env"]}>
-  Tableau : `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_SMALL_FAST_MODEL`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, `CLAUDE_CODE_SKIP_UPDATE_CHECK`, `DISABLE_TELEMETRY`, `BASH_DEFAULT_TIMEOUT_MS`, `MAX_MCP_OUTPUT_TOKENS`, etc.
-</Planned>
+| Variable | Usage |
+|----------|-------|
+| `ANTHROPIC_API_KEY` | Clé API standard. Injectée par les workflows CI. |
+| `ANTHROPIC_AUTH_TOKEN` | Token alternatif (proxies internes, gateways d'entreprise). |
+| `ANTHROPIC_BASE_URL` | Override l'endpoint API (proxy / régionalisation). |
+
+## Sélection de modèle
+
+| Variable | Usage |
+|----------|-------|
+| `ANTHROPIC_MODEL` | Modèle par défaut si non spécifié au lancement. |
+| `ANTHROPIC_SMALL_FAST_MODEL` | Modèle utilisé pour les tâches "fast" internes (résumés, classifications). |
+
+## Providers alternatifs
+
+| Variable | Usage |
+|----------|-------|
+| `CLAUDE_CODE_USE_BEDROCK=1` | Route les appels via AWS Bedrock. |
+| `CLAUDE_CODE_USE_VERTEX=1` | Route les appels via GCP Vertex AI. |
+| `AWS_REGION` / `AWS_PROFILE` | Lus quand Bedrock est actif. |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Lu quand Vertex est actif. |
+
+## Comportement CLI
+
+| Variable | Défaut | Usage |
+|----------|--------|-------|
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | `0` | `1` active les Agent Teams (multi-agents en parallèle visibles). |
+| `CLAUDE_CODE_SKIP_UPDATE_CHECK` | `0` | `1` saute le check auto de mise à jour au démarrage. |
+| `DISABLE_TELEMETRY` | `0` | `1` coupe l'envoi de télémétrie anonyme. |
+| `CLAUDE_CODE_AUTO_CONNECT_IDE` | `1` | `0` désactive la détection auto de l'IDE. |
+
+## Limites runtime
+
+| Variable | Défaut | Usage |
+|----------|--------|-------|
+| `BASH_DEFAULT_TIMEOUT_MS` | `120000` | Timeout par défaut des Bash tool calls (max 600000). |
+| `BASH_MAX_OUTPUT_LENGTH` | — | Cap sur la taille d'output Bash retourné. |
+| `MAX_MCP_OUTPUT_TOKENS` | — | Cap sur la taille d'un tool result MCP. |
+| `MAX_THINKING_TOKENS` | — | Cap sur les tokens de pensée extended thinking. |
+
+## Debug
+
+| Variable | Usage |
+|----------|-------|
+| `DEBUG=claude-code:*` | Active les logs internes (équivalent `--debug`). |
+| `MCP_DEBUG=1` | Logs verbeux MCP (équivalent `--mcp-debug`). |
+
+## Bonnes pratiques
+
+- **Ne jamais** echo `$ANTHROPIC_API_KEY` dans des logs CI — utilise les secrets natifs (GitHub Secrets, Vault).
+- En CI, préfère `ANTHROPIC_API_KEY` à un token long-lived dans le repo.
+- Exporter `CLAUDE_CODE_SKIP_UPDATE_CHECK=1` en CI évite des appels réseau inutiles.

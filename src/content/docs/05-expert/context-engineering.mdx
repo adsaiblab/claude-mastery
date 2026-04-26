@@ -6,8 +6,200 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="6" blocs={["Bloc 26 — Context Engineering"]}>
-  Stratification (system prompt > CLAUDE.md > mémoires > fichiers > historique), techniques de compression (résumés hiérarchiques, `/compact`, fork), détection de la pourriture de contexte, subagents pour protéger le context principal, métriques (tokens consommés vs utiles), patterns cross-session (MEMORY.md, plans persistants).
-</Planned>
+<Situation>
+  Ton agent travaille bien au 3ᵉ tour. Au 20ᵉ, il oublie des décisions prises au
+  3ᵉ, répète des lectures, hallucine des fichiers. Ce n'est pas "Claude qui
+  devient bête" — c'est **ton contexte qui pourrit**. Le context engineering
+  n'est pas optionnel quand tu travailles sur des tâches longues : c'est la
+  compétence qui sépare un utilisateur normal d'un expert.
+</Situation>
+
+## Concept — le contexte n'est pas une boîte à tout mettre
+
+Un context window a trois propriétés qu'on oublie :
+
+1. **Il est fini** (200k tokens Sonnet 4.6, bientôt plus). Fini = il y a un plafond.
+2. **Il n'est pas gratuit**. Chaque token lu à chaque tour coûte (prompt caching aide, mais ne supprime pas).
+3. **Il pourrit** : passé un certain remplissage, la qualité des réponses **baisse** — attention se disperse, détails se noient.
+
+**Règle empirique** : au-delà de 60% de remplissage, la qualité commence à dégrader. Au-delà de 80%, tu perds des détails critiques.
+
+## La stratification — 5 couches, de la plus stable à la plus volatile
+
+```
+┌──────────────────────────────────────────────┐
+│ 1. System prompt (injecté par Claude Code)   │  ← identité, non négociable
+├──────────────────────────────────────────────┤
+│ 2. CLAUDE.md (managed > user > project)       │  ← règles du projet
+├──────────────────────────────────────────────┤
+│ 3. Mémoires typées (MEMORY.md index)          │  ← faits persistants
+├──────────────────────────────────────────────┤
+│ 4. Fichiers lus pendant la session             │  ← contenu technique
+├──────────────────────────────────────────────┤
+│ 5. Historique conversationnel                  │  ← prompts + réponses + tool results
+└──────────────────────────────────────────────┘
+```
+
+Plus la couche est haute, plus elle est **stable** (peu changée, souvent cachée, lue rapidement). Plus elle est basse, plus elle est **volatile** (croît à chaque tour, domine le volume).
+
+**Levier #1** : ce qui doit être permanent, monte. Ce qui doit être éphémère, reste bas. Erreur classique : coller des instructions de run dans CLAUDE.md alors qu'elles concernent une seule session.
+
+## Les 4 leviers actifs
+
+### Levier A — compression via `/compact`
+
+`/compact` remplace l'historique par un résumé. Quand ? Quand tu sens que l'agent devient brouillon, ou préventivement avant une phase nouvelle.
+
+**À savoir** : `/compact` **résume** — il ne garde pas les détails précis. Après un compact, les file paths, les valeurs précises, les IDs peuvent disparaître. Avant compact, **extrait explicitement** ce que tu veux garder :
+
+```
+User : « Avant de compacter : note dans MEMORY.md que le bug est
+         dans auth/token.ts:47, root cause = missing await ligne 52,
+         fix = à intégrer au prochain sprint. »
+Claude : [écrit MEMORY.md]
+User : /compact
+```
+
+### Levier B — subagent "researcher"
+
+Plutôt que de charger 10 fichiers dans le main pour répondre à une question, envoie un subagent :
+
+```
+Agent(explorer, "Trouve tous les usages de deprecated_api().
+                 Résumé ≤ 300 mots avec file:line.")
+  → consomme 40k tokens dans sa fenêtre
+  → rend 300 mots au main
+```
+
+Le main n'a "payé" que la requête + 300 mots de résultat. Les 40k tokens d'exploration sont **isolés**.
+
+### Levier C — fork pour explorer sans polluer
+
+Tu veux essayer une approche sans mélanger avec la session actuelle :
+
+```bash
+claude --fork-session <id>
+```
+
+Deux streams de contexte indépendants. Si l'exploration tourne court, tu la jettes sans rien affecter.
+
+### Levier D — mémoire persistante typée
+
+Au lieu de tout remettre en session chaque fois, écris dans un **index + fichiers typés** :
+
+```
+.claude/memory/
+├── MEMORY.md           ← index
+├── user_preferences.md
+├── feedback_testing.md
+├── project_auth.md
+└── reference_linear.md
+```
+
+Format frontmatter + pointeur dans MEMORY.md → au tour suivant, Claude lit juste les mémoires pertinentes, pas l'historique complet.
+
+## Métriques — ce qu'il faut surveiller
+
+| Métrique | Signal |
+|----------|--------|
+| `/status` affiche > 60% | Danger — comprimer/forker bientôt. |
+| L'agent redemande un fichier déjà lu | Il "oublie" — réactivité en baisse. |
+| Tu vois `...` dans les tool results | Truncation → des détails t'échappent. |
+| Le dernier tool result > 20k tokens | Résultat trop gros — filtre via `head_limit`, glob plus étroit, ou délègue. |
+
+## 3 techniques expertes
+
+### Technique 1 — résumés hiérarchiques périodiques
+
+Tous les 10-15 tours, demande un résumé synthétique :
+
+```
+User : « Résume en 200 mots : (1) objectif du sprint, (2) décisions prises, (3) travail restant. Écris ça dans progress.md. »
+```
+
+Le fichier `progress.md` devient la mémoire court terme persistante. Tu peux y référer plus tard sans replayer l'historique.
+
+### Technique 2 — budget tokens par phase
+
+Définis en avance :
+
+```
+Plan : max 8 tours
+Implement : max 15 tours
+Judge : max 5 tours
+```
+
+Passe en `max_turns` via SDK, ou surveille dans une session interactive. Une phase qui déborde de son budget = signal d'arrêt, pas d'insistance.
+
+### Technique 3 — dégradation contrôlée par `effort`
+
+Certains prompts appellent `effort: "low" | "medium" | "high"` (adaptive thinking). Sur une tâche simple, `low` économise 60% de tokens sans qualité perdue. Sur un cas tordu, `high` paye.
+
+Principe : **ne pas payer "high" pour une tâche triviale**.
+
+## Anti-patterns
+
+### AP-1 — tout dans CLAUDE.md
+
+"Au cas où". Résultat : 30 000 tokens chargés à chaque session, dont 90% jamais utiles. CLAUDE.md = règles structurantes uniquement. Le reste → skills conditionnels.
+
+### AP-2 — pas de résumé entre phases
+
+Plan → Implement → Review → Commit, tout dans une seule session sans compact. Au commit, le main contient tout l'historique des étapes précédentes. Tu payes l'exploration du plan à chaque tour de l'implement.
+
+### AP-3 — contexte qui explose silencieusement
+
+Tu lances un agent sur 80 fichiers. Claude les lit un par un sans broncher. À la fin, le tool `ls` rend 500 lignes qui remplissent encore. Au 90ᵉ tour, tu vois une réponse creuse — mais tu ne comprends pas pourquoi. Le context a saturé **progressivement**.
+
+Contre-mesure : `/status` périodique, et réaction active si > 60%.
+
+## Pattern complet — "orchestrateur + workers"
+
+Pour des tâches dépassant le context window :
+
+```
+Main (orchestrateur)
+  ├─ tient plan.md + progress.md
+  ├─ délègue chaque sous-tâche à un subagent
+  │   └─ subagent démarre clean, fait le boulot, rend synthèse
+  └─ update progress.md en local
+```
+
+Le main ne grossit pratiquement jamais. Les subagents démarrent à 0 à chaque fois. Seuls les **artefacts persistants** (plan.md, progress.md, memory/*) traversent.
+
+C'est le pattern qui permet à Claude de **travailler sur des repos de 500k lignes**.
+
+## Check
+
+<Quiz
+  client:visible
+  id="ctx-eng-compact"
+  scenario="Tu sens que l'agent devient imprécis après 30 tours. Tu veux compacter."
+  question="Que fais-tu avant de taper `/compact` ?"
+  options={[
+    { text: "Rien, /compact préserve tous les détails.", correct: false, explanation: "Faux — /compact résume. Les détails précis (file paths, IDs, valeurs exactes) risquent de disparaître dans la synthèse." },
+    { text: "Extraire explicitement les faits précieux (chemins, IDs, décisions) dans MEMORY.md ou progress.md avant de compacter.", correct: true, explanation: "Exact. /compact fait un résumé — sauvegarder les détails précis dans un fichier typé les met hors de portée de la compression. Tu retrouves tout après." },
+    { text: "Faire un /clear à la place.", correct: false, explanation: "/clear est plus violent — tu perds TOUT le contexte conversationnel, pas juste l'historique." },
+    { text: "Passer en mode plan.", correct: false, explanation: "Le mode plan n'affecte pas le context déjà rempli." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="ctx-eng-explore"
+  scenario="Tu dois répondre à une question qui va nécessiter de lire ~30 fichiers pour comprendre un module que tu ne connais pas."
+  question="Meilleure approche context-wise ?"
+  options={[
+    { text: "Lire les 30 fichiers dans le main.", correct: false, explanation: "Tu vas manger 50-80k tokens dans le main, puis continuer ta session avec un context déjà plombé." },
+    { text: "Déléguer à un subagent explorer avec consigne 'synthèse ≤ 300 mots' — il consomme dans sa fenêtre, le main reçoit un résumé court.", correct: true, explanation: "Exact. Le subagent isole la consommation et ne rend au main que ce qui est utile pour la suite. C'est la discipline #1 du context engineering à l'échelle." },
+    { text: "Ouvrir un 2ᵉ terminal.", correct: false, explanation: "Pas de lien avec le problème — un 2ᵉ terminal continue à polluer son propre context." },
+    { text: "Passer en Opus.", correct: false, explanation: "Opus a le même context window — le problème est architectural, pas de modèle." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu protèges ton contexte. Voyons comment structurer une **collaboration itérative** avec Claude sur une tâche ambitieuse → [UltraPlan / UltraReview](/05-expert/ultraplan-ultrareview/).

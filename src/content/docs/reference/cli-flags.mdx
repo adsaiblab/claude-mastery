@@ -1,13 +1,80 @@
 ---
 title: Référence — CLI flags
-description: Tous les flags de la commande `claude` avec usage et défauts.
+description: Flags de la commande `claude` avec usage et défauts.
 sidebar:
   order: 2
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+Référence rapide. La source faisant autorité reste `claude --help`.
 
-<Planned session="3" blocs={["Bloc 7 — CLI flags"]}>
-  Tableau exhaustif : `-p` / `--print`, `-c` / `--continue`, `--resume`, `--fork-session`, `-n` / `--name`, `--model`, `--fallback-model`, `--permission-mode`, `--allowed-tools`, `--disallowed-tools`, `--add-dir`, `--mcp-config`, `--mcp-debug`, `--agent`, `--dangerously-skip-permissions`, `--output-format`, `--verbose`, `--debug`, `--session-id`, etc.
-</Planned>
+## Mode et exécution
+
+| Flag | Alias | Défaut | Usage |
+|------|-------|--------|-------|
+| `--print` | `-p` | off | Mode non-interactif. Imprime la réponse et sort. |
+| `--continue` | `-c` | — | Reprend la dernière session du cwd. |
+| `--resume <id>` | — | — | Reprend une session par ID. |
+| `--fork-session <id>` | — | — | Démarre une nouvelle session héritant du contexte de `<id>`. |
+| `--name <n>` | `-n` | — | Étiquette la session pour la retrouver. |
+| `--session-id <id>` | — | — | Force un ID de session précis (utile pour scripts). |
+
+## Modèle
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--model <name>` | settings | `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`. |
+| `--fallback-model <name>` | none | Modèle de repli si le primaire est down/saturé. |
+
+## Permissions et tools
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--permission-mode <mode>` | `default` | `default` / `acceptEdits` / `plan` / `bypassPermissions`. |
+| `--allowed-tools <list>` | — | Whitelist : `"Read,Edit,Bash(git:*)"`. |
+| `--disallowed-tools <list>` | — | Blacklist : `"WebFetch,Bash(rm:*)"`. |
+| `--dangerously-skip-permissions` | off | Désactive **toutes** les invites. À utiliser uniquement en sandbox. |
+
+## Contexte et FS
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--add-dir <path>` | — | Étend le cwd accessible (multi-répétable). |
+| `--cwd <path>` | $PWD | Force le working directory. |
+
+## MCP
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--mcp-config <file>` | `.mcp.json` | Charge un fichier de config MCP alternatif. |
+| `--mcp-debug` | off | Verbose sur les échanges MCP (transports, prompts, errors). |
+
+## Subagents
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--agent <name>` | — | Lance un subagent dès l'entrée (mode dirigé). |
+
+## Sortie et debug
+
+| Flag | Défaut | Usage |
+|------|--------|-------|
+| `--output-format <fmt>` | `text` | `text` / `json` / `stream-json`. |
+| `--verbose` | off | Logs étendus côté CLI. |
+| `--debug` | off | Stack traces internes Claude Code. |
+
+## Exemples utiles
+
+```bash
+# Mode non-interactif scriptable
+claude -p "résume CHANGELOG" --output-format json
+
+# Reprendre la session courante avec un modèle plus économique
+claude -c --model claude-haiku-4-5-20251001
+
+# Fork pour explorer sans polluer
+claude --fork-session 7f3a... -n "exploration cache"
+
+# Sandbox CI : pas d'invite, tools restreints
+claude -p "review .diff" --allowed-tools "Read,Bash(git:*)" --permission-mode acceptEdits
+```

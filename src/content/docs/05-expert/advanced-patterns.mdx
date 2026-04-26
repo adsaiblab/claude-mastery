@@ -6,8 +6,239 @@ sidebar:
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+import Situation from '../../../components/Situation.astro';
+import Quiz from '../../../components/interactive/Quiz.tsx';
 
-<Planned session="6" blocs={["Bloc 27 — Patterns avancés"]}>
-  Catalogue de patterns : (1) doer/judge avec hook Stop, (2) fan-out/fan-in sur subagents parallèles, (3) writer/reviewer avec critères de passage, (4) mémoire cross-session via MEMORY.md + fichiers typés, (5) cascade de modèles (Haiku pour trier, Sonnet pour implémenter, Opus pour juger). Lien vers fiches détaillées dans /architecture-patterns.
-</Planned>
+<Situation>
+  Tu maîtrises les briques (subagents, hooks, MCP, context engineering) — mais
+  composer ces briques pour résoudre un vrai problème reste un saut. Ce module
+  est un **catalogue de patterns combinatoires** : 5 montages éprouvés,
+  reproductibles, avec critères de choix. Tu pourras piocher selon le besoin
+  plutôt que réinventer chaque fois.
+</Situation>
+
+## Vue d'ensemble
+
+| Pattern | Quand l'utiliser | Coût | Fiche détaillée |
+|---------|-----------------|------|-----------------|
+| Doer/Judge | Tu veux un garde-fou auto sur la qualité | Bas (1 subagent) | [doer-judge](/architecture-patterns/doer-judge/) |
+| Fan-out/Fan-in | Tâche parallélisable en N branches indépendantes | Moyen (N subagents) | [fan-out](/architecture-patterns/fan-out/) |
+| Writer/Reviewer | Production de contenu nécessitant relecture | Bas (2 rôles) | [writer-reviewer](/architecture-patterns/writer-reviewer/) |
+| Mémoire cross-session | Continuité multi-sessions sur un projet | Bas (fichiers) | [context-engineering](/architecture-patterns/context-engineering/) |
+| Cascade de modèles | Optimiser coût sur pipeline multi-étapes | Variable | (intégré ci-dessous) |
+
+## Pattern 1 — Doer/Judge
+
+**Idée** : un agent fait, un autre note. Le second n'a pas vu la conversation du premier.
+
+```
+Doer (Sonnet) : implémente la tâche
+   ↓ (artefact)
+Judge (Opus) : grille de notation 0-10, indépendant
+   ↓
+score ≥ 7 ? → done : retour Doer avec concerns
+```
+
+**Quand** : tâche où la qualité est mesurable mais subjective (review code, tests, doc).
+
+**Implémentation minimale** via hook Stop :
+
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [
+        { "type": "agent", "agent": "judge", "prompt": "Note ce qui a été fait." },
+        { "type": "command", "command": ".claude/hooks/check-score.sh" }
+      ]
+    }]
+  }
+}
+```
+
+`check-score.sh` parse le verdict, exit 2 si `< 7`. Claude reprend la main.
+
+**Piège classique** : Judge qui hérite du contexte du Doer = mêmes biais. Toujours `Agent()` frais.
+
+→ [Fiche doer-judge](/architecture-patterns/doer-judge/)
+
+## Pattern 2 — Fan-out / Fan-in
+
+**Idée** : éclater une tâche sur N subagents en parallèle, agréger les résultats.
+
+```
+                       ┌──→ subagent A (module 1) ──┐
+Main : split + dispatch├──→ subagent B (module 2) ──┼──→ Main : merge
+                       └──→ subagent C (module 3) ──┘
+```
+
+**Quand** :
+- Audit multi-modules (un audit par dir).
+- Recherche de pattern dans un repo (un agent par chunk).
+- Génération parallèle de variantes (3 propositions de copy).
+
+**Critères de bonne tâche fan-out** :
+1. Chaque branche est **indépendante** (pas d'effet bord cross-branche).
+2. Le résultat de chaque branche est **borné** (≤ quelques k tokens).
+3. La fusion est **déterministe** (concat, vote, max).
+
+**Anti-pattern** : éclater une tâche dont les branches ont besoin de se voir → tu refais du séquentiel cher avec un détour.
+
+```python
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def audit_module(path):
+    options = ClaudeAgentOptions(
+        cwd=path,
+        max_turns=5,
+        system_prompt="Audit. Rends 5 lignes max.",
+    )
+    chunks = []
+    async for msg in query(prompt="audit ./", options=options):
+        chunks.append(str(msg))
+    return "\n".join(chunks)
+
+results = await asyncio.gather(
+    audit_module("services/auth"),
+    audit_module("services/billing"),
+    audit_module("services/notifications"),
+)
+```
+
+→ [Fiche fan-out](/architecture-patterns/fan-out/)
+
+## Pattern 3 — Writer / Reviewer
+
+**Idée** : un agent écrit, un autre relit avec critères explicites de passage.
+
+Différent du Doer/Judge : ici on **collabore en N tours** plutôt que single-shot + verdict.
+
+```
+Writer : draft v1 → file
+Reviewer : lit, annote, propose changements explicites
+Writer : applique ou justifie un refus
+Reviewer : valide ou itère
+   ↓ (max 3 tours)
+Done
+```
+
+**Quand** : production de contenu (doc, ADR, copy, README), refacto de prose, tests à formuler.
+
+**Critères de passage à donner au Reviewer** :
+
+```markdown
+- Aucun jargon non défini au premier emploi.
+- Chaque section ≤ 200 mots.
+- Le titre est actionnable.
+- Pas de phrases passives sauf raison expresse.
+```
+
+Plus les critères sont concrets, moins le Reviewer dérive vers du subjectif.
+
+→ [Fiche writer-reviewer](/architecture-patterns/writer-reviewer/)
+
+## Pattern 4 — Mémoire cross-session
+
+**Idée** : ce qu'on a appris en session N doit être disponible en session N+1, sans tout recharger.
+
+```
+.claude/memory/
+├── MEMORY.md                    ← index, lu auto à chaque session
+├── project_<sujet>.md           ← faits du projet
+├── feedback_<topic>.md          ← guidances utilisateur
+├── reference_<system>.md        ← pointeurs externes
+└── user_<topic>.md              ← profil utilisateur
+```
+
+**Règles** :
+- `MEMORY.md` reste **petit** (< 200 lignes). Une ligne par mémoire avec un hook descriptif.
+- Chaque mémoire dans son fichier typé avec frontmatter (`name`, `description`, `type`).
+- Mise à jour **immédiate** quand un fait change. Pas de "je le ferai plus tard".
+
+**Anti-pattern fréquent** : tout coller dans CLAUDE.md → 30k tokens chargés à chaque session. CLAUDE.md = règles structurantes. MEMORY.md = faits dynamiques.
+
+→ [Fiche context-engineering](/architecture-patterns/context-engineering/)
+
+## Pattern 5 — Cascade de modèles
+
+**Idée** : tu n'as pas besoin d'Opus partout. Mappe la complexité de l'étape au modèle adapté.
+
+```
+Étape 1 : trier 200 PRs        → Haiku 4.5  (rapide, $0.001/PR)
+Étape 2 : implémenter le fix   → Sonnet 4.6 (capacité, $0.015/req)
+Étape 3 : juger qualité finale → Opus 4.7   (jugement, $0.075/req)
+```
+
+**Économie typique** sur un pipeline 100 items : 60-80% de coût vs full Opus, qualité finale équivalente sur la décision critique (qui reste sur Opus).
+
+```python
+from claude_agent_sdk import ClaudeAgentOptions
+
+triage = ClaudeAgentOptions(model="claude-haiku-4-5-20251001", max_turns=2)
+implement = ClaudeAgentOptions(model="claude-sonnet-4-6", max_turns=15)
+judge = ClaudeAgentOptions(model="claude-opus-4-7", max_turns=4)
+```
+
+**Critère de choix** :
+- **Haiku** : trier, classer, extraire un champ, répondre court factuel.
+- **Sonnet** : raisonner, coder, tool use multi-étapes — la majorité du travail.
+- **Opus** : décision critique, planification ambitieuse, jugement final.
+
+**Piège** : descendre en gamme là où la qualité paye (planning, judge). L'économie sur ces étapes est minime, le coût d'erreur élevé.
+
+## Combinaison réelle — pipeline triage + fix + review
+
+Mise en œuvre des 5 patterns ensemble sur un cas concret : **traiter automatiquement les bug reports d'un projet OSS**.
+
+```
+1. Cron quotidien → liste 50 issues fraîches
+2. Cascade : Haiku trie (bug réel ? doublon ? feature request ?)         ← P5
+3. Fan-out : 3 subagents Sonnet implementent les 3 bugs P0 en parallèle  ← P2
+4. Pour chaque fix : Writer (Sonnet) drafte la PR, Reviewer (Sonnet) lit ← P3
+5. Judge (Opus) note la PR finale ; < 7 → retour writer                  ← P1
+6. progress.md mis à jour ; concerns persistent dans MEMORY.md           ← P4
+```
+
+Coût empirique sur 50 issues : ~$8-12 vs ~$45 en full Opus single-pass. Qualité PR équivalente (mesurée sur taux de merge humain post-review).
+
+## Anti-pattern combinatoire — "tout, partout, tout le temps"
+
+Empiler les patterns sans nécessité multiplie le coût et l'opacité :
+
+- Doer/Judge **et** Writer/Reviewer **et** Fan-out sur la même tâche = 4-5x le coût pour un gain marginal.
+- Cascade Haiku→Sonnet→Opus alors qu'une seule étape suffit = perte de fluidité.
+
+**Règle** : commence avec **un seul** pattern, mesure, ajoute le second seulement si nécessaire.
+
+## Check
+
+<Quiz
+  client:visible
+  id="patterns-fanout"
+  scenario="Tu veux auditer 8 microservices indépendants. Chaque audit est borné (≤ 500 mots de rapport)."
+  question="Quel pattern ?"
+  options={[
+    { text: "Séquentiel dans le main : un service après l'autre.", correct: false, explanation: "Tu vas saturer ton context et serializer un travail parallélisable. Coût et durée x8." },
+    { text: "Fan-out sur 8 subagents — chacun audite un service, le main agrège.", correct: true, explanation: "Exact. Branches indépendantes, sortie bornée, fusion triviale (concat). Cas d'école pour fan-out." },
+    { text: "Doer/Judge avec un seul Doer qui audite tout.", correct: false, explanation: "Doer/Judge ne parallèlise pas — tu auras toujours un seul Doer qui fait tout en série." },
+    { text: "Writer/Reviewer.", correct: false, explanation: "Production de contenu collaboratif, pas adapté à un audit multi-cible parallèle." }
+  ]}
+/>
+
+<Quiz
+  client:visible
+  id="patterns-cascade"
+  scenario="Pipeline : tri (200 issues) → fix (5 bugs) → review finale. Budget serré."
+  question="Comment cascader les modèles ?"
+  options={[
+    { text: "Opus partout — qualité maximale.", correct: false, explanation: "60-80% du coût va dans le tri qui ne nécessite pas Opus. Gaspillage massif." },
+    { text: "Haiku tri, Sonnet fix, Opus review finale.", correct: true, explanation: "Exact. Chaque modèle est mappé à la complexité de son étape. La décision critique (review) reste sur Opus, le bulk (tri) passe sur Haiku." },
+    { text: "Haiku partout — tout est trivial.", correct: false, explanation: "Le fix et la review demandent du raisonnement — Haiku produira du code fragile et des reviews creuses." },
+    { text: "Sonnet partout, c'est le compromis.", correct: false, explanation: "Tu payes Sonnet pour le tri (Haiku suffit) et tu rates le jugement plus profond d'Opus sur la review finale." }
+  ]}
+/>
+
+## Prochaine étape
+
+Tu as les patterns. Pour finir le niveau, tu vas **assembler ton propre system multi-agent** dans le lab final → [Lab 05 — Mon système d'agents](/05-expert/lab-05/).

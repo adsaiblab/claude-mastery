@@ -1,13 +1,97 @@
 ---
 title: Référence — Slash commands
-description: Toutes les slash-commands natives et comment créer les tiennes.
+description: Slash-commands natives et création de commandes custom.
 sidebar:
   order: 1
 draft: false
 ---
 
-import Planned from '../../../components/Planned.astro';
+## Natives — session
 
-<Planned session="3" blocs={["Bloc 9 — Slash commands"]}>
-  Tableau exhaustif des slash-commands natives (`/help`, `/clear`, `/compact`, `/fork`, `/resume`, `/model`, `/permissions`, `/hooks`, `/agents`, `/mcp`, `/plugin`, `/login`, `/logout`, `/rename`, `/branch`, `/cleanup-team`, `/skill`, etc.) + format d'une commande custom (frontmatter `description`, `allowed-tools`, `model`, body en prompt templatisé avec `$ARGUMENTS`).
-</Planned>
+| Commande | Effet |
+|----------|-------|
+| `/help` | Affiche l'aide. |
+| `/clear` | Vide tout le contexte conversationnel. |
+| `/compact` | Résume l'historique pour libérer de la place. |
+| `/fork` | Crée une nouvelle session héritant du contexte courant. |
+| `/resume <id>` | Reprend une session par ID. |
+| `/rename <name>` | Renomme la session courante. |
+| `/branch` | Branche vers une nouvelle sous-session liée. |
+
+## Natives — configuration
+
+| Commande | Effet |
+|----------|-------|
+| `/model` | Switch de modèle à chaud. |
+| `/fast` | Toggle Fast mode (Opus 4.6 plus rapide). |
+| `/permissions` | Affiche/édite les permissions courantes. |
+| `/hooks` | Affiche les hooks configurés. |
+| `/agents` | Liste les subagents disponibles. |
+| `/mcp` | Liste les serveurs MCP. |
+| `/plugin` | Gère les plugins (`install`, `uninstall`, `list`). |
+| `/skill` | Liste/invoque les skills. |
+| `/output-style` | Change le style de sortie. |
+
+## Natives — auth et infra
+
+| Commande | Effet |
+|----------|-------|
+| `/login` | Authentifie via OAuth ou clé API. |
+| `/logout` | Déconnecte. |
+| `/status` | Stats de la session (tokens, durée, model). |
+| `/cleanup-team` | Nettoie les sous-agents Agent Teams orphelins. |
+
+## Natives — meta
+
+| Commande | Effet |
+|----------|-------|
+| `/init` | Crée un `CLAUDE.md` initial. |
+| `/feedback` | Ouvre le repo pour reporter un bug. |
+| `/release-notes` | Affiche les changes de la dernière version. |
+
+## Créer une commande custom
+
+Fichier : `.claude/commands/<name>.md` (project) ou `~/.claude/commands/<name>.md` (user).
+
+```markdown
+---
+description: Audit rapide d'un fichier
+argument-hint: <chemin>
+allowed-tools: Read, Grep
+model: sonnet
+---
+
+Tu es un auditeur. Lis le fichier `$ARGUMENTS` et :
+
+1. Liste 3 forces.
+2. Liste 3 faiblesses (avec ligne).
+3. Propose un score 0-10.
+
+Format de sortie strict — pas de bavardage.
+```
+
+Invocation : `/audit src/utils/cache.ts` → `$ARGUMENTS` = `"src/utils/cache.ts"`.
+
+## Frontmatter accepté
+
+| Champ | Usage |
+|-------|-------|
+| `description` | Affiché dans l'autocomplétion `/`. |
+| `argument-hint` | Indication d'arguments. |
+| `allowed-tools` | Tools autorisés pendant la commande. |
+| `model` | Modèle forcé. |
+
+## Body — variables disponibles
+
+| Variable | Contenu |
+|----------|---------|
+| `$ARGUMENTS` | Tout ce qui suit le nom de la commande. |
+| `$1`, `$2`, ... | Arguments positionnels (split par espace). |
+| `$CWD` | Working directory. |
+
+## Bonnes pratiques
+
+- **Une commande = un job précis**. Pas de "/do-everything".
+- Restreindre `allowed-tools` au minimum — la commande doit être prévisible.
+- Mettre les commandes versionnées dans `.claude/commands/` (project), les perso dans `~/.claude/commands/`.
+- Documenter les inputs attendus dans la `description` ou via `argument-hint`.
