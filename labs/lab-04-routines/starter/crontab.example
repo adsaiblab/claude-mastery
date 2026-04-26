@@ -1,0 +1,6 @@
+# crontab.example — à coller dans crontab -e (ou via systemd timer)
+# Adapter le chemin du venv et du projet à ton install.
+#
+# Format : min hour dom month dow command
+# Digest quotidien à 06:00.
+0 6 * * * cd /opt/routines && /opt/routines/.venv/bin/python -m routines.daily_digest >> /var/log/routines/digest.log 2>&1

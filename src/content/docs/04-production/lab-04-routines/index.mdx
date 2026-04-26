@@ -1,0 +1,98 @@
+---
+title: Lab 04 alt — Routines (cron + webhook + DLQ)
+description: Routine quotidienne avec idempotence SQLite, retry exponentiel, DLQ JSONL, webhook HMAC.
+sidebar:
+  order: 9
+  badge:
+    text: Lab alt
+    variant: tip
+draft: false
+---
+
+import Situation from '../../../../components/Situation.astro';
+import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+
+> **Durée : ~90 min** · Scripts dans [`labs/lab-04-routines/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-04-routines)
+
+<Situation>
+  Variant du Lab 04. On sort de GitHub Actions pour déployer **une vraie routine
+  côté serveur** : un cron quotidien qui produit un digest, un endpoint webhook
+  pour trigger manuel, et toute la quincaillerie qui va avec —
+  **idempotence**, **retry exponentiel**, **DLQ**, **HMAC**. Ce sont les
+  patterns qui empêchent une routine de rejouer 3× la même action ou de perdre
+  silencieusement des événements.
+</Situation>
+
+## Objectif
+
+Livrer un module Python qui combine :
+
+1. **Cron quotidien** (`daily_digest.py`) — produit un digest des PRs du jour, idempotent.
+2. **Endpoint webhook** (`webhook.py`, FastAPI) — trigger manuel avec HMAC + idempotence partagée.
+3. **`lib/idempotence.py`** — clé déterministe + store SQLite.
+4. **`lib/retry.py`** — décorateur `@retry(max=3)` avec backoff exponentiel + jitter.
+5. **`lib/dlq.py`** — push vers `dlq.jsonl` après N échecs.
+6. **Tests pytest** qui vérifient idempotence, retry, DLQ, HMAC.
+
+## Démarrer
+
+```bash
+cd labs/lab-04-routines
+./setup.sh              # crée work/ avec starter
+cd work/
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Valider
+
+<LabProgress
+  client:only="react"
+  labId="lab-04-routines"
+  title="Lab 04 alt — Checklist"
+  steps={[
+    { id: 'idempotence', label: 'lib/idempotence.py — clé déterministe + store SQLite' },
+    { id: 'retry', label: 'lib/retry.py — décorateur retry + backoff exponentiel + jitter' },
+    { id: 'dlq', label: 'lib/dlq.py — push vers dlq.jsonl si échec persistant' },
+    { id: 'cron', label: 'daily_digest.py — entrypoint cron, idempotent par date' },
+    { id: 'webhook', label: 'webhook.py — FastAPI + vérification HMAC + 401 si signature invalide' },
+    { id: 'crontab', label: 'crontab.example — entrée cron prête à coller' },
+    { id: 'tests', label: 'tests/ pytest verts (idempotence, retry, DLQ, HMAC)' },
+    { id: 'validate', label: 'validate.sh — tests + structure + sanity', hint: 'bash labs/lab-04-routines/validate.sh' },
+  ]}
+/>
+
+```bash
+bash labs/lab-04-routines/validate.sh
+```
+
+Le script :
+
+1. Vérifie la structure (modules + tests + crontab).
+2. Lance les tests pytest dans le venv.
+3. Simule un double-trigger : la deuxième invocation doit être un no-op idempotent.
+4. Simule 3 échecs consécutifs : le job doit pousser vers `dlq.jsonl`.
+5. Simule une signature HMAC invalide : le webhook doit répondre 401.
+
+## Hints
+
+- [Hint 1 — clé d'idempotence : déterministe, scope clair](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-routines/hints/hint-01.md)
+- [Hint 2 — backoff exponentiel + jitter : éviter les "thundering herds"](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-routines/hints/hint-02.md)
+- [Hint 3 — HMAC : `compare_digest` obligatoire pour éviter les timing attacks](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-routines/hints/hint-03.md)
+
+## Après validation
+
+- Lis [`solution/EXPLANATION.md`](https://github.com/tonrepo/claude-mastery/blob/main/labs/lab-04-routines/solution/EXPLANATION.md) — focus sur les décisions (SQLite vs Redis, jitter formula, DLQ format).
+- Bonus : ajoute un `--replay-dlq` qui rejoue les éléments de la DLQ avec un nouvel idempotence key namespace.
+- Bonus 2 : expose `/metrics` Prometheus avec `routine_runs_total{status=...}`.
+
+## Ce qu'on vérifie vraiment
+
+1. La clé d'idempotence est **déterministe** (même input → même clé). Pas de timestamp dans la clé.
+2. Le store idempotence est durable (SQLite) — pas un dict en mémoire.
+3. Le retry a **du jitter** (sinon les retries se synchronisent en cas de panne globale).
+4. La DLQ est en JSONL append-only — chaque ligne est un événement reproductible.
+5. Le webhook utilise `hmac.compare_digest` (pas `==`).
+6. Le webhook **rejette** sans révéler la cause exacte (juste 401 + message générique).
+7. La crontab est une **string-template** : pas de chemin codé en dur incompatible.
+8. Les tests **isolent** le store (pas de fuite entre tests via fixture `tmp_path`).
