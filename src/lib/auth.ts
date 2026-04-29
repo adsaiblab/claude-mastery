@@ -1,5 +1,6 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import type { APIContext } from 'astro';
+import { astroCookieAdapter } from './supabase-cookies';
 
 /**
  * Création d'un client Supabase côté serveur qui lit/écrit les cookies
@@ -50,17 +51,7 @@ export async function resolveAuth(context: APIContext): Promise<AuthContext> {
   }
 
   const supabase = createServerClient(url, anon, {
-    cookies: {
-      get(key: string) {
-        return context.cookies.get(key)?.value;
-      },
-      set(key: string, value: string, options: CookieOptions) {
-        context.cookies.set(key, value, options);
-      },
-      remove(key: string, options: CookieOptions) {
-        context.cookies.delete(key, options);
-      },
-    },
+    cookies: astroCookieAdapter(context),
   });
 
   const {

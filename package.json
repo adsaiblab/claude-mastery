@@ -6,13 +6,13 @@
   "description": "Claude Code Mastery Path — parcours d'autoformation modulaire",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
+    "start": "node ./dist/server/entry.mjs",
     "build": "astro check && astro build",
     "build:nocheck": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
-    "lint": "eslint \"src/**/*.{ts,tsx,astro}\"",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier --write \"src/**/*.{ts,tsx,astro,mdx,css}\"",
     "labs:validate": "bash scripts/validate-all-labs.sh",
     "db:seed": "node scripts/seed-local-db.mjs"
@@ -36,11 +36,14 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "eslint": "^10.2.1",
     "prettier": "^3.4.2",
-    "prettier-plugin-astro": "^0.14.1"
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript-eslint": "^8.59.1"
   },
   "engines": {
     "node": ">=20.0.0"

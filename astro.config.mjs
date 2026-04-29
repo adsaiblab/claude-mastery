@@ -151,7 +151,7 @@ export default defineConfig({
     react(),
     tailwind({ applyBaseStyles: false, configFile: './tailwind.config.mjs' }),
   ],
-  output: 'static',
+  output: 'server',
   adapter: node({ mode: 'standalone' }),
   vite: {
     ssr: {

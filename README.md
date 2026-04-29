@@ -79,16 +79,20 @@ Voir [`.coolify/README.md`](.coolify/README.md). Résumé :
 
 ## Contenu — état d'avancement
 
-La plateforme est livrée en **6 sessions**. À chaque session, du contenu passe de "Planned" à "Completed".
+La plateforme est livrée en **10 sessions**. Tout le contenu est désormais en place ; la phase courante est **déploiement & polish**.
 
 - **Session 1** ✓ — Infra + composants React + auth + DB adapter.
-- **Session 2** — Orientation (00) + splash + flashcards + quiz scoré.
-- **Session 3** — Fondations (01) + CLI Mastery (02) + Lab 01, 02.
-- **Session 4** — Multi-agents (03) + référence + patterns + Lab 03.
-- **Session 5** — Production (04) + Lab 04.
-- **Session 6** — Expert (05) + Lab 05 + polish.
+- **Session 2** ✓ — Orientation (00) + splash + quiz scoré.
+- **Session 3** ✓ — Fondations (01) — CLAUDE.md, mémoire, modes.
+- **Session 4** ✓ — CLI Mastery (02) + Lab 01 (CLAUDE.md mémoire).
+- **Session 5** ✓ — Multi-agents (03) + Lab 02 (hooks).
+- **Session 6** ✓ — Référence + patterns + Lab 03 (subagents fan-out).
+- **Session 7** ✓ — Production (04) — sécurité, headless, observabilité.
+- **Session 8** ✓ — Routines (cron + webhook + idempotence) + Lab 04.
+- **Session 9** ✓ — Expert (05) + Lab 05 (capstone freeform).
+- **Session 10** ✓ — Flashcards N0–N5 (6 decks × 8 cartes).
 
-Les pages non encore écrites affichent un bloc `<Planned>` explicite — pas de placeholders silencieux.
+Phase courante : déploiement Coolify + polish (audit deps, ESLint, smoke tests).
 
 ## Licence
 
