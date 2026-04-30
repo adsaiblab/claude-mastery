@@ -89,6 +89,8 @@ livrable du repo.
 | `npm run format:check` | Prettier --check (CI) |
 | `npm run labs:validate` | Valide tous les labs sur leur solution canonique |
 | `npm run db:seed` | Seed `src/data/progress.json` avec données de test (`-- --force` pour écraser) |
+| `npm run test:e2e` | Tests Playwright sur les composants interactifs (headless) |
+| `npm run test:e2e:ui` | Tests E2E en mode UI Playwright (debug interactif) |
 
 ## Labs
 

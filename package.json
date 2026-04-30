@@ -17,7 +17,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,astro,mdx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,astro,mdx,css}\"",
     "labs:validate": "bash scripts/validate-all-labs.sh",
-    "db:seed": "node scripts/seed-local-db.mjs"
+    "db:seed": "node scripts/seed-local-db.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "PWDEBUG=1 playwright test"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -39,6 +42,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",

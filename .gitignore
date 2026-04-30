@@ -38,5 +38,10 @@ labs/*/work/
 coverage/
 .nyc_output/
 
+# Playwright artefacts (générés à chaque run E2E)
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Misc
 *.tsbuildinfo
