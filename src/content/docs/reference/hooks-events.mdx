@@ -6,6 +6,14 @@ sidebar:
 draft: false
 ---
 
+Un **hook** est un script (ou un appel à un subagent) que Claude Code lance
+automatiquement à un point précis du cycle de vie d'une session. Les 8
+événements ci-dessous couvrent : démarrage, soumission de prompt, avant/après
+chaque tool, notifications, compaction, fin de tour. Les hooks sont la
+mécanique principale pour appliquer des règles côté **infrastructure** (vs
+côté agent via `tools:` ou prompt) — c'est la couche defense-in-depth de
+Claude Code.
+
 ## Les 8 événements
 
 | Événement          | Quand                                       | Cas d'usage                     |
@@ -43,6 +51,14 @@ draft: false
   }
 }
 ```
+
+Deux types de hook :
+
+- **`command`** : exécute un script local. Reçoit le payload sur stdin,
+  sortie via exit code (0 / 2 / autre) et stderr.
+- **`agent`** : invoque un subagent défini sous `.claude/agents/`. Le
+  subagent reçoit le payload comme prompt initial. Plus cher en tokens —
+  réservé aux validations qui demandent du raisonnement.
 
 ## Payload (stdin JSON)
 
@@ -89,18 +105,153 @@ Le champ `matcher` filtre par regex sur des champs du payload :
 - **Project** : `<repo>/.claude/settings.json` — versionné, partagé équipe.
 - **Local** : `<repo>/.claude/settings.local.json` — non versionné (gitignored).
 
-L'ordre de précédence : Local > Project > User.
+L'ordre de précédence : Local > Project > User. Les listes de hooks pour le
+même événement sont **fusionnées** (pas écrasées) — User hooks + Project
+hooks tournent ensemble, dans l'ordre de leur déclaration.
+
+## Ordre d'exécution
+
+Plusieurs hooks peuvent matcher le même événement. Règles :
+
+1. **Au sein d'un même `matcher`** : les `hooks` listés s'exécutent **dans l'ordre du tableau**, en série.
+2. **Entre matchers différents** : ordre de déclaration dans le settings.json.
+3. **Entre scopes** : User → Project → Local (par ordre de chargement). Les hooks Local s'exécutent en dernier — pratique pour overrider.
+4. **Pas de parallélisme** automatique : si tu veux du parallélisme, tu lances toi-même les sous-tâches dans le script du hook (`&` puis `wait`).
+
+Si un hook exit 2, **les hooks suivants pour cet événement sont skippés**
+sur PreToolUse / Stop / UserPromptSubmit (le blocage est immédiat). Sur
+PostToolUse les autres continuent (le tool a déjà tourné).
+
+## Hook vs subagent — quand l'un, quand l'autre
+
+| Tu veux…                                           | Préfère                              |
+| -------------------------------------------------- | ------------------------------------ |
+| Bloquer un push vers main                          | Hook `command` (Bash, regex)         |
+| Reformater un fichier après écriture               | Hook `command` (prettier, ruff)      |
+| Loguer chaque appel tool dans un audit-trail JSONL | Hook `command` (jq, append-only)     |
+| Juger la qualité d'une PR avant `Stop`             | Hook `agent` (judge subagent)        |
+| Décider si un secret est leaké dans un commit      | Hook `command` (gitleaks/trufflehog) |
+| Choisir entre 3 réponses possibles d'un agent      | Hook `agent` (selector subagent)     |
+| Notifier Slack à la fin d'un long run              | Hook `command` (curl webhook)        |
+
+Règle : **command** pour règles déterministes peu coûteuses, **agent** pour
+décisions qui demandent du jugement (et donc des tokens).
+
+## Idempotence et retries côté hook
+
+Un hook peut être lancé plusieurs fois pour le même événement (ex: si
+Claude relance un tool call après un retry réseau). Le hook doit donc être
+**idempotent** :
+
+- Format de fichier : OK (re-formater un fichier déjà formaté est no-op).
+- Notification Slack : à protéger par une clé d'idempotence (timestamp +
+  session_id) pour ne pas notifier 3 fois.
+- Audit-trail append : OK (chaque entrée a un timestamp unique).
+- Lint qui modifie un fichier : à protéger via un check `git diff --quiet`
+  avant l'opération destructrice.
+
+Pour les hooks `Stop`, le payload contient `stop_hook_active: true` quand
+le hook a déjà été exécuté pour cette fin-de-tour — utiliser cette flag
+comme garde anti-boucle :
+
+```bash
+stop_active=$(jq -r '.stop_hook_active // false' <<< "$payload")
+[ "$stop_active" = "true" ] && exit 0
+```
 
 ## Anti-patterns
 
-| Anti-pattern                              | Conséquence                          | Fix                                          |
-| ----------------------------------------- | ------------------------------------ | -------------------------------------------- |
-| Hook `PostToolUse` sans timeout           | Bloque la session si le script hang. | `timeout: <s>` toujours.                     |
-| Hook `Stop` qui relance Claude infiniment | Boucle.                              | Vérifier `stop_hook_active` dans le payload. |
-| Echo de secrets dans stderr               | Fuite dans la conv.                  | Filtrer avant exit 2.                        |
-| Hook qui modifie un fichier sans annoncer | Confusion utilisateur.               | Logger ou déléguer à Claude via exit 2.      |
+| Anti-pattern                                                | Conséquence                             | Fix                                                   |
+| ----------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------- |
+| Hook `PostToolUse` sans timeout                             | Bloque la session si le script hang.    | `timeout: <s>` toujours.                              |
+| Hook `Stop` qui relance Claude infiniment                   | Boucle.                                 | Vérifier `stop_hook_active` dans le payload.          |
+| Echo de secrets dans stderr                                 | Fuite dans la conv.                     | Filtrer avant exit 2.                                 |
+| Hook qui modifie un fichier sans annoncer                   | Confusion utilisateur.                  | Logger ou déléguer à Claude via exit 2.               |
+| Hook bloquant lent (> 5s) sur PreToolUse                    | Latence perçue à chaque action          | Externaliser en async ou cacher le résultat.          |
+| Hook qui dépend d'un tool externe non pinned (jq, prettier) | Hook silencieusement KO sur autre poste | Vérifier la dépendance au début et exit 1 si absente. |
 
-## Exemple — quality gate Stop
+## 3 hooks production complets
+
+### Pre-commit guard
+
+Empêche tout `git commit` avec des secrets (regex large) :
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/no-secrets-commit.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+```bash
+#!/usr/bin/env bash
+# .claude/hooks/no-secrets-commit.sh
+set -u
+payload=$(cat)
+cmd=$(jq -r '.tool_input.command // ""' <<< "$payload")
+
+# On ne se mêle que des `git commit`
+[[ "$cmd" != *"git commit"* ]] && exit 0
+
+# Diff staged → contrôle regex
+if git diff --cached -U0 | grep -E '(api[_-]?key|secret|password|token)\s*[:=]\s*["'\''"][a-zA-Z0-9]{12,}'; then
+  echo "Secret potentiel détecté dans les changements staged. Annule et nettoie." >&2
+  exit 2
+fi
+exit 0
+```
+
+### Format-on-save
+
+Reformate après chaque Write/Edit :
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/format.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+```bash
+#!/usr/bin/env bash
+# .claude/hooks/format.sh
+payload=$(cat)
+file=$(jq -r '.tool_input.file_path // ""' <<< "$payload")
+case "$file" in
+  *.ts|*.tsx|*.js|*.json|*.md) command -v prettier >/dev/null && prettier --write --log-level=warn "$file" ;;
+  *.py) command -v ruff >/dev/null && ruff format "$file" ;;
+  *.go) command -v gofmt >/dev/null && gofmt -w "$file" ;;
+esac
+exit 0
+```
+
+### Quality-gate Stop avec judge subagent
+
+Le subagent `judge` note ; un script vérifie le score :
 
 ```json
 {
@@ -131,3 +282,30 @@ if [ "$score" -lt 7 ]; then
 fi
 exit 0
 ```
+
+## Tester un hook
+
+Avant de versionner un hook, le tester en isolation :
+
+```bash
+# Construire un payload représentatif
+cat > /tmp/payload.json <<'EOF'
+{"session_id":"test","cwd":"$PWD","event":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"}}
+EOF
+
+# Lancer le hook avec ce payload
+cat /tmp/payload.json | .claude/hooks/no-secrets-commit.sh
+echo "exit: $?"
+```
+
+Reproduire les 3 cas (bloque, autorise, ignore) garantit que le hook
+maintient son contrat. Utile en CI : ajouter ces tests dans le `validate.sh`
+du projet (cf. [Lab 02](/02-cli-mastery/lab-02/)).
+
+## Voir aussi
+
+- [settings.json](/reference/settings-keys/) — clé `hooks` complète et précédence User/Project/Local.
+- [Frontmatter subagent](/reference/frontmatter-fields/) — `hooks` scopés à un subagent.
+- [CLI Mastery — hooks](/02-cli-mastery/hooks/) — module pédagogique.
+- [Production — observabilité](/04-production/observability/) — hooks comme couche d'audit-trail.
+- [Lab 02](/02-cli-mastery/lab-02/) — hook PreToolUse en pratique.

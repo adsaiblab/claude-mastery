@@ -6,6 +6,11 @@ sidebar:
 draft: false
 ---
 
+Une **slash-command** est un raccourci tapé dans le prompt (`/audit`, `/clear`,
+`/compact`) qui déclenche une action côté CLI ou injecte un prompt prédéfini.
+Les natives sont gérées par Claude Code ; les custom sont des fichiers
+Markdown que tu écris dans `.claude/commands/`.
+
 ## Natives — session
 
 | Commande         | Effet                                                   |
@@ -51,6 +56,10 @@ draft: false
 
 ## Créer une commande custom
 
+Une slash-command custom est un fichier Markdown dont le **frontmatter**
+configure le comportement et dont le **body** est le prompt envoyé à Claude
+au moment de l'invocation.
+
 Fichier : `.claude/commands/<name>.md` (project) ou `~/.claude/commands/<name>.md` (user).
 
 ```markdown
@@ -89,9 +98,165 @@ Invocation : `/audit src/utils/cache.ts` → `$ARGUMENTS` = `"src/utils/cache.ts
 | `$1`, `$2`, ... | Arguments positionnels (split par espace). |
 | `$CWD`          | Working directory.                         |
 
+## Scope : User vs Project
+
+Le même nom de commande peut exister dans les deux scopes — la résolution
+suit l'ordre **Project > User**. Bonne pratique :
+
+| Scope   | Emplacement           | Pour quoi ?                                                     |
+| ------- | --------------------- | --------------------------------------------------------------- |
+| Project | `.claude/commands/`   | Workflow équipe : `/deploy`, `/changelog`, `/audit`. Versionné. |
+| User    | `~/.claude/commands/` | Tics persos : `/journal`, `/explain`, `/diff`. Non partagé.     |
+
+Si une commande projet écrase une commande user, c'est silencieux — pense à
+nommer tes commandes user de façon distinctive (`/me-journal` plutôt que
+`/journal`) si tu travailles sur des repos qui définissent les leurs.
+
+## 3 commandes complètes en exemples
+
+### `/audit-file <path>` — audit factuel
+
+```markdown
+---
+description: Audit factuel d'un fichier (forces, faiblesses, score)
+argument-hint: <path>
+allowed-tools: Read, Grep
+model: haiku
+---
+
+Audite `$ARGUMENTS`. Sortie :
+
+# $ARGUMENTS
+
+**Score :** N/10
+
+## Forces (max 3)
+
+- ...
+
+## Faiblesses (max 3, format `<ligne>: <issue>`)
+
+- ...
+
+Reste factuel. Pas de "globalement bon code" : cite des extraits.
+```
+
+Choix `haiku` : audit factuel sur un seul fichier — pas besoin de raisonnement long. Économie 5×.
+
+### `/sync-deps` — synchroniser package.json + lockfile
+
+```markdown
+---
+description: Met à jour package.json et lockfile aux dernières mineures non-breaking
+allowed-tools: Read, Edit, Bash(npm:*), Bash(git:*)
+model: sonnet
+---
+
+1. Lis `package.json` et identifie les déps non pinned (`^`, `~`).
+2. Lance `npm outdated --json` et liste les mises à jour mineures.
+3. Pour chaque dépendance qui a une mineure dispo, propose le bump.
+4. Une fois validé, lance `npm install` pour mettre le lockfile à jour.
+5. Vérifie que `npm test` passe.
+6. Affiche un résumé : `n bumps, m breaking ignored`.
+
+N'autorise **aucun** bump majeur sans confirmation explicite de l'utilisateur.
+```
+
+### `/refresh-fixtures <suite>` — régénérer des golden files
+
+```markdown
+---
+description: Régénère les snapshots/golden d'une suite de tests
+argument-hint: <suite-name>
+allowed-tools: Read, Edit, Write, Bash(npm:*), Bash(pytest:*)
+---
+
+Régénère les fixtures de la suite `$1`.
+
+1. Localise `tests/fixtures/$1/` (ou `__snapshots__/$1.snap.js`).
+2. Lance les tests en mode `--update-snapshots` (Jest) ou avec env var de regen (`UPDATE_FIXTURES=1`).
+3. Diff les fichiers regénérés vs ce qui était versionné.
+4. Pour chaque fichier modifié :
+   - Si la diff est cosmétique (whitespace, ordre clés), accepte.
+   - Si la diff change des valeurs : **arrête et demande confirmation** à l'humain avant de commit.
+5. Une fois validé, propose un commit avec le message `chore(fixtures): refresh $1`.
+```
+
+## Patterns avancés
+
+### Chaîner des commandes
+
+Pas de mécanisme natif de pipe. Pour enchaîner, on demande dans le body :
+
+```markdown
+---
+description: Audit puis fix automatique des low-hanging fruits
+argument-hint: <fichier>
+allowed-tools: Read, Edit, Grep
+---
+
+1. Audit factuel de `$ARGUMENTS`.
+2. Pour chaque "faiblesse" classée 'trivial' (typo, formatting, naming évident), applique le fix.
+3. Pour les non-triviaux : laisse-les en TODO et liste-les à la fin.
+```
+
+Tu sépares ainsi le pipeline conceptuel ("audit puis fix") en un seul appel
+sans avoir à enchaîner deux commandes manuellement.
+
+### Commandes paramétrées par défaut
+
+`$ARGUMENTS` peut être vide. Gère le cas :
+
+```markdown
+---
+description: Status rapide ou status détaillé selon argument
+argument-hint: [--detailed]
+allowed-tools: Bash(git:*), Read
+---
+
+Si `$ARGUMENTS` contient `--detailed`, fais un status détaillé (par fichier).
+Sinon, fais un status court (compteurs).
+```
+
+### Commandes "dry-run par défaut"
+
+Pour les commandes destructrices, force un confirm :
+
+```markdown
+---
+description: Nettoie les fichiers de log > 30 jours
+argument-hint: [--apply]
+allowed-tools: Bash(find:*), Bash(rm:*)
+---
+
+1. Liste les `*.log` > 30 jours via `find logs/ -name "*.log" -mtime +30`.
+2. Affiche la liste.
+3. Si `$ARGUMENTS` contient `--apply`, supprime ; sinon, indique qu'il faut relancer avec `--apply`.
+```
+
+## Pièges classiques
+
+| Piège                                            | Conséquence                                                                                        | Fix                                                                          |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `$ARGUMENTS` non échappé dans une commande Bash  | Shell injection (l'utilisateur passe `; rm -rf`)                                                   | Toujours quoter : `"$ARGUMENTS"`. Ne jamais inline-eval.                     |
+| `allowed-tools` absent                           | La commande hérite du scope global → trop large                                                    | Toujours déclarer `allowed-tools` explicitement.                             |
+| Modèle non forcé                                 | La commande utilise le modèle de la session — comportement non déterministe selon `claude --model` | Forcer `model:` pour les commandes orchestrées.                              |
+| `description` floue                              | L'auto-complétion `/` n'aide pas l'utilisateur                                                     | Une ligne qui dit **quand** invoquer ("audit factuel d'un fichier").         |
+| Body trop long (> 100 lignes)                    | Ajoute beaucoup de tokens à chaque invocation                                                      | Externaliser la logique dans un script Bash et l'appeler depuis la commande. |
+| Commande qui nécessite Internet sans le déclarer | `WebFetch` est par défaut hors `allowed-tools`                                                     | `allowed-tools: Read, WebFetch`.                                             |
+
 ## Bonnes pratiques
 
 - **Une commande = un job précis**. Pas de "/do-everything".
 - Restreindre `allowed-tools` au minimum — la commande doit être prévisible.
 - Mettre les commandes versionnées dans `.claude/commands/` (project), les perso dans `~/.claude/commands/`.
 - Documenter les inputs attendus dans la `description` ou via `argument-hint`.
+- Forcer un `model` si la commande est orchestrée (sinon dépend de la session).
+- Pour les commandes coûteuses, indiquer le coût attendu dans la `description` (ex: « audit complet — ~5k tokens »).
+
+## Voir aussi
+
+- [Frontmatter complet](/reference/frontmatter-fields/) — détail des champs subagent / skill / commande.
+- [CLI flags](/reference/cli-flags/) — `--allowed-tools` / `--disallowed-tools` côté CLI (équivalents `allowed-tools` côté frontmatter).
+- [Slash-commands — module de cours](/02-cli-mastery/slash-commands/) — apprentissage progressif des patterns.
+- [Lab 02 — hooks](/02-cli-mastery/lab-02/) — exemple de slash-command utilisée dans un workflow réel.

@@ -6,6 +6,11 @@ sidebar:
 draft: false
 ---
 
+Le **frontmatter** est le bloc YAML en tête des fichiers Markdown définissant
+des subagents, skills, slash-commands et plugins. C'est là que tu déclares
+le comportement (modèle, tools, permissions) ; le body Markdown est le
+prompt système. Cette page liste tous les champs acceptés par type.
+
 ## Subagent (`.claude/agents/<name>.md`)
 
 | Champ            | Type   | Usage                                                                                                      |
@@ -26,6 +31,59 @@ draft: false
 | `color`          | string | Couleur dans l'UI Agent Teams.                                                                             |
 | `initialPrompt`  | string | Préfixé à chaque invocation.                                                                               |
 
+### Exemples par cas d'usage
+
+**Subagent read-only (auditor) :**
+
+```yaml
+---
+name: auditor
+description: Use to audit a single file or service. Read-only. Produces audit report.
+model: haiku
+tools: Read, Grep, Glob
+maxTurns: 5
+memory: false
+---
+```
+
+`memory: false` — l'auditor n'a pas besoin de l'historique persistant ; il
+travaille sur un input frais à chaque invocation.
+
+**Subagent qui peut écrire mais isolé (agent feature-dev) :**
+
+```yaml
+---
+name: feature-dev
+description: Implement a feature in isolation. Has write access via worktree.
+model: sonnet
+tools: Read, Edit, Write, Bash(git:*), Bash(npm:*)
+isolation: worktree
+maxTurns: 30
+effort: medium
+---
+```
+
+`isolation: worktree` crée un git worktree dédié — l'agent peut commit
+librement sans toucher la branche principale.
+
+**Subagent qui orchestre (planner) :**
+
+```yaml
+---
+name: planner
+description: Use first to break a feature request into actionable steps.
+model: opus
+tools: Read, Grep, Glob
+permissionMode: plan
+maxTurns: 10
+effort: high
+initialPrompt: "Tu produis des plans, pas du code. Sortie en Markdown structuré."
+---
+```
+
+`permissionMode: plan` force le mode plan — le planner ne peut pas écrire,
+même si on lui en donnait les tools.
+
 ## Skill (`.claude/skills/<name>/SKILL.md`)
 
 | Champ           | Type   | Usage                                                                                 |
@@ -37,6 +95,28 @@ draft: false
 
 Le corps du SKILL.md contient les instructions ; les fichiers adjacents (`scripts/`, `templates/`) sont chargés à la demande.
 
+### Anatomie d'un skill
+
+```
+.claude/skills/refactor-react/
+├── SKILL.md                  # frontmatter + instructions principales
+├── scripts/
+│   ├── extract-component.mjs # script utilitaire
+│   └── inline-component.mjs
+└── templates/
+    └── component.tsx.tmpl    # template référencé par le skill
+```
+
+Le skill peut déclarer ses scripts dans `allowed-tools` :
+
+```yaml
+---
+name: refactor-react
+description: Use when extracting/inlining React components, especially when refactoring a large file.
+allowed-tools: Read, Edit, Write, Bash(node:scripts/*)
+---
+```
+
 ## Slash-command (`.claude/commands/<name>.md`)
 
 | Champ           | Type   | Usage                                           |
@@ -46,7 +126,7 @@ Le corps du SKILL.md contient les instructions ; les fichiers adjacents (`script
 | `model`         | enum   | Modèle forcé pour la commande.                  |
 | `argument-hint` | string | Indication d'arguments (ex: `<filename>`).      |
 
-Le corps du `.md` est le **prompt** envoyé à Claude quand la commande est invoquée. `$ARGUMENTS` est interpolé avec les args utilisateur.
+Le corps du `.md` est le **prompt** envoyé à Claude quand la commande est invoquée. `$ARGUMENTS` est interpolé avec les args utilisateur. Voir [slash-commands](/reference/slash-commands/) pour le détail des variables et des exemples complets.
 
 ## Plugin (`.claude-plugin/plugin.json`)
 
@@ -62,8 +142,60 @@ Le corps du `.md` est le **prompt** envoyé à Claude quand la commande est invo
 
 Le contenu du plugin (subagents, skills, hooks, commands) vit dans les sous-dossiers conventionnels (`agents/`, `skills/`, `commands/`, `hooks/`).
 
+### Stratégie keywords pour la marketplace
+
+Les `keywords` sont indexés pour la recherche dans la marketplace plugins.
+Bonnes pratiques :
+
+- 3-7 keywords (au-delà, dilution).
+- Mélanger **technologie** (`react`, `python`, `terraform`) et **type d'usage** (`audit`, `refactor`, `testing`).
+- Éviter les keywords trop génériques (`utility`, `helper`) — pas découvrables.
+- Inclure les noms des outils ou frameworks externes intégrés (`playwright`, `kubernetes`, `linear`).
+
+## Comparaison frontmatter — subagent vs skill vs command
+
+| Dimension            | Subagent                      | Skill                             | Slash-command         |
+| -------------------- | ----------------------------- | --------------------------------- | --------------------- |
+| Déclaration          | `agents/<name>.md`            | `skills/<name>/SKILL.md`          | `commands/<name>.md`  |
+| Restriction tools    | `tools:`                      | `allowed-tools:`                  | `allowed-tools:`      |
+| Restriction modèle   | `model:`                      | `model:`                          | `model:`              |
+| Argument utilisateur | (via `Agent(name=, prompt=)`) | (sémantique, pas d'arg explicite) | `$ARGUMENTS` / `$1`   |
+| Routage              | description sémantique        | description sémantique            | nom de la commande    |
+| Mémoire              | `memory: bool`                | (héritée)                         | (héritée)             |
+| Hooks scopés         | `hooks:`                      | non                               | non                   |
+| Worktree dédié       | `isolation: worktree`         | non                               | non                   |
+| Cas d'usage typique  | Tâche complète, autonome      | Procédure réutilisable            | Raccourci utilisateur |
+
+Règle de choix :
+
+- **Slash-command** si l'utilisateur invoque explicitement (`/audit src/foo.ts`).
+- **Skill** si tu veux que Claude charge automatiquement une procédure quand le contexte le demande.
+- **Subagent** si tu veux une fenêtre séparée (context isolé, modèle dédié, parallélisme).
+
+## Pièges classiques
+
+| Piège                                                                 | Conséquence                                                              | Fix                                                              |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Description vague (« Outil utile »)                                   | Routage inefficace : Claude n'invoque jamais ou trop souvent             | Décrire **quand** invoquer (« Use when X happens »).             |
+| Tools redondants (`Edit, Write` pour un agent qui ne fait que `Edit`) | Surface d'attaque inutile                                                | Restreindre au minimum.                                          |
+| `model:` non déclaré                                                  | Hérite du parent — comportement non déterministe selon la session source | Forcer `model:` pour des subagents critiques (auditor, judge).   |
+| `maxTurns` absent sur un agent récursif                               | Risque de boucle (agent qui ré-invoque ses pairs)                        | `maxTurns: 5-10` pour les agents bornés.                         |
+| `skills:` qui charge un skill volumineux dans chaque invocation       | Coût tokens à chaque appel                                               | Réserver aux skills < 1 KB. Pour les gros, charger à la demande. |
+| Plugin sans `version` ou avec `0.0.1` figé                            | Pas de signal de maturité aux utilisateurs marketplace                   | Bumper la version à chaque change ; utiliser semver strict.      |
+| Body trop long dans une slash-command (> 100 lignes)                  | Tokens consommés à chaque invocation                                     | Externaliser en script Bash ou en skill.                         |
+
 ## Conventions
 
 - **Description** : décrit **quand** plutôt que **quoi**. C'est l'élément clé du routage.
 - **Tools** : restreindre au minimum nécessaire. Un subagent qui n'écrit jamais ne devrait pas avoir `Edit/Write`.
 - **Model** : Opus pour planifier/juger, Sonnet pour faire, Haiku pour trier.
+- **Frontmatter en haut, prose en dessous** : pas de prose avant le `---` d'ouverture (sinon le YAML n'est pas parsé).
+- **Versionner les frontmatter** dans le repo : c'est le contrat équipe pour les agents.
+
+## Voir aussi
+
+- [Slash-commands](/reference/slash-commands/) — détail des variables `$ARGUMENTS` et exemples.
+- [Hooks & événements](/reference/hooks-events/) — clé `hooks` du frontmatter subagent.
+- [settings.json](/reference/settings-keys/) — `mcpServers` et `permissions` au niveau projet.
+- [Multi-agents — subagents](/03-multi-agents/subagents/) — module pédagogique.
+- [Multi-agents — skills](/03-multi-agents/skills/) — quand un skill est le bon choix.

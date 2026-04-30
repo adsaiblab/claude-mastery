@@ -6,7 +6,9 @@ sidebar:
 draft: false
 ---
 
-Référence rapide. La source faisant autorité reste `claude --help`.
+Référence rapide. La source faisant autorité reste `claude --help` — cette page
+documente l'usage idiomatique, les interactions entre flags et les recettes
+courantes (CI, debug, scripting).
 
 ## Mode et exécution
 
@@ -63,18 +65,141 @@ Référence rapide. La source faisant autorité reste `claude --help`.
 | `--verbose`             | off    | Logs étendus côté CLI.             |
 | `--debug`               | off    | Stack traces internes Claude Code. |
 
-## Exemples utiles
+## Interactions et incompatibilités
+
+Certaines combinaisons de flags ne marchent pas comme on s'y attendrait —
+voici les pièges fréquents.
+
+| Combinaison                                                | Comportement                                                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `--print` + `--continue`                                   | OK. Reprend la session, exécute le prompt, sort.                                         |
+| `--print` sans prompt explicite                            | Lit stdin. Permet `echo "résume" \| claude -p`.                                          |
+| `--output-format json` sans `--print`                      | Le JSON s'affiche en mode interactif — peu utile. Réserver à `-p`.                       |
+| `--allowed-tools` + `--permission-mode bypassPermissions`  | Le mode bypass écrase la whitelist : tous les tools deviennent accessibles. Antipattern. |
+| `--fork-session` + `--continue`                            | Conflit : continue reprend la dernière, fork hérite d'une autre. Choisir l'un.           |
+| `--add-dir` répété                                         | Cumulatif : `--add-dir ../shared --add-dir ~/notes` étend `cwd` à trois racines.         |
+| `--model` + setting `model` dans `~/.claude/settings.json` | Le flag CLI gagne. Précédence : CLI > project settings > user settings.                  |
+
+## Équivalences flags ↔ env vars
+
+Certains flags ont un équivalent en variable d'environnement, pratique pour
+pré-configurer un shell ou un job CI :
+
+| Flag                | Env var équivalente               |
+| ------------------- | --------------------------------- |
+| `--model <m>`       | `ANTHROPIC_MODEL=<m>`             |
+| `--debug`           | `DEBUG=claude-code:*`             |
+| `--mcp-debug`       | `MCP_DEBUG=1`                     |
+| (skip update check) | `CLAUDE_CODE_SKIP_UPDATE_CHECK=1` |
+| (disable telemetry) | `DISABLE_TELEMETRY=1`             |
+
+Si flag CLI et env var sont tous deux présents, **le flag CLI gagne**. La
+liste complète est dans la [référence env vars](/reference/env-vars/).
+
+## Recettes pratiques
+
+### CI one-shot avec sortie machine-lisible
 
 ```bash
-# Mode non-interactif scriptable
-claude -p "résume CHANGELOG" --output-format json
-
-# Reprendre la session courante avec un modèle plus économique
-claude -c --model claude-haiku-4-5-20251001
-
-# Fork pour explorer sans polluer
-claude --fork-session 7f3a... -n "exploration cache"
-
-# Sandbox CI : pas d'invite, tools restreints
-claude -p "review .diff" --allowed-tools "Read,Bash(git:*)" --permission-mode acceptEdits
+claude -p "résume CHANGELOG depuis HEAD~10" \
+  --output-format json \
+  --allowed-tools "Read,Bash(git:*)" \
+  --permission-mode acceptEdits \
+  --model claude-haiku-4-5-20251001 \
+  > summary.json
 ```
+
+- `-p` pour sortir après une réponse.
+- `--output-format json` pour parser côté CI (jq, GitHub Actions, etc.).
+- `--allowed-tools` whitelist stricte — on évite WebFetch involontaire.
+- `--permission-mode acceptEdits` : pas d'invite interactive.
+- `--model haiku` : tâche factuelle bornée → 5× moins cher.
+
+### Reprendre la session courante avec un modèle plus économique
+
+```bash
+claude -c --model claude-haiku-4-5-20251001
+```
+
+Utile quand tu as commencé avec Opus/Sonnet sur la phase planning et que tu
+veux passer à Haiku pour les tâches d'exécution répétitives.
+
+### Fork pour explorer sans polluer
+
+```bash
+claude --fork-session 7f3a... -n "exploration cache"
+```
+
+Le fork hérite de tout le contexte de la session source mais ses messages
+ne polluent pas la session originelle. Idéal pour tester une approche sans
+casser ton fil principal.
+
+### Sandbox isolée pour reviewer une PR distante
+
+```bash
+claude -p "review .diff" \
+  --cwd /tmp/review-sandbox \
+  --add-dir ./tests \
+  --allowed-tools "Read,Bash(git:*)" \
+  --permission-mode plan
+```
+
+`--cwd` ancre Claude ailleurs ; `--add-dir` lui rend accessible juste les
+tests pour qu'il puisse vérifier la couverture. `--permission-mode plan`
+garantit qu'aucun fichier ne sera modifié — plan-only.
+
+### Stream JSON pour piper dans un parser temps réel
+
+```bash
+claude -p "génère 10 idées de noms" \
+  --output-format stream-json \
+  | jq -c 'select(.type == "text") | .content'
+```
+
+`stream-json` produit une ligne JSON par delta — utilisable en temps réel.
+Différent de `json` qui attend la fin pour produire un seul objet.
+
+### Debug d'un MCP qui ne répond pas
+
+```bash
+claude --mcp-debug --debug -p "list les issues GitHub" 2> mcp.log
+```
+
+Tous les échanges MCP (init, list_tools, call_tool, errors) s'écrivent en
+stderr. Le `--debug` ajoute les stack traces côté Claude Code.
+
+### Scripter un run avec ID de session déterministe
+
+```bash
+SID="audit-$(date -u +%Y%m%d)"
+claude --session-id "$SID" -p "audit du repo"
+# Plus tard, récupérer la transcript :
+cat ~/.claude/projects/*/$SID/messages.jsonl
+```
+
+Forcer un `--session-id` permet de retrouver la session par chemin
+prévisible — pratique pour des routines cron qui veulent archiver les
+transcripts.
+
+## Pièges classiques
+
+- `--dangerously-skip-permissions` est volontairement long et bruyant. Si tu
+  l'utilises plus de 3 fois par semaine, c'est probablement le mauvais
+  outil — tu veux peut-être un `permissions.allow` versionné dans
+  `.claude/settings.json` à la place.
+- `--print` sans prompt explicite lit stdin — pratique en pipe, mais
+  surprenant si tu lances `claude -p` à la main et que rien ne se passe.
+- `--allowed-tools` reçoit une liste **virgule-séparée**, pas espace-séparée.
+  `"Read, Edit"` (avec espace) marche, mais `"Read Edit"` (sans virgule)
+  est interprété comme un seul tool nommé "Read Edit" → silencieusement
+  inactif.
+- `--fork-session` ne crée pas de worktree git — c'est purement une notion
+  Claude Code. Pour un worktree git, voir le frontmatter `isolation: worktree`
+  des [subagents](/reference/frontmatter-fields/).
+
+## Voir aussi
+
+- [Variables d'environnement](/reference/env-vars/) — équivalents env de la plupart des flags.
+- [settings.json](/reference/settings-keys/) — défauts persistants (modèle, permissions).
+- [CLI Mastery — module de cours](/02-cli-mastery/cli-flags/) — apprentissage progressif des flags par cas d'usage.
+- [Permissions — module de cours](/02-cli-mastery/permission-modes/) — détail des 4 modes.

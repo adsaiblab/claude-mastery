@@ -6,6 +6,11 @@ sidebar:
 draft: false
 ---
 
+Claude Code lit son environnement à plusieurs niveaux : **shell parent** (au
+lancement), **`env` du settings.json** (injecté dans les Bash tool calls),
+**hook PreToolUse** (peut altérer dynamiquement). Cette page liste les vars
+canoniques et explique l'interaction des trois scopes.
+
 ## Authentification
 
 | Variable               | Usage                                                       |
@@ -55,8 +60,138 @@ draft: false
 | `DEBUG=claude-code:*` | Active les logs internes (équivalent `--debug`). |
 | `MCP_DEBUG=1`         | Logs verbeux MCP (équivalent `--mcp-debug`).     |
 
+## Trois scopes d'environnement
+
+Pour comprendre où mettre quoi, il faut distinguer trois lieux où une env
+var peut vivre :
+
+| Scope                              | Visible par                   | Persistance          | Cas d'usage                                               |
+| ---------------------------------- | ----------------------------- | -------------------- | --------------------------------------------------------- |
+| **Shell parent** (export, .bashrc) | Claude Code + Bash tool calls | Tant que tu relances | Auth (`ANTHROPIC_API_KEY`), config CLI (`DEBUG`).         |
+| **`env` du settings.json**         | Bash tool calls uniquement    | Par session          | Variables propres au projet (`NODE_ENV`, secrets locaux). |
+| **Hook `PreToolUse` qui exporte**  | Le tool call qui suit         | Une exécution        | Tagger une session (`CI_RUN_ID`), inject d'audit-trail.   |
+
+Exemple concret de séparation :
+
+```bash
+# Shell parent — auth + config CLI
+export ANTHROPIC_API_KEY=sk-...
+export CLAUDE_CODE_SKIP_UPDATE_CHECK=1
+
+claude
+```
+
+```json
+// .claude/settings.json — env injecté dans Bash tools
+{
+  "env": {
+    "NODE_ENV": "development",
+    "PYTHONUNBUFFERED": "1"
+  }
+}
+```
+
+Les deux ensembles ne se chevauchent pas : `NODE_ENV` n'est pas vu par
+Claude Code lui-même (c'est pour les commandes shell qu'il lance), et
+`ANTHROPIC_API_KEY` n'est pas injectée dans les Bash tools (c'est pour
+authentifier Claude Code lui-même).
+
+## Bedrock vs Vertex — interactions
+
+| Tu veux…              | Tu poses                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Anthropic API directe | Rien à faire (défaut). `ANTHROPIC_API_KEY` suffit.                                                                      |
+| Bedrock (AWS)         | `CLAUDE_CODE_USE_BEDROCK=1` + `AWS_REGION` + un profil AWS résolu (env, fichier, IAM rôle). Pas de `ANTHROPIC_API_KEY`. |
+| Vertex (GCP)          | `CLAUDE_CODE_USE_VERTEX=1` + `GOOGLE_APPLICATION_CREDENTIALS` (chemin vers le JSON de service account).                 |
+| Les deux ensemble     | Impossible — les flags sont exclusifs. Le dernier exporté gagne.                                                        |
+
+Sur Bedrock/Vertex les noms de modèles peuvent différer (`anthropic.claude-sonnet-4-6-v1:0`
+côté Bedrock vs `claude-sonnet-4-6` côté API directe). `ANTHROPIC_MODEL`
+peut alors devoir être adapté au format provider.
+
+## Recettes CI
+
+### GitHub Actions
+
+```yaml
+- name: Audit du diff
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    CLAUDE_CODE_SKIP_UPDATE_CHECK: "1"
+    DISABLE_TELEMETRY: "1"
+    ANTHROPIC_MODEL: claude-haiku-4-5-20251001
+  run: |
+    claude -p "audit du diff" \
+      --output-format json \
+      --allowed-tools "Read,Bash(git:*)" \
+      > audit.json
+```
+
+- Secrets via `${{ secrets.X }}` — jamais en clair.
+- `SKIP_UPDATE_CHECK` économise un round-trip réseau.
+- `DISABLE_TELEMETRY` évite que la télémétrie pollue les métriques job.
+- Modèle haiku par env var pour ne pas avoir à le passer flag par flag.
+
+### GitLab CI
+
+```yaml
+audit:
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+    CLAUDE_CODE_SKIP_UPDATE_CHECK: "1"
+  script:
+    - claude -p "audit" --output-format json > audit.json
+```
+
+### Buildkite
+
+```yaml
+steps:
+  - command: claude -p "audit" --output-format json > audit.json
+    env:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CLAUDE_CODE_SKIP_UPDATE_CHECK: "1"
+```
+
+### direnv (dev local)
+
+`.envrc` à la racine du repo :
+
+```bash
+# Auth
+dotenv_if_exists .env
+
+# Defaults projet
+export ANTHROPIC_MODEL=claude-sonnet-4-6
+export CLAUDE_CODE_SKIP_UPDATE_CHECK=1
+export PYTHONUNBUFFERED=1
+```
+
+`.env` (gitignored) contient juste `ANTHROPIC_API_KEY=sk-...`. Combo
+direnv + .env permet à chaque dev d'avoir sa clé sans risque de fuite.
+
+## Pièges classiques
+
+| Piège                                                      | Symptôme                                                                                 | Fix                                                                                    |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` mis dans `.claude/settings.json` `env` | Pas pris en compte pour l'auth (cet `env` est pour Bash tools, pas Claude Code lui-même) | Mettre dans le shell parent (`export`, direnv).                                        |
+| `CLAUDE_CODE_USE_BEDROCK=true` au lieu de `=1`             | Variable ignorée                                                                         | Le check est `=== "1"`, pas truthy. Toujours `1`.                                      |
+| Echo de `$ANTHROPIC_API_KEY` dans un log CI                | Fuite de credentials dans Loki/CloudWatch                                                | Utiliser les **secrets** natifs du runner (`${{ secrets.X }}`), jamais `echo $X`.      |
+| `DEBUG=claude-code:*` activé en prod                       | Logs verbeux dans le pod, perf dégradée                                                  | Réserver `DEBUG` au troubleshooting local. En CI, préférer un seul `--debug` ponctuel. |
+| `BASH_DEFAULT_TIMEOUT_MS` trop bas (< 30s)                 | Beaucoup de tool calls Bash timeout                                                      | 60-120s est un bon défaut pour la plupart des dev workflows.                           |
+| Variables non vidées entre deux runs CI                    | Une session CI hérite d'une auth précédente                                              | `unset ANTHROPIC_API_KEY` au début si tu changes de compte / d'env.                    |
+
 ## Bonnes pratiques
 
 - **Ne jamais** echo `$ANTHROPIC_API_KEY` dans des logs CI — utilise les secrets natifs (GitHub Secrets, Vault).
 - En CI, préfère `ANTHROPIC_API_KEY` à un token long-lived dans le repo.
 - Exporter `CLAUDE_CODE_SKIP_UPDATE_CHECK=1` en CI évite des appels réseau inutiles.
+- Pour les secrets locaux : `apiKeyHelper` dans settings.json (script qui retourne la clé) plutôt qu'un `.env` susceptible de fuiter dans un `git add -A`.
+- Pour Bedrock/Vertex : valider la connectivité réseau à part (`aws sts get-caller-identity` / `gcloud auth print-access-token`) avant de blâmer Claude Code.
+
+## Voir aussi
+
+- [CLI flags](/reference/cli-flags/) — équivalents flags ↔ env vars.
+- [settings.json — `env`](/reference/settings-keys/#env) — env injecté dans les Bash tool calls.
+- [Hooks](/reference/hooks-events/) — `PreToolUse` peut modifier l'env d'un tool call.
+- [Production — sandboxing](/04-production/sandboxing/) — gestion des secrets en CI.

@@ -6,6 +6,11 @@ sidebar:
 draft: false
 ---
 
+`settings.json` est le fichier de configuration central. Il vit à trois
+endroits (User, Project, Local) qui se cumulent ou s'écrasent selon des
+règles précises. Cette page liste toutes les clés acceptées avec leurs
+valeurs valides et leurs interactions.
+
 ## Localisation et priorité
 
 | Fichier                              | Scope                  | Versionné          |
@@ -14,7 +19,7 @@ draft: false
 | `<repo>/.claude/settings.json`       | Project (équipe)       | oui                |
 | `<repo>/.claude/settings.local.json` | Local (machine)        | non (à gitignorer) |
 
-Précédence : **Local > Project > User**. Les listes sont fusionnées, les scalaires écrasés.
+Précédence : **Local > Project > User**. Les listes (`hooks`, `permissions.allow`, etc.) sont fusionnées, les scalaires (`model`, `cleanupPeriodDays`) écrasés.
 
 ## Clés racines
 
@@ -54,6 +59,71 @@ Précédence : **Local > Project > User**. Les listes sont fusionnées, les scal
 }
 ```
 
+### Patterns acceptés
+
+| Pattern          | Matche                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `Read`           | Tool `Read` peu importe l'argument.                                                      |
+| `Bash`           | Toutes les Bash tool calls.                                                              |
+| `Bash(git:*)`    | Bash dont la commande commence par `git ` (`git status`, `git diff`, …).                 |
+| `Bash(rm:*)`     | Bash dont la commande commence par `rm `. Combiné avec `deny`, bloque toute suppression. |
+| `Bash(npm test)` | Exact-match : seulement `npm test`, pas `npm test --watch`.                              |
+| `WebFetch`       | Tout WebFetch (pas de sous-pattern par URL pour l'instant).                              |
+
+### Recettes par environnement
+
+**CI sandbox (read-only) :**
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(git:diff*)",
+      "Bash(git:log*)",
+      "Bash(git:status)"
+    ],
+    "deny": ["Edit", "Write", "Bash(npm:install*)", "WebFetch"],
+    "defaultMode": "plan"
+  }
+}
+```
+
+**Dev local (libre mais protégé) :**
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Grep",
+      "Glob",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)"
+    ],
+    "deny": ["Bash(rm:-rf*)", "Bash(sudo*)", "Bash(curl*://prod*)"],
+    "ask": ["WebFetch", "Bash(curl:*)"],
+    "defaultMode": "acceptEdits"
+  }
+}
+```
+
+**Plan-only (review d'une PR) :**
+
+```json
+{
+  "permissions": {
+    "allow": ["Read", "Grep", "Glob"],
+    "deny": ["Edit", "Write", "Bash"],
+    "defaultMode": "plan"
+  }
+}
+```
+
 ## `mcpServers`
 
 ```json
@@ -72,6 +142,55 @@ Précédence : **Local > Project > User**. Les listes sont fusionnées, les scal
 }
 ```
 
+### Schémas par transport
+
+**stdio (process local) :**
+
+```json
+{
+  "linear": {
+    "command": "node",
+    "args": ["./mcp-servers/linear/index.js"],
+    "env": { "LINEAR_API_KEY": "$LINEAR_KEY" }
+  }
+}
+```
+
+**SSE (HTTP streaming) :**
+
+```json
+{
+  "supabase": {
+    "url": "https://mcp.supabase.example.com/sse",
+    "transport": "sse",
+    "headers": { "Authorization": "Bearer $SUPABASE_TOKEN" }
+  }
+}
+```
+
+**HTTP (request/response) :**
+
+```json
+{
+  "internal-api": {
+    "url": "https://mcp.example.com/jsonrpc",
+    "transport": "http",
+    "headers": { "X-API-Key": "$INTERNAL_KEY" }
+  }
+}
+```
+
+### Injection d'env vars
+
+Les `$VAR` dans `env` ou `headers` sont **résolus depuis le shell parent
+au lancement** — pas depuis le `env` racine du settings.json. Pour qu'un
+secret soit injecté, il doit être exporté avant `claude` :
+
+```bash
+export GH_TOKEN=ghp_...
+claude
+```
+
 ## `statusLine`
 
 ```json
@@ -83,7 +202,20 @@ Précédence : **Local > Project > User**. Les listes sont fusionnées, les scal
 }
 ```
 
-Le script reçoit sur stdin un JSON avec `model`, `cwd`, `tokens_used`, etc.
+Le script reçoit sur stdin un JSON avec `model`, `cwd`, `tokens_used`, etc., et doit imprimer une ligne sur stdout :
+
+```bash
+#!/usr/bin/env bash
+# .claude/scripts/statusline.sh
+payload=$(cat)
+model=$(jq -r '.model' <<< "$payload")
+tokens=$(jq -r '.tokens_used // 0' <<< "$payload")
+branch=$(git branch --show-current 2>/dev/null || echo "—")
+printf '%s · %s · %s tokens' "$model" "$branch" "$tokens"
+exit 0
+```
+
+L'output est tronqué à la largeur du terminal. Exit code != 0 → ligne par défaut affichée.
 
 ## `env`
 
@@ -96,10 +228,78 @@ Le script reçoit sur stdin un JSON avec `model`, `cwd`, `tokens_used`, etc.
 }
 ```
 
-Injecté dans **toutes** les Bash tool calls. À ne pas confondre avec les env vars du shell parent.
+Injecté dans **toutes** les Bash tool calls. À ne pas confondre avec les env
+vars du shell parent (qui sont vues par Claude Code lui-même). Voir
+[trois scopes d'environnement](/reference/env-vars/#trois-scopes-denvironnement).
+
+## `apiKeyHelper`
+
+Pour les organisations qui ne veulent pas que la clé API traîne dans le shell :
+
+```json
+{
+  "apiKeyHelper": "/usr/local/bin/get-anthropic-key"
+}
+```
+
+Le script doit exporter sur stdout uniquement la clé (pas de newline). Lancé
+à chaque démarrage de session — peut interroger Vault, 1Password CLI, etc.
+
+```bash
+#!/usr/bin/env bash
+# /usr/local/bin/get-anthropic-key
+op read "op://CLI/Anthropic/api-key"
+```
+
+## `cleanupPeriodDays`
+
+```json
+{ "cleanupPeriodDays": 30 }
+```
+
+Les transcripts locaux dans `~/.claude/projects/<repo>/` plus vieux que ce
+seuil sont supprimés au démarrage. Défaut interne ≈ 90j. Utile pour limiter
+l'espace disque sur des laptops contraints.
+
+## Précédence en pratique
+
+Imaginons trois fichiers :
+
+```jsonc
+// ~/.claude/settings.json (User)
+{ "model": "claude-sonnet-4-6", "permissions": { "allow": ["Read"] } }
+
+// <repo>/.claude/settings.json (Project, versionné)
+{ "permissions": { "allow": ["Edit", "Bash(npm:*)"], "deny": ["WebFetch"] } }
+
+// <repo>/.claude/settings.local.json (Local, gitignored)
+{ "model": "claude-haiku-4-5-20251001" }
+```
+
+Résolution effective :
+
+- `model` = `claude-haiku-4-5-20251001` (Local écrase Project absent et User).
+- `permissions.allow` = `["Read", "Edit", "Bash(npm:*)"]` (fusion des listes User + Project).
+- `permissions.deny` = `["WebFetch"]` (de Project, User absent).
+
+Cette mécanique permet :
+
+- Project = règles équipe (versionnées, vue par tous).
+- Local = ajustements perso (modèle préféré, secret machine).
+- User = défauts globaux (modèle, comportements multi-repos).
 
 ## Bonnes pratiques
 
 - Settings versionnés (project) = règles **équipe**. Un dev arrivant lit ce fichier pour comprendre les contraintes.
 - Settings non versionnés (local) = préférences **personnelles** ou secrets locaux.
 - Ne **jamais** mettre de secret en clair — utilise `apiKeyHelper` ou les env vars.
+- Schema-valider le settings.json en CI (le fichier est un contrat équipe — un typo casse silencieusement les règles).
+- Documenter dans le README les `permissions.deny` / `mcpServers` non-évidents — un `deny: WebFetch` peut surprendre.
+
+## Voir aussi
+
+- [Hooks](/reference/hooks-events/) — détail de la clé `hooks`.
+- [Variables d'environnement](/reference/env-vars/) — interaction `env` settings vs shell parent.
+- [Frontmatter](/reference/frontmatter-fields/) — settings scopés à un subagent ou skill.
+- [CLI Mastery — permissions](/02-cli-mastery/permission-modes/) — module pédagogique.
+- [Production — sandboxing](/04-production/sandboxing/) — settings.json en CI.
