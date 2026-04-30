@@ -9,17 +9,17 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~60 min** · Scripts dans [`labs/lab-02-hooks/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-02-hooks)
 
 <Situation>
-  Ton équipe a deux règles non négociables : (1) aucun `git push` direct sur `main`,
-  (2) tout fichier édité doit être auto-formaté (prettier JS/TS/MD, black Python).
-  Jusqu'ici, tu espérais que chaque dev s'en souvienne. Dans ce lab, tu les
-  **gravées dans le marbre** sous forme de hooks qui marchent même quand Claude
-  n'a pas lu ton CLAUDE.md.
+  Ton équipe a deux règles non négociables : (1) aucun `git push` direct sur
+  `main`, (2) tout fichier édité doit être auto-formaté (prettier JS/TS/MD,
+  black Python). Jusqu'ici, tu espérais que chaque dev s'en souvienne. Dans ce
+  lab, tu les **gravées dans le marbre** sous forme de hooks qui marchent même
+  quand Claude n'a pas lu ton CLAUDE.md.
 </Situation>
 
 ## Objectif
@@ -53,12 +53,29 @@ Tu dois créer :
   labId="lab-02-hooks"
   title="Lab 02 — Checklist"
   steps={[
-    { id: 'settings', label: 'Définir PreToolUse et PostToolUse dans .claude/settings.json' },
-    { id: 'script', label: 'Créer .claude/hooks/validate-push.sh (executable)' },
-    { id: 'block-main', label: 'Bloquer les git push sur main (exit 2 + stderr explicite)' },
-    { id: 'allow-feature', label: 'Laisser passer les git push sur feature/*' },
-    { id: 'format', label: 'Auto-formater après Edit/Write (prettier ou black selon extension)' },
-    { id: 'validate', label: 'Exécuter validate.sh — les 2 scénarios passent', hint: 'bash labs/lab-02-hooks/validate.sh' },
+    {
+      id: "settings",
+      label: "Définir PreToolUse et PostToolUse dans .claude/settings.json",
+    },
+    {
+      id: "script",
+      label: "Créer .claude/hooks/validate-push.sh (executable)",
+    },
+    {
+      id: "block-main",
+      label: "Bloquer les git push sur main (exit 2 + stderr explicite)",
+    },
+    { id: "allow-feature", label: "Laisser passer les git push sur feature/*" },
+    {
+      id: "format",
+      label:
+        "Auto-formater après Edit/Write (prettier ou black selon extension)",
+    },
+    {
+      id: "validate",
+      label: "Exécuter validate.sh — les 2 scénarios passent",
+      hint: "bash labs/lab-02-hooks/validate.sh",
+    },
   ]}
 />
 

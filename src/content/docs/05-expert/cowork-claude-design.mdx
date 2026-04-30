@@ -6,8 +6,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu dois dessiner l'archi d'un nouveau service. Seul, tu tournes en rond sur un
@@ -22,12 +22,12 @@ import Quiz from '../../../components/interactive/Quiz.tsx';
 
 La différence :
 
-| Usage outil | Co-work pair |
-|-------------|-------------|
-| « Dessine-moi l'archi » | « Voici ma piste A et ma piste B. Laquelle et pourquoi ? » |
-| Claude propose, tu acceptes ou pas | Vous décidez ensemble avec critères écrits |
-| Pas d'artefact entre les tours | ADRs, diagrammes, changelog versionnés |
-| Divergence non détectée | Convergence ou désaccord explicité |
+| Usage outil                        | Co-work pair                                               |
+| ---------------------------------- | ---------------------------------------------------------- |
+| « Dessine-moi l'archi »            | « Voici ma piste A et ma piste B. Laquelle et pourquoi ? » |
+| Claude propose, tu acceptes ou pas | Vous décidez ensemble avec critères écrits                 |
+| Pas d'artefact entre les tours     | ADRs, diagrammes, changelog versionnés                     |
+| Divergence non détectée            | Convergence ou désaccord explicité                         |
 
 Le shift : **tu n'attends pas une réponse — tu alimentes une conversation structurée**.
 
@@ -108,26 +108,32 @@ Format bref, non-négociable :
 # ADR-042 : Cache layer for user sessions
 
 ## Status
+
 Accepted — 2026-04-24
 
 ## Context
+
 Sessions utilisateur lues à chaque requête API. ~2000 req/s en pic.
 Latence actuelle : 18ms p99 (trop haut pour SLA 10ms).
 
 ## Decision
+
 Cache in-process par instance avec invalidation via Redis pub/sub.
 
 ## Alternatives considered
+
 - Redis central direct : rejeté, latence réseau ajoute 4-6ms
 - Memcached : rejeté, pas d'invalidation event-driven native
 - No cache : rejeté, coût DB trop élevé
 
 ## Consequences
+
 - Complexité opérationnelle : +1 (pub/sub channel)
 - Cohérence : eventually consistent sur qqs ms après invalidate — acceptable
 - Coût : +40€/mois Redis
 
 ## Review
+
 Revisit dans 6 mois si le trafic passe au-dessus de 10k req/s.
 ```
 
@@ -148,7 +154,7 @@ Le "pre-mortem" révèle des risques que la discussion "normale" a loupés. C'es
 
 Claude écrit bien du Mermaid, du PlantUML, du Graphviz. Utile pour fixer visuellement une archi :
 
-```
+````
 User : « Rends-moi le diagramme Mermaid de l'archi qu'on vient de décider,
          avec les flux d'invalidation en pointillé. »
 
@@ -161,7 +167,8 @@ Claude :
     API2 <-->|read/write| Cache2[in-proc cache]
     API1 -.invalidate.-> Redis
     Redis -.pub/sub.-> API2
-  ```
+````
+
 ```
 
 Commit dans `design/diagrams/`. Lisible dans le README, mis à jour quand l'archi bouge.
@@ -215,3 +222,4 @@ Tu parles, Claude valide, tu parles, Claude valide. Pas une conversation, un mon
 ## Prochaine étape
 
 Tu sais collaborer sur le design. Voyons maintenant un **catalogue de patterns avancés** pour orchestrer du multi-agent complexe → [Advanced Patterns](/05-expert/advanced-patterns/).
+```

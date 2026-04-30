@@ -6,13 +6,13 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Ton équipe vient d'adopter Claude Code. Chaque dev a ses propres conventions, ses
-  propres raccourcis, son propre CLAUDE.md bidouillé. Deux semaines plus tard :
-  trois styles de code différents dans la même codebase, des hooks qui se
+  Ton équipe vient d'adopter Claude Code. Chaque dev a ses propres conventions,
+  ses propres raccourcis, son propre CLAUDE.md bidouillé. Deux semaines plus
+  tard : trois styles de code différents dans la même codebase, des hooks qui se
   contredisent, un projet impossible à onboarder. Ce module pose la **discipline
   CLAUDE.md** avant que ça parte en vrille.
 </Situation>
@@ -46,9 +46,9 @@ Claude charge plusieurs `CLAUDE.md` dans l'ordre suivant (du plus général au p
 
 ### Exemple concret
 
-- `~/.claude/CLAUDE.md` (user) → *"Toujours finir par un résumé en 1 ligne."*
-- `monorepo/CLAUDE.md` (project) → *"Langage : TypeScript strict. Tests : vitest."*
-- `monorepo/packages/backend/CLAUDE.md` (local) → *"Tests : vitest avec `--pool=forks`. Pas d'import ESM direct."*
+- `~/.claude/CLAUDE.md` (user) → _"Toujours finir par un résumé en 1 ligne."_
+- `monorepo/CLAUDE.md` (project) → _"Langage : TypeScript strict. Tests : vitest."_
+- `monorepo/packages/backend/CLAUDE.md` (local) → _"Tests : vitest avec `--pool=forks`. Pas d'import ESM direct."_
 
 Quand tu travailles dans `packages/backend/`, les 3 fichiers sont chargés. Les règles locales l'emportent si elles contredisent les supérieures.
 
@@ -90,10 +90,12 @@ Tu peux référencer d'autres fichiers depuis ton CLAUDE.md :
 # CLAUDE.md
 
 ## Conventions
+
 @docs/code-style.md
 @docs/api-conventions.md
 
 ## Commandes
+
 - `pnpm dev` — lance le dev server.
 - `pnpm test -- --watch` — tests en watch.
 ```
@@ -106,16 +108,16 @@ Alternative : placer des règles dans `.claude/rules/*.md`. Claude les charge co
 
 ## Ce qu'il faut mettre dans CLAUDE.md
 
-| Type | Exemple | À mettre dans CLAUDE.md ? |
-|------|---------|---------------------------|
-| Règle universelle du projet | "Tous les tests en vitest" | **Oui** |
-| Convention de nommage | "Components en PascalCase, hooks en camelCase" | **Oui** |
-| Commande utile | "npm run check avant chaque commit" | **Oui** |
-| Piège connu | "Ne jamais importer depuis `legacy/`" | **Oui** |
-| Contexte business | "On vend à des banques, compliance stricte" | **Oui** (bref) |
-| Doc d'archi détaillée | "Voici les 12 microservices et leurs relations" | **Non → `@docs/arch.md`** |
-| Note personnelle | "J'aime les commits imperatifs" | **Non → user-scope** |
-| Info qui change souvent | "Sprint en cours : S28" | **Non → mémoire projet** |
+| Type                        | Exemple                                         | À mettre dans CLAUDE.md ? |
+| --------------------------- | ----------------------------------------------- | ------------------------- |
+| Règle universelle du projet | "Tous les tests en vitest"                      | **Oui**                   |
+| Convention de nommage       | "Components en PascalCase, hooks en camelCase"  | **Oui**                   |
+| Commande utile              | "npm run check avant chaque commit"             | **Oui**                   |
+| Piège connu                 | "Ne jamais importer depuis `legacy/`"           | **Oui**                   |
+| Contexte business           | "On vend à des banques, compliance stricte"     | **Oui** (bref)            |
+| Doc d'archi détaillée       | "Voici les 12 microservices et leurs relations" | **Non → `@docs/arch.md`** |
+| Note personnelle            | "J'aime les commits imperatifs"                 | **Non → user-scope**      |
+| Info qui change souvent     | "Sprint en cours : S28"                         | **Non → mémoire projet**  |
 
 **Règle mentale :** si l'info est stable **et** universelle **et** courte, elle va dans CLAUDE.md. Sinon, elle va ailleurs.
 
@@ -193,10 +195,30 @@ Stack : TypeScript strict, Prisma, vitest, Biome.
   scenario="Tu travailles sur un monorepo avec 3 équipes. Chaque équipe a ses propres conventions de test (vitest, jest, playwright)."
   question="Comment structures-tu les CLAUDE.md ?"
   options={[
-    { text: "Un seul CLAUDE.md à la racine qui liste les 3 conventions.", correct: false, explanation: "Tout est chargé à chaque session, chaque ligne est en concurrence. L'agent choisira mal dès qu'il traverse des frontières." },
-    { text: "Un CLAUDE.md racine avec les règles communes + un CLAUDE.md par dossier d'équipe avec les spécificités.", correct: true, explanation: "C'est le bon scoping. Les règles communes sont chargées systématiquement, les spécifiques seulement quand Claude travaille dans le dossier concerné." },
-    { text: "Rien à la racine, seulement un CLAUDE.md par équipe.", correct: false, explanation: "Tu perds les règles communes (ex: 'TypeScript strict partout'). Il faut les deux niveaux." },
-    { text: "Un fichier unique dans `.claude/CLAUDE.md` user-scope.", correct: false, explanation: "Le user-scope est perso et ne s'applique qu'à toi. Ton collègue ne bénéficiera pas des règles." }
+    {
+      text: "Un seul CLAUDE.md à la racine qui liste les 3 conventions.",
+      correct: false,
+      explanation:
+        "Tout est chargé à chaque session, chaque ligne est en concurrence. L'agent choisira mal dès qu'il traverse des frontières.",
+    },
+    {
+      text: "Un CLAUDE.md racine avec les règles communes + un CLAUDE.md par dossier d'équipe avec les spécificités.",
+      correct: true,
+      explanation:
+        "C'est le bon scoping. Les règles communes sont chargées systématiquement, les spécifiques seulement quand Claude travaille dans le dossier concerné.",
+    },
+    {
+      text: "Rien à la racine, seulement un CLAUDE.md par équipe.",
+      correct: false,
+      explanation:
+        "Tu perds les règles communes (ex: 'TypeScript strict partout'). Il faut les deux niveaux.",
+    },
+    {
+      text: "Un fichier unique dans `.claude/CLAUDE.md` user-scope.",
+      correct: false,
+      explanation:
+        "Le user-scope est perso et ne s'applique qu'à toi. Ton collègue ne bénéficiera pas des règles.",
+    },
   ]}
 />
 
@@ -206,10 +228,30 @@ Stack : TypeScript strict, Prisma, vitest, Biome.
   scenario="Ton CLAUDE.md fait 300 lignes. Tu hésites à ajouter la liste complète de tes 40 microservices avec leur doc."
   question="Que fais-tu ?"
   options={[
-    { text: "Je l'ajoute — c'est de la doc utile.", correct: false, explanation: "Tu passes au-dessus de la règle des 150 instructions, avec du contenu qui change souvent et qui n'est pas utile à chaque session. Le modèle va saturer." },
-    { text: "Je refuse — c'est trop long.", correct: false, explanation: "Bonne intuition, mais la doc reste utile. Il faut la mettre ailleurs, pas l'ignorer." },
-    { text: "Je la mets dans `docs/microservices.md` et je référence `@docs/microservices.md` dans CLAUDE.md.", correct: true, explanation: "Pattern canonique. Le fichier est chargé à la demande quand Claude en a besoin, sans peser dans chaque session. CLAUDE.md reste court." },
-    { text: "Je la mets dans un fichier MEMORY.md.", correct: false, explanation: "MEMORY.md est pour la mémoire écrite par Claude (auto-memory). Mettre une liste de microservices que tu maintiens toi-même là-bas, c'est détourner le mécanisme." }
+    {
+      text: "Je l'ajoute — c'est de la doc utile.",
+      correct: false,
+      explanation:
+        "Tu passes au-dessus de la règle des 150 instructions, avec du contenu qui change souvent et qui n'est pas utile à chaque session. Le modèle va saturer.",
+    },
+    {
+      text: "Je refuse — c'est trop long.",
+      correct: false,
+      explanation:
+        "Bonne intuition, mais la doc reste utile. Il faut la mettre ailleurs, pas l'ignorer.",
+    },
+    {
+      text: "Je la mets dans `docs/microservices.md` et je référence `@docs/microservices.md` dans CLAUDE.md.",
+      correct: true,
+      explanation:
+        "Pattern canonique. Le fichier est chargé à la demande quand Claude en a besoin, sans peser dans chaque session. CLAUDE.md reste court.",
+    },
+    {
+      text: "Je la mets dans un fichier MEMORY.md.",
+      correct: false,
+      explanation:
+        "MEMORY.md est pour la mémoire écrite par Claude (auto-memory). Mettre une liste de microservices que tu maintiens toi-même là-bas, c'est détourner le mécanisme.",
+    },
   ]}
 />
 

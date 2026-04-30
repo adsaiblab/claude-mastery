@@ -6,15 +6,15 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Trois heures dans la session. Tu as fait explorer 20 fichiers, écrit 4 features,
-  débuggé un problème de types. Tu demandes : *"refais un tour du code pour t'assurer
-  que rien n'est cassé."* Claude répond n'importe quoi. Pas parce qu'il est devenu
-  bête — parce que son **context est saturé**. La moitié du message est tronquée.
-  Ce module t'évite ce mur.
+  Trois heures dans la session. Tu as fait explorer 20 fichiers, écrit 4
+  features, débuggé un problème de types. Tu demandes : *"refais un tour du code
+  pour t'assurer que rien n'est cassé."* Claude répond n'importe quoi. Pas parce
+  qu'il est devenu bête — parce que son **context est saturé**. La moitié du
+  message est tronquée. Ce module t'évite ce mur.
 </Situation>
 
 ## Concept — le context comme budget
@@ -45,12 +45,12 @@ Claude Code t'affiche l'usage dans l'UI (barre de remplissage en bas de l'écran
 
 ## Les 4 leviers — quand utiliser quoi
 
-| Commande | Effet | Quand l'utiliser |
-|----------|-------|------------------|
-| `/compact` | Résume l'historique, garde l'essentiel. | ~70% rempli, tu veux continuer la même tâche. |
-| `/clear` | Vide la conversation, garde CLAUDE.md. | Tu passes à un sujet **sans rapport**. |
-| `/btw` | Injecte un message système pour recentrer. | L'agent a dérivé, tu veux le recadrer sans perdre le contexte. |
-| Nouvelle session | Repart de zéro (nouveau jsonl). | Tu changes de projet, nouveau reset complet. |
+| Commande         | Effet                                      | Quand l'utiliser                                               |
+| ---------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| `/compact`       | Résume l'historique, garde l'essentiel.    | ~70% rempli, tu veux continuer la même tâche.                  |
+| `/clear`         | Vide la conversation, garde CLAUDE.md.     | Tu passes à un sujet **sans rapport**.                         |
+| `/btw`           | Injecte un message système pour recentrer. | L'agent a dérivé, tu veux le recadrer sans perdre le contexte. |
+| Nouvelle session | Repart de zéro (nouveau jsonl).            | Tu changes de projet, nouveau reset complet.                   |
 
 ### `/compact` — la compaction
 
@@ -60,6 +60,7 @@ Claude résume l'historique de la session en gardant : objectif courant, décisi
 
 ```markdown
 ## Compaction
+
 Préserver toujours : objectif courant, liste des fichiers touchés, commandes
 de test utilisées. Compresser : explications détaillées, lectures exploratoires.
 ```
@@ -117,10 +118,30 @@ Le Niveau 5 a un module dédié ([Context Engineering](/05-expert/context-engine
   scenario="Tu es à 75% de remplissage. Tu bosses toujours sur la même feature. Ton prochain prompt demande à Claude d'écrire les tests unitaires."
   question="Quelle commande est la plus adaptée ?"
   options={[
-    { text: "/clear — repartir frais", correct: false, explanation: "Trop radical : tu perds le contexte de la feature. Il va refaire l'exploration depuis zéro." },
-    { text: "/compact — résumer l'historique et continuer", correct: true, explanation: "Exact. Tu es sur la même tâche, tu veux garder les décisions et l'état, mais tu veux libérer de l'espace pour écrire les tests. C'est pile le cas d'usage de /compact." },
-    { text: "Ignorer, continuer normalement", correct: false, explanation: "À 75% tu rentres dans la zone dangereuse. Le modèle va commencer à perdre des détails des premiers tours." },
-    { text: "Fermer le terminal, ouvrir une nouvelle session", correct: false, explanation: "Sur-réaction équivalente à /clear. Et tu perds la conversation complètement — alors que /compact garde le résumé." }
+    {
+      text: "/clear — repartir frais",
+      correct: false,
+      explanation:
+        "Trop radical : tu perds le contexte de la feature. Il va refaire l'exploration depuis zéro.",
+    },
+    {
+      text: "/compact — résumer l'historique et continuer",
+      correct: true,
+      explanation:
+        "Exact. Tu es sur la même tâche, tu veux garder les décisions et l'état, mais tu veux libérer de l'espace pour écrire les tests. C'est pile le cas d'usage de /compact.",
+    },
+    {
+      text: "Ignorer, continuer normalement",
+      correct: false,
+      explanation:
+        "À 75% tu rentres dans la zone dangereuse. Le modèle va commencer à perdre des détails des premiers tours.",
+    },
+    {
+      text: "Fermer le terminal, ouvrir une nouvelle session",
+      correct: false,
+      explanation:
+        "Sur-réaction équivalente à /clear. Et tu perds la conversation complètement — alors que /compact garde le résumé.",
+    },
   ]}
 />
 
@@ -129,10 +150,29 @@ Le Niveau 5 a un module dédié ([Context Engineering](/05-expert/context-engine
   id="context-vs-memory"
   question="Quelle est la différence entre charger plus de contexte et charger plus de mémoire ?"
   options={[
-    { text: "Aucune — c'est juste du vocabulaire différent pour la même chose.", correct: false, explanation: "Non, ce sont deux mécanismes distincts." },
-    { text: "Le contexte est la conversation courante (éphémère), la mémoire persiste entre sessions.", correct: true, explanation: "Exact. Le context window = tout ce que le modèle a sous les yeux **maintenant** (historique + files + outputs). La mémoire = fichiers typés qui survivent à travers les sessions et sont chargés à la demande par Claude." },
-    { text: "Le contexte est lu par Claude, la mémoire est lue par l'utilisateur.", correct: false, explanation: "Inversé. La mémoire est **écrite par Claude** pour lui-même (et lue par lui). L'utilisateur écrit CLAUDE.md." },
-    { text: "Le contexte coûte des tokens, la mémoire non.", correct: false, explanation: "Faux : quand Claude charge un fichier de mémoire, il entre dans le contexte et coûte des tokens. La différence est la persistance, pas le coût." }
+    {
+      text: "Aucune — c'est juste du vocabulaire différent pour la même chose.",
+      correct: false,
+      explanation: "Non, ce sont deux mécanismes distincts.",
+    },
+    {
+      text: "Le contexte est la conversation courante (éphémère), la mémoire persiste entre sessions.",
+      correct: true,
+      explanation:
+        "Exact. Le context window = tout ce que le modèle a sous les yeux **maintenant** (historique + files + outputs). La mémoire = fichiers typés qui survivent à travers les sessions et sont chargés à la demande par Claude.",
+    },
+    {
+      text: "Le contexte est lu par Claude, la mémoire est lue par l'utilisateur.",
+      correct: false,
+      explanation:
+        "Inversé. La mémoire est **écrite par Claude** pour lui-même (et lue par lui). L'utilisateur écrit CLAUDE.md.",
+    },
+    {
+      text: "Le contexte coûte des tokens, la mémoire non.",
+      correct: false,
+      explanation:
+        "Faux : quand Claude charge un fichier de mémoire, il entre dans le contexte et coûte des tokens. La différence est la persistance, pas le coût.",
+    },
   ]}
 />
 

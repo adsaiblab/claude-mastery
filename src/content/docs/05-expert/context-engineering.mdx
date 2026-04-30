@@ -6,8 +6,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Ton agent travaille bien au 3ᵉ tour. Au 20ᵉ, il oublie des décisions prises au
@@ -103,12 +103,12 @@ Format frontmatter + pointeur dans MEMORY.md → au tour suivant, Claude lit jus
 
 ## Métriques — ce qu'il faut surveiller
 
-| Métrique | Signal |
-|----------|--------|
-| `/status` affiche > 60% | Danger — comprimer/forker bientôt. |
-| L'agent redemande un fichier déjà lu | Il "oublie" — réactivité en baisse. |
-| Tu vois `...` dans les tool results | Truncation → des détails t'échappent. |
-| Le dernier tool result > 20k tokens | Résultat trop gros — filtre via `head_limit`, glob plus étroit, ou délègue. |
+| Métrique                             | Signal                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `/status` affiche > 60%              | Danger — comprimer/forker bientôt.                                          |
+| L'agent redemande un fichier déjà lu | Il "oublie" — réactivité en baisse.                                         |
+| Tu vois `...` dans les tool results  | Truncation → des détails t'échappent.                                       |
+| Le dernier tool result > 20k tokens  | Résultat trop gros — filtre via `head_limit`, glob plus étroit, ou délègue. |
 
 ## 3 techniques expertes
 
@@ -168,7 +168,7 @@ Main (orchestrateur)
   └─ update progress.md en local
 ```
 
-Le main ne grossit pratiquement jamais. Les subagents démarrent à 0 à chaque fois. Seuls les **artefacts persistants** (plan.md, progress.md, memory/*) traversent.
+Le main ne grossit pratiquement jamais. Les subagents démarrent à 0 à chaque fois. Seuls les **artefacts persistants** (plan.md, progress.md, memory/\*) traversent.
 
 C'est le pattern qui permet à Claude de **travailler sur des repos de 500k lignes**.
 
@@ -180,10 +180,29 @@ C'est le pattern qui permet à Claude de **travailler sur des repos de 500k lign
   scenario="Tu sens que l'agent devient imprécis après 30 tours. Tu veux compacter."
   question="Que fais-tu avant de taper `/compact` ?"
   options={[
-    { text: "Rien, /compact préserve tous les détails.", correct: false, explanation: "Faux — /compact résume. Les détails précis (file paths, IDs, valeurs exactes) risquent de disparaître dans la synthèse." },
-    { text: "Extraire explicitement les faits précieux (chemins, IDs, décisions) dans MEMORY.md ou progress.md avant de compacter.", correct: true, explanation: "Exact. /compact fait un résumé — sauvegarder les détails précis dans un fichier typé les met hors de portée de la compression. Tu retrouves tout après." },
-    { text: "Faire un /clear à la place.", correct: false, explanation: "/clear est plus violent — tu perds TOUT le contexte conversationnel, pas juste l'historique." },
-    { text: "Passer en mode plan.", correct: false, explanation: "Le mode plan n'affecte pas le context déjà rempli." }
+    {
+      text: "Rien, /compact préserve tous les détails.",
+      correct: false,
+      explanation:
+        "Faux — /compact résume. Les détails précis (file paths, IDs, valeurs exactes) risquent de disparaître dans la synthèse.",
+    },
+    {
+      text: "Extraire explicitement les faits précieux (chemins, IDs, décisions) dans MEMORY.md ou progress.md avant de compacter.",
+      correct: true,
+      explanation:
+        "Exact. /compact fait un résumé — sauvegarder les détails précis dans un fichier typé les met hors de portée de la compression. Tu retrouves tout après.",
+    },
+    {
+      text: "Faire un /clear à la place.",
+      correct: false,
+      explanation:
+        "/clear est plus violent — tu perds TOUT le contexte conversationnel, pas juste l'historique.",
+    },
+    {
+      text: "Passer en mode plan.",
+      correct: false,
+      explanation: "Le mode plan n'affecte pas le context déjà rempli.",
+    },
   ]}
 />
 
@@ -193,10 +212,30 @@ C'est le pattern qui permet à Claude de **travailler sur des repos de 500k lign
   scenario="Tu dois répondre à une question qui va nécessiter de lire ~30 fichiers pour comprendre un module que tu ne connais pas."
   question="Meilleure approche context-wise ?"
   options={[
-    { text: "Lire les 30 fichiers dans le main.", correct: false, explanation: "Tu vas manger 50-80k tokens dans le main, puis continuer ta session avec un context déjà plombé." },
-    { text: "Déléguer à un subagent explorer avec consigne 'synthèse ≤ 300 mots' — il consomme dans sa fenêtre, le main reçoit un résumé court.", correct: true, explanation: "Exact. Le subagent isole la consommation et ne rend au main que ce qui est utile pour la suite. C'est la discipline #1 du context engineering à l'échelle." },
-    { text: "Ouvrir un 2ᵉ terminal.", correct: false, explanation: "Pas de lien avec le problème — un 2ᵉ terminal continue à polluer son propre context." },
-    { text: "Passer en Opus.", correct: false, explanation: "Opus a le même context window — le problème est architectural, pas de modèle." }
+    {
+      text: "Lire les 30 fichiers dans le main.",
+      correct: false,
+      explanation:
+        "Tu vas manger 50-80k tokens dans le main, puis continuer ta session avec un context déjà plombé.",
+    },
+    {
+      text: "Déléguer à un subagent explorer avec consigne 'synthèse ≤ 300 mots' — il consomme dans sa fenêtre, le main reçoit un résumé court.",
+      correct: true,
+      explanation:
+        "Exact. Le subagent isole la consommation et ne rend au main que ce qui est utile pour la suite. C'est la discipline #1 du context engineering à l'échelle.",
+    },
+    {
+      text: "Ouvrir un 2ᵉ terminal.",
+      correct: false,
+      explanation:
+        "Pas de lien avec le problème — un 2ᵉ terminal continue à polluer son propre context.",
+    },
+    {
+      text: "Passer en Opus.",
+      correct: false,
+      explanation:
+        "Opus a le même context window — le problème est architectural, pas de modèle.",
+    },
   ]}
 />
 

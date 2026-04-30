@@ -6,75 +6,75 @@ sidebar:
 draft: false
 ---
 
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
 
 > 8 cartes · ~5 min · Source : [Niveau 1 — Fondations](/01-fondations/)
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
 
-  <FlipCard
-    client:visible
-    frontLabel="Modèle"
-    backLabel="ID complet"
-    front="Opus 4.7"
-    back="claude-opus-4-7 — la famille la plus capable. Pour archi, planning, jugement complexe."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Modèle"
+  backLabel="ID complet"
+  front="Opus 4.7"
+  back="claude-opus-4-7 — la famille la plus capable. Pour archi, planning, jugement complexe."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Modèle"
-    backLabel="ID complet"
-    front="Sonnet 4.6"
-    back="claude-sonnet-4-6 — equilibre coût/qualité. Default pour la plupart des sessions interactives."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Modèle"
+  backLabel="ID complet"
+  front="Sonnet 4.6"
+  back="claude-sonnet-4-6 — equilibre coût/qualité. Default pour la plupart des sessions interactives."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Modèle"
-    backLabel="ID complet"
-    front="Haiku 4.5"
-    back="claude-haiku-4-5-20251001 — petit modèle rapide. Pour batch, classification, étapes en cascade."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Modèle"
+  backLabel="ID complet"
+  front="Haiku 4.5"
+  back="claude-haiku-4-5-20251001 — petit modèle rapide. Pour batch, classification, étapes en cascade."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Slash"
-    backLabel="Effet"
-    front="/clear vs /resume"
-    back="/clear : efface la conv courante, repart from scratch. /resume : reprend une session antérieure (picker ou ID). Ne pas confondre."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Slash"
+  backLabel="Effet"
+  front="/clear vs /resume"
+  back="/clear : efface la conv courante, repart from scratch. /resume : reprend une session antérieure (picker ou ID). Ne pas confondre."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Fichier"
-    backLabel="Rôle"
-    front="CLAUDE.md"
-    back="Mémoire projet — chargée à chaque session dans ce repo. Convention : à la racine. Décrit setup, conventions, contraintes durables."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Fichier"
+  backLabel="Rôle"
+  front="CLAUDE.md"
+  back="Mémoire projet — chargée à chaque session dans ce repo. Convention : à la racine. Décrit setup, conventions, contraintes durables."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Mode"
-    backLabel="Activation"
-    front="Plan Mode"
-    back="Activation : Shift+Tab. Lecture seule. Sortie via /code ou bouton 'Approve plan'. Ne touche jamais aux fichiers."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Mode"
+  backLabel="Activation"
+  front="Plan Mode"
+  back="Activation : Shift+Tab. Lecture seule. Sortie via /code ou bouton 'Approve plan'. Ne touche jamais aux fichiers."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Touche"
-    backLabel="Effet"
-    front="ESC"
-    back="Interrompt l'agentic loop en cours. Claude finit son tool call courant puis s'arrête. Tu peux ensuite redresser le tir."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Touche"
+  backLabel="Effet"
+  front="ESC"
+  back="Interrompt l'agentic loop en cours. Claude finit son tool call courant puis s'arrête. Tu peux ensuite redresser le tir."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Concept"
-    backLabel="Quand"
-    front="Compaction automatique"
-    back="Quand le context window approche la limite, Claude résume les anciens tours et réinjecte le résumé. Risque : perte de détails fins."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Concept"
+  backLabel="Quand"
+  front="Compaction automatique"
+  back="Quand le context window approche la limite, Claude résume les anciens tours et réinjecte le résumé. Risque : perte de détails fins."
+/>
 
 </div>
 

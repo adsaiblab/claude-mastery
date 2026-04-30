@@ -131,7 +131,9 @@ samp {
   border: 1px solid var(--sl-color-gray-4);
   border-radius: 12px;
   padding: 1.5rem;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
   background: color-mix(in srgb, var(--sl-color-gray-6) 40%, transparent);
 }
 .concept-card:hover {
@@ -167,7 +169,10 @@ samp {
   background: var(--sl-color-gray-5);
   color: var(--sl-color-white);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.05s;
 }
 .cm-button:hover:not(:disabled) {
   border-color: var(--sl-color-accent);

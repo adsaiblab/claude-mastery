@@ -40,10 +40,38 @@ claude-mastery/
 │   └── styles/                 # custom.css + tailwind.css
 ├── supabase/migrations/        # 0001_init.sql (RLS + policies)
 ├── labs/                       # 5 labs, chacun avec setup.sh + validate.sh
+├── scripts/                    # validate-all-labs.sh + seed-local-db.mjs
+├── anki-decks/                 # Decks .apkg exportés depuis les flashcards (offline)
+├── obsidian-vault/             # Vault graph-of-thought (concepts/, links/)
 ├── Dockerfile                  # Multi-stage Node 20 (deps → build → runner)
 ├── docker-compose.yml
 └── .coolify/                   # Config deploy Coolify
 ```
+
+### `anki-decks/`
+
+Export Anki des flashcards (`src/content/docs/flashcards/`) au format `.apkg`,
+pour réviser hors-ligne avec spaced repetition. Un deck par niveau (`n0.apkg`
+… `n5.apkg`). Le dossier est versionné mais le contenu est régénéré
+manuellement à partir des MDX (pas de pipeline auto pour le moment) — voir
+le script de génération prévu dans le backlog (`scripts/build-anki.mjs`).
+
+Vide aujourd'hui : c'est un répertoire de sortie, pas une source. Les
+flashcards canoniques restent dans `src/content/docs/flashcards/`.
+
+### `obsidian-vault/`
+
+Vault Obsidian structuré en graph-of-thought :
+
+- `concepts/` — une note par primitive Claude (subagent, hook, MCP, …) avec
+  liens `[[wiki-style]]` vers les concepts adjacents.
+- `links/` — notes-pivot qui relient plusieurs concepts (« Comparaison
+  hooks vs MCP », « Quand préférer fan-out à pipeline », etc.).
+
+C'est l'index personnel de l'apprenant, complémentaire au cours linéaire :
+le cours raconte une histoire, le vault permet de naviguer transversalement.
+Vide aujourd'hui — alimenté au fur et à mesure pendant le parcours, pas un
+livrable du repo.
 
 ## Scripts
 
@@ -51,9 +79,16 @@ claude-mastery/
 |----------|-------------|
 | `npm run dev` | Serveur de dev (port 4321) |
 | `npm run build` | `astro check && astro build` |
+| `npm run build:nocheck` | Build sans `astro check` (CI rapide) |
+| `npm run start` | Lance le serveur SSR build (`dist/server/entry.mjs`) |
 | `npm run preview` | Preview du build SSR |
 | `npm run typecheck` | `astro check` uniquement |
-| `npm run labs:validate` | Lance tous les `validate.sh` |
+| `npm run lint` | ESLint sur `src/**/*.{ts,tsx}` |
+| `npm run lint:md` | Remark lint MDX/Markdown du contenu |
+| `npm run format` | Prettier --write sur `src/**/*` |
+| `npm run format:check` | Prettier --check (CI) |
+| `npm run labs:validate` | Valide tous les labs sur leur solution canonique |
+| `npm run db:seed` | Seed `src/data/progress.json` avec données de test (`-- --force` pour écraser) |
 
 ## Labs
 

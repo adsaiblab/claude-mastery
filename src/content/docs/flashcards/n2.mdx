@@ -6,75 +6,75 @@ sidebar:
 draft: false
 ---
 
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
 
 > 8 cartes · ~6 min · Source : [Niveau 2 — CLI Mastery](/02-cli-mastery/)
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
 
-  <FlipCard
-    client:visible
-    frontLabel="Flag"
-    backLabel="Usage"
-    front="claude -p / --print"
-    back="One-shot non-interactif : prompt en argument, output stdout, exit. Idéal en scripts/CI."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Flag"
+  backLabel="Usage"
+  front="claude -p / --print"
+  back="One-shot non-interactif : prompt en argument, output stdout, exit. Idéal en scripts/CI."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Flag"
-    backLabel="Usage"
-    front="claude -c"
-    back="Continue la dernière session de ce repo. Le raccourci le plus utilisé au quotidien — équivalent à /resume sur la dernière."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Flag"
+  backLabel="Usage"
+  front="claude -c"
+  back="Continue la dernière session de ce repo. Le raccourci le plus utilisé au quotidien — équivalent à /resume sur la dernière."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Slash"
-    backLabel="Effet"
-    front="/compact"
-    back="Force la compaction immédiate. Utile avant un long tool call pour libérer du contexte. Voir aussi /compact <focus>."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Slash"
+  backLabel="Effet"
+  front="/compact"
+  back="Force la compaction immédiate. Utile avant un long tool call pour libérer du contexte. Voir aussi /compact <focus>."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Hook event"
-    backLabel="Quand il fire"
-    front="PreToolUse"
-    back="Avant chaque appel d'outil. Peut bloquer (exit 2) avec un message JSON. Cas typique : interdire Bash sur certaines commandes."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Hook event"
+  backLabel="Quand il fire"
+  front="PreToolUse"
+  back="Avant chaque appel d'outil. Peut bloquer (exit 2) avec un message JSON. Cas typique : interdire Bash sur certaines commandes."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Hook event"
-    backLabel="Quand il fire"
-    front="Stop"
-    back="Quand Claude termine son tour (avant de rendre la main). Bon endroit pour run linters/tests automatiques."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Hook event"
+  backLabel="Quand il fire"
+  front="Stop"
+  back="Quand Claude termine son tour (avant de rendre la main). Bon endroit pour run linters/tests automatiques."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Permission mode"
-    backLabel="Effet"
-    front="acceptEdits"
-    back="Autorise Edit/Write sans demander confirmation, mais demande encore pour Bash et autres. Mode quotidien des power users."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Permission mode"
+  backLabel="Effet"
+  front="acceptEdits"
+  back="Autorise Edit/Write sans demander confirmation, mais demande encore pour Bash et autres. Mode quotidien des power users."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Fichier"
-    backLabel="Précédence"
-    front="settings.json"
-    back="3 niveaux : user (~/.claude), project (.claude/settings.json versionné), local (.claude/settings.local.json gitignoré). Local > project > user."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Fichier"
+  backLabel="Précédence"
+  front="settings.json"
+  back="3 niveaux : user (~/.claude), project (.claude/settings.json versionné), local (.claude/settings.local.json gitignoré). Local > project > user."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Concept"
-    backLabel="Format"
-    front="Plugin"
-    back="Bundle .claude-plugin/plugin.json + agents/hooks/skills. Distribué via marketplace, plugin install <name>. Composable."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Concept"
+  backLabel="Format"
+  front="Plugin"
+  back="Bundle .claude-plugin/plugin.json + agents/hooks/skills. Distribué via marketplace, plugin install <name>. Composable."
+/>
 
 </div>
 

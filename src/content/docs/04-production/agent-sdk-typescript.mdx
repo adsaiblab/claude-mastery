@@ -6,8 +6,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Ton stack est Node/Next.js. Tu veux que Claude alimente une API route
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   });
 }
@@ -228,7 +228,10 @@ import { vi, describe, it, expect } from "vitest";
 
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
   query: async function* () {
-    yield { type: "assistant", content: [{ type: "text", text: "mocked answer" }] };
+    yield {
+      type: "assistant",
+      content: [{ type: "text", text: "mocked answer" }],
+    };
     yield { type: "result", totalCostUsd: 0, usage: {} };
   },
 }));
@@ -246,13 +249,13 @@ Le SDK exporte `query` comme async generator → trivial à mocker.
 
 ## Différence vs Python
 
-| Aspect | Python | TypeScript |
-|--------|--------|-----------|
-| Package | `claude-agent-sdk` | `@anthropic-ai/claude-agent-sdk` |
-| Itération | `async for` | `for await` |
-| Options | snake_case (`system_prompt`) | camelCase (`systemPrompt`) |
-| Typage | dataclasses + runtime checks | TypeScript + zod |
-| Mock tests | `pytest-mock` | `vi.mock` / `jest.mock` |
+| Aspect     | Python                       | TypeScript                       |
+| ---------- | ---------------------------- | -------------------------------- |
+| Package    | `claude-agent-sdk`           | `@anthropic-ai/claude-agent-sdk` |
+| Itération  | `async for`                  | `for await`                      |
+| Options    | snake_case (`system_prompt`) | camelCase (`systemPrompt`)       |
+| Typage     | dataclasses + runtime checks | TypeScript + zod                 |
+| Mock tests | `pytest-mock`                | `vi.mock` / `jest.mock`          |
 
 Fonctionnellement équivalents. Le choix se fait sur ton stack backend.
 
@@ -276,10 +279,29 @@ Si tu fais un `query(...)` au top-level d'un module, le bundler build time va ex
   scenario="Ton frontend veut afficher en temps réel chaque tool que Claude appelle."
   question="Quelle approche est la plus propre ?"
   options={[
-    { text: "Attendre la fin et renvoyer un JSON complet.", correct: false, explanation: "Perd tout l'intérêt du stream — l'utilisateur attend sans feedback." },
-    { text: "Une route qui renvoie `text/event-stream` + `EventSource` côté client, qui itère sur le `for await` du SDK et `enqueue` chaque message.", correct: true, explanation: "Exact. SSE est le pattern natif pour ce cas, bas niveau, bien supporté. Le SDK produit déjà un AsyncIterable — il suffit de le brancher." },
-    { text: "WebSocket bidirectionnel.", correct: false, explanation: "Possible mais excessif si le client n'envoie rien en retour. SSE est plus simple et suffit." },
-    { text: "Polling toutes les secondes.", correct: false, explanation: "Perd le streaming, chaque poll manque des événements." }
+    {
+      text: "Attendre la fin et renvoyer un JSON complet.",
+      correct: false,
+      explanation:
+        "Perd tout l'intérêt du stream — l'utilisateur attend sans feedback.",
+    },
+    {
+      text: "Une route qui renvoie `text/event-stream` + `EventSource` côté client, qui itère sur le `for await` du SDK et `enqueue` chaque message.",
+      correct: true,
+      explanation:
+        "Exact. SSE est le pattern natif pour ce cas, bas niveau, bien supporté. Le SDK produit déjà un AsyncIterable — il suffit de le brancher.",
+    },
+    {
+      text: "WebSocket bidirectionnel.",
+      correct: false,
+      explanation:
+        "Possible mais excessif si le client n'envoie rien en retour. SSE est plus simple et suffit.",
+    },
+    {
+      text: "Polling toutes les secondes.",
+      correct: false,
+      explanation: "Perd le streaming, chaque poll manque des événements.",
+    },
   ]}
 />
 
@@ -289,10 +311,29 @@ Si tu fais un `query(...)` au top-level d'un module, le bundler build time va ex
   scenario="L'utilisateur ferme la page pendant une query longue. Tu veux éviter que le run continue côté serveur."
   question="Comment le faire proprement ?"
   options={[
-    { text: "Rien, Node tue le process.", correct: false, explanation: "Faux — Node garde le process, seule la réponse HTTP est orpheline. Le run Claude continue, token consommés." },
-    { text: "Passer `signal: req.signal` dans les options, ou attacher un `AbortController` qui écoute `req.signal` et l'abort quand il fire.", correct: true, explanation: "Exact. Le SDK respecte les AbortSignal standard — c'est le seul moyen de couper proprement un run en cours." },
-    { text: "Décrémenter un compteur dans un setInterval.", correct: false, explanation: "Ne coupe pas la query, juste ton compteur." },
-    { text: "Passer `maxTurns: 1`.", correct: false, explanation: "Rend le run inutile d'avance — ce n'est pas un mécanisme d'annulation." }
+    {
+      text: "Rien, Node tue le process.",
+      correct: false,
+      explanation:
+        "Faux — Node garde le process, seule la réponse HTTP est orpheline. Le run Claude continue, token consommés.",
+    },
+    {
+      text: "Passer `signal: req.signal` dans les options, ou attacher un `AbortController` qui écoute `req.signal` et l'abort quand il fire.",
+      correct: true,
+      explanation:
+        "Exact. Le SDK respecte les AbortSignal standard — c'est le seul moyen de couper proprement un run en cours.",
+    },
+    {
+      text: "Décrémenter un compteur dans un setInterval.",
+      correct: false,
+      explanation: "Ne coupe pas la query, juste ton compteur.",
+    },
+    {
+      text: "Passer `maxTurns: 1`.",
+      correct: false,
+      explanation:
+        "Rend le run inutile d'avance — ce n'est pas un mécanisme d'annulation.",
+    },
   ]}
 />
 

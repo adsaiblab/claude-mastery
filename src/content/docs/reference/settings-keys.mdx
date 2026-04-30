@@ -8,39 +8,39 @@ draft: false
 
 ## Localisation et priorité
 
-| Fichier | Scope | Versionné |
-|---------|-------|-----------|
-| `~/.claude/settings.json` | User (toutes sessions) | non |
-| `<repo>/.claude/settings.json` | Project (équipe) | oui |
-| `<repo>/.claude/settings.local.json` | Local (machine) | non (à gitignorer) |
+| Fichier                              | Scope                  | Versionné          |
+| ------------------------------------ | ---------------------- | ------------------ |
+| `~/.claude/settings.json`            | User (toutes sessions) | non                |
+| `<repo>/.claude/settings.json`       | Project (équipe)       | oui                |
+| `<repo>/.claude/settings.local.json` | Local (machine)        | non (à gitignorer) |
 
 Précédence : **Local > Project > User**. Les listes sont fusionnées, les scalaires écrasés.
 
 ## Clés racines
 
-| Clé | Type | Usage |
-|-----|------|-------|
-| `permissions` | object | Allow/deny/ask de tools, FS, network. |
-| `hooks` | object | Hooks par événement (cf. [hooks-events](/reference/hooks-events/)). |
-| `env` | object | Variables d'env injectées dans les Bash tool. |
-| `mcpServers` | object | Serveurs MCP scopés au projet. |
-| `model` | string | Modèle par défaut (override par `--model`). |
-| `cleanupPeriodDays` | int | Rétention des transcripts locaux. |
-| `includeCoAuthoredBy` | bool | Ajoute la trailer `Co-Authored-By: Claude` aux commits. |
-| `statusLine` | object | Customise la ligne de statut. |
-| `outputStyle` | enum | `default` / `minimal` / `verbose`. |
-| `enableAllProjectMcpServers` | bool | Whitelist auto des MCPs du projet. |
-| `apiKeyHelper` | string | Script qui retourne la clé API (au lieu de l'env). |
+| Clé                          | Type   | Usage                                                               |
+| ---------------------------- | ------ | ------------------------------------------------------------------- |
+| `permissions`                | object | Allow/deny/ask de tools, FS, network.                               |
+| `hooks`                      | object | Hooks par événement (cf. [hooks-events](/reference/hooks-events/)). |
+| `env`                        | object | Variables d'env injectées dans les Bash tool.                       |
+| `mcpServers`                 | object | Serveurs MCP scopés au projet.                                      |
+| `model`                      | string | Modèle par défaut (override par `--model`).                         |
+| `cleanupPeriodDays`          | int    | Rétention des transcripts locaux.                                   |
+| `includeCoAuthoredBy`        | bool   | Ajoute la trailer `Co-Authored-By: Claude` aux commits.             |
+| `statusLine`                 | object | Customise la ligne de statut.                                       |
+| `outputStyle`                | enum   | `default` / `minimal` / `verbose`.                                  |
+| `enableAllProjectMcpServers` | bool   | Whitelist auto des MCPs du projet.                                  |
+| `apiKeyHelper`               | string | Script qui retourne la clé API (au lieu de l'env).                  |
 
 ## `permissions`
 
-| Sous-clé | Type | Usage |
-|----------|------|-------|
-| `allow` | list | Patterns toujours autorisés. Ex: `"Read"`, `"Bash(git:*)"`. |
-| `deny` | list | Patterns toujours bloqués. |
-| `ask` | list | Patterns qui demandent confirmation. |
-| `defaultMode` | enum | `default` / `acceptEdits` / `plan` / `bypassPermissions`. |
-| `additionalDirectories` | list | Chemins hors cwd accessibles. |
+| Sous-clé                | Type | Usage                                                       |
+| ----------------------- | ---- | ----------------------------------------------------------- |
+| `allow`                 | list | Patterns toujours autorisés. Ex: `"Read"`, `"Bash(git:*)"`. |
+| `deny`                  | list | Patterns toujours bloqués.                                  |
+| `ask`                   | list | Patterns qui demandent confirmation.                        |
+| `defaultMode`           | enum | `default` / `acceptEdits` / `plan` / `bypassPermissions`.   |
+| `additionalDirectories` | list | Chemins hors cwd accessibles.                               |
 
 ```json
 {

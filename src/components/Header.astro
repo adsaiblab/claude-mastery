@@ -11,12 +11,18 @@ const isExpert = Astro.locals.isExpert ?? false;
 ---
 
 <div class="cm-header-wrapper">
-  <Default {...(Astro.props as any)}><slot /></Default>
-  {isExpert && (
-    <span class="badge-expert" style="margin-left: 0.5rem; align-self: center;" title={user?.email}>
-      Expert
-    </span>
-  )}
+  <Default {...Astro.props as any}><slot /></Default>
+  {
+    isExpert && (
+      <span
+        class="badge-expert"
+        style="margin-left: 0.5rem; align-self: center;"
+        title={user?.email}
+      >
+        Expert
+      </span>
+    )
+  }
 </div>
 
 <style>

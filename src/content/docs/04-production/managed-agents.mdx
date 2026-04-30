@@ -6,29 +6,29 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu as une routine de triage qui doit tourner 24/7 avec 99.9% de dispo, secrets
   rotatés, logs archivés, metrics par client. Self-host tu passes deux semaines
-  à faire l'infra ; avec les **Managed Agents** d'Anthropic, tu déclares l'agent,
-  tu point ton webhook, Anthropic s'occupe du runtime. Tu payes à l'usage, tu ne
-  gères pas d'OPs.
+  à faire l'infra ; avec les **Managed Agents** d'Anthropic, tu déclares
+  l'agent, tu point ton webhook, Anthropic s'occupe du runtime. Tu payes à
+  l'usage, tu ne gères pas d'OPs.
 </Situation>
 
 ## Concept — managed vs self-hosted
 
-| Dimension | Agent SDK self-hosted | Managed Agent |
-|-----------|----------------------|---------------|
-| Où tourne l'agent | Ton infra (k8s, Fargate, Lambda) | Anthropic |
-| Qui gère scaling / uptime | Toi | Anthropic |
-| Secrets | Tes vaults | Console Managed Agents |
-| Observabilité | Ton Datadog/Grafana | Console Anthropic + export |
-| Prix | API tokens + infra à toi | API tokens + frais gestion |
-| Customization | Totale | Bornée (pas de code arbitraire) |
-| Latence cold-start | Dépend de ton infra | Managé, sub-seconde |
-| Conformité | À toi | SOC2, HIPAA selon offre |
+| Dimension                 | Agent SDK self-hosted            | Managed Agent                   |
+| ------------------------- | -------------------------------- | ------------------------------- |
+| Où tourne l'agent         | Ton infra (k8s, Fargate, Lambda) | Anthropic                       |
+| Qui gère scaling / uptime | Toi                              | Anthropic                       |
+| Secrets                   | Tes vaults                       | Console Managed Agents          |
+| Observabilité             | Ton Datadog/Grafana              | Console Anthropic + export      |
+| Prix                      | API tokens + infra à toi         | API tokens + frais gestion      |
+| Customization             | Totale                           | Bornée (pas de code arbitraire) |
+| Latence cold-start        | Dépend de ton infra              | Managé, sub-seconde             |
+| Conformité                | À toi                            | SOC2, HIPAA selon offre         |
 
 **Règle** : self-hosted si tu as déjà une équipe Ops et des contraintes sur où les données vivent. Managed si tu veux livrer vite sans builder l'infra.
 
@@ -190,10 +190,30 @@ Tu deviens dépendant d'un service managé. Garde ton **prompt + config en git**
   scenario="Tu veux un agent de triage qui tourne 24/7 avec un SLA interne, équipe à 4 dev, pas d'équipe Ops dédiée."
   question="Managed ou self-hosted ?"
   options={[
-    { text: "Self-hosted, pour contrôler l'infra.", correct: false, explanation: "Sans équipe Ops, tu payes en temps dev ce que tu pensais économiser. Le SLA 24/7 nécessite monitoring, paging, rotation des secrets — tout ça n'existe pas gratuitement." },
-    { text: "Managed — tu pousses le manifest, Anthropic gère le runtime, tu te concentres sur la logique.", correct: true, explanation: "Exact. Pour une équipe sans Ops dédiée et un besoin 24/7, le coût managé est vite inférieur au coût humain du self-hosted." },
-    { text: "Hybride : logique en managed, secrets self-hosted.", correct: false, explanation: "Ça n'existe pas vraiment — les secrets sont dans la console Managed Agents, pas en double vault." },
-    { text: "Aucun — juste un cron Bash.", correct: false, explanation: "Possible pour un MVP à 10 runs/jour, pas pour du 24/7 avec SLA." }
+    {
+      text: "Self-hosted, pour contrôler l'infra.",
+      correct: false,
+      explanation:
+        "Sans équipe Ops, tu payes en temps dev ce que tu pensais économiser. Le SLA 24/7 nécessite monitoring, paging, rotation des secrets — tout ça n'existe pas gratuitement.",
+    },
+    {
+      text: "Managed — tu pousses le manifest, Anthropic gère le runtime, tu te concentres sur la logique.",
+      correct: true,
+      explanation:
+        "Exact. Pour une équipe sans Ops dédiée et un besoin 24/7, le coût managé est vite inférieur au coût humain du self-hosted.",
+    },
+    {
+      text: "Hybride : logique en managed, secrets self-hosted.",
+      correct: false,
+      explanation:
+        "Ça n'existe pas vraiment — les secrets sont dans la console Managed Agents, pas en double vault.",
+    },
+    {
+      text: "Aucun — juste un cron Bash.",
+      correct: false,
+      explanation:
+        "Possible pour un MVP à 10 runs/jour, pas pour du 24/7 avec SLA.",
+    },
   ]}
 />
 
@@ -203,10 +223,30 @@ Tu deviens dépendant d'un service managé. Garde ton **prompt + config en git**
   scenario="Tu déploies un Managed Agent qui reçoit 10 000 webhooks/jour."
   question="Quelle config protège le mieux ton budget contre un prompt qui ferait boucler l'agent ?"
   options={[
-    { text: "`max_turns: 50` et Opus.", correct: false, explanation: "Exactement le contraire : max_turns haut + modèle cher = explosion garantie si l'agent boucle." },
-    { text: "`max_cost_per_run_usd: 0.20` + `max_duration_seconds: 60` + modèle Sonnet/Haiku.", correct: true, explanation: "Exact. Cap par run × cap durée × modèle adapté. Le pire cas reste borné même si l'agent rencontre un prompt pathologique." },
-    { text: "Pas de cap — on fait confiance au prompt.", correct: false, explanation: "La confiance n'est pas un levier de budget. Un input utilisateur malformé suffit à déclencher une loop." },
-    { text: "Désactiver les secrets.", correct: false, explanation: "Aucun rapport avec le coût ; et l'agent ne fonctionnerait plus." }
+    {
+      text: "`max_turns: 50` et Opus.",
+      correct: false,
+      explanation:
+        "Exactement le contraire : max_turns haut + modèle cher = explosion garantie si l'agent boucle.",
+    },
+    {
+      text: "`max_cost_per_run_usd: 0.20` + `max_duration_seconds: 60` + modèle Sonnet/Haiku.",
+      correct: true,
+      explanation:
+        "Exact. Cap par run × cap durée × modèle adapté. Le pire cas reste borné même si l'agent rencontre un prompt pathologique.",
+    },
+    {
+      text: "Pas de cap — on fait confiance au prompt.",
+      correct: false,
+      explanation:
+        "La confiance n'est pas un levier de budget. Un input utilisateur malformé suffit à déclencher une loop.",
+    },
+    {
+      text: "Désactiver les secrets.",
+      correct: false,
+      explanation:
+        "Aucun rapport avec le coût ; et l'agent ne fonctionnerait plus.",
+    },
   ]}
 />
 

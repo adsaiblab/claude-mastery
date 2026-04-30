@@ -6,27 +6,27 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Trois tâches indépendantes à finir avant 18h : migrer un endpoint, écrire les
   tests d'un module, et rédiger une RFC. Un seul Claude qui fait tout en série,
   c'est 3× plus long et ton context sature. Un **agent team** = plusieurs
-  sessions Claude Code qui tournent **en parallèle**, chacune dans son tmux pane,
-  coordonnées par une task list partagée.
+  sessions Claude Code qui tournent **en parallèle**, chacune dans son tmux
+  pane, coordonnées par une task list partagée.
 </Situation>
 
 ## Concept — subagent vs agent team
 
-| Dimension | Subagent | Agent team |
-|-----------|----------|------------|
-| Qui est aux commandes | L'agent principal | Toi, humain |
-| Contexte | Isolé, éphémère | Session Claude Code complète, persistante |
-| Durée de vie | Le temps d'un message | Heures / jours |
-| Parallélisme | Lancés par le parent | Vrais terminaux parallèles |
-| Communication | Un prompt → un résultat | Bidirectionnel via `SendMessage` |
-| UI | Invisible (background) | Un pane par agent, tu vois tout |
+| Dimension             | Subagent                | Agent team                                |
+| --------------------- | ----------------------- | ----------------------------------------- |
+| Qui est aux commandes | L'agent principal       | Toi, humain                               |
+| Contexte              | Isolé, éphémère         | Session Claude Code complète, persistante |
+| Durée de vie          | Le temps d'un message   | Heures / jours                            |
+| Parallélisme          | Lancés par le parent    | Vrais terminaux parallèles                |
+| Communication         | Un prompt → un résultat | Bidirectionnel via `SendMessage`          |
+| UI                    | Invisible (background)  | Un pane par agent, tu vois tout           |
 
 **Règle de choix** : subagent pour une sous-tâche bornée ; team pour plusieurs **streams de travail** qui vivent en parallèle.
 
@@ -50,12 +50,12 @@ Depuis la CLI, la commande maîtresse :
 
 Quand tu ajoutes un teammate, tu choisis **comment tu veux le voir** :
 
-| Mode | Comportement | Usage typique |
-|------|-------------|---------------|
-| **In-process** | Le teammate tourne dans la même fenêtre, navigation `Shift+↑/↓` entre vues | Teams légers (2-3 agents) |
-| **tmux split** | Chaque teammate = un pane tmux | Teams de 3-5 agents sur un écran |
-| **iTerm2 tabs** | Nouvel onglet par teammate | Mac, tu navigues à la souris |
-| **Detached** | Le teammate tourne en arrière-plan, tu pull ses updates | Agents longs qui travaillent pendant que tu fais autre chose |
+| Mode            | Comportement                                                               | Usage typique                                                |
+| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **In-process**  | Le teammate tourne dans la même fenêtre, navigation `Shift+↑/↓` entre vues | Teams légers (2-3 agents)                                    |
+| **tmux split**  | Chaque teammate = un pane tmux                                             | Teams de 3-5 agents sur un écran                             |
+| **iTerm2 tabs** | Nouvel onglet par teammate                                                 | Mac, tu navigues à la souris                                 |
+| **Detached**    | Le teammate tourne en arrière-plan, tu pull ses updates                    | Agents longs qui travaillent pendant que tu fais autre chose |
 
 ## Réutiliser les fichiers subagents
 
@@ -80,7 +80,7 @@ User (dans main) : Demande à `reviewer` de regarder le diff de `implementer`.
 Main :
   → SendMessage(to="reviewer",
       message="Implementer a fini auth/token.ts:45-120. Peux-tu reviewer ?")
-  
+
 Reviewer (dans son pane) :
   ← reçoit le message
   ← lit le code
@@ -186,10 +186,30 @@ claude --name team-refacto-matinee
   scenario="Tu dois faire une exploration rapide pour répondre à une question, puis continuer ton travail principal."
   question="Subagent ou teammate ?"
   options={[
-    { text: "Teammate — c'est plus puissant.", correct: false, explanation: "Plus puissant ≠ plus adapté. Un teammate est une session full qui persiste ; pour une question ponctuelle, c'est overkill." },
-    { text: "Subagent — la tâche est bornée, le résultat revient en un message.", correct: true, explanation: "Exact. Subagent = sous-tâche éphémère qui rend un résultat. Teammate = stream de travail persistant." },
-    { text: "Les deux en parallèle.", correct: false, explanation: "Gaspillage : tu n'as pas besoin de deux contextes pour la même question." },
-    { text: "Aucun — je le fais moi-même.", correct: false, explanation: "Possible, mais si c'est >3 requêtes, le subagent protège ton context principal." }
+    {
+      text: "Teammate — c'est plus puissant.",
+      correct: false,
+      explanation:
+        "Plus puissant ≠ plus adapté. Un teammate est une session full qui persiste ; pour une question ponctuelle, c'est overkill.",
+    },
+    {
+      text: "Subagent — la tâche est bornée, le résultat revient en un message.",
+      correct: true,
+      explanation:
+        "Exact. Subagent = sous-tâche éphémère qui rend un résultat. Teammate = stream de travail persistant.",
+    },
+    {
+      text: "Les deux en parallèle.",
+      correct: false,
+      explanation:
+        "Gaspillage : tu n'as pas besoin de deux contextes pour la même question.",
+    },
+    {
+      text: "Aucun — je le fais moi-même.",
+      correct: false,
+      explanation:
+        "Possible, mais si c'est >3 requêtes, le subagent protège ton context principal.",
+    },
   ]}
 />
 
@@ -199,10 +219,28 @@ claude --name team-refacto-matinee
   scenario="Tu lances 3 teammates qui vont tous éditer des fichiers dans le même repo."
   question="Quelle précaution est essentielle ?"
   options={[
-    { text: "Désactiver les hooks.", correct: false, explanation: "Les hooks sont une protection, pas un problème." },
-    { text: "Donner à chaque teammate son propre worktree via `isolation: worktree` dans son fichier agent.", correct: true, explanation: "Exact. Sans worktrees, deux teammates qui éditent les mêmes fichiers produisent des conflits que tu dois résoudre à la main. Worktree = chacun son espace." },
-    { text: "Utiliser uniquement le mode plan.", correct: false, explanation: "Aucun teammate n'écrirait — ils seraient inutiles." },
-    { text: "Lancer les 3 teammates en séquence.", correct: false, explanation: "Défait le gain principal d'un team, qui est le parallélisme." }
+    {
+      text: "Désactiver les hooks.",
+      correct: false,
+      explanation: "Les hooks sont une protection, pas un problème.",
+    },
+    {
+      text: "Donner à chaque teammate son propre worktree via `isolation: worktree` dans son fichier agent.",
+      correct: true,
+      explanation:
+        "Exact. Sans worktrees, deux teammates qui éditent les mêmes fichiers produisent des conflits que tu dois résoudre à la main. Worktree = chacun son espace.",
+    },
+    {
+      text: "Utiliser uniquement le mode plan.",
+      correct: false,
+      explanation: "Aucun teammate n'écrirait — ils seraient inutiles.",
+    },
+    {
+      text: "Lancer les 3 teammates en séquence.",
+      correct: false,
+      explanation:
+        "Défait le gain principal d'un team, qui est le parallélisme.",
+    },
   ]}
 />
 

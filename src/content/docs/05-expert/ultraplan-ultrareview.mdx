@@ -6,16 +6,16 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Une feature non triviale en one-shot : tu écris un prompt, Claude part droit,
   et au bout de 2 heures tu te retrouves avec du code qui "fonctionne" mais qui
   casse 3 invariants du projet, a oublié 2 cas edge évidents, et mélange deux
   styles. Tu corriges pendant 3 heures. **UltraPlan/UltraReview** est une
-  discipline qui prend 20 min de plus au début pour économiser 3 h à la fin —
-  et produit du code que tu n'as pas honte de merger.
+  discipline qui prend 20 min de plus au début pour économiser 3 h à la fin — et
+  produit du code que tu n'as pas honte de merger.
 </Situation>
 
 ## Concept — 4 phases, 4 critères de sortie
@@ -44,10 +44,15 @@ Structure attendue de `plan.md` :
 # Plan — <nom de la tâche>
 
 ## Objectif (1 phrase)
+
 ## Contraintes et non-buts
+
 ## Fichiers à toucher (avec raison)
+
 ## Étapes ordonnées (avec dépendances)
+
 ## Risques identifiés
+
 ## Critère de succès (comment on sait que c'est fini)
 ```
 
@@ -60,12 +65,14 @@ description: Produit un plan d'implémentation complet pour une tâche non trivi
 tools: Read, Grep, Glob
 model: opus
 ---
+
 Tu es planner. Tu NE CODES PAS. Tu NE DÉCIDES PAS à la place de l'utilisateur.
 Étapes :
+
 1. Lis les fichiers mentionnés + contextes adjacents.
 2. Liste les questions qui te bloquent. Si > 0, demande.
 3. Propose un plan structuré selon le template.
-Budget : 10 tours max. Si tu dépasses, la tâche est trop grosse — propose un split.
+   Budget : 10 tours max. Si tu dépasses, la tâche est trop grosse — propose un split.
 ```
 
 **Critère de sortie** : le plan peut être lu par quelqu'un qui n'a pas vu la conversation, et il/elle peut exécuter. Pas de "figure out X" ou "as needed".
@@ -83,14 +90,17 @@ description: Review critique d'un plan. Cherche failles, cas manquants, dérives
 tools: Read, Grep, Glob
 model: opus
 ---
+
 Tu es reviewer sénior. Tu n'as PAS écrit le plan — tu le lis froid.
 Pour chaque section :
+
 - Une hypothèse non écrite ?
 - Un cas edge manquant ?
 - Un risque sous-estimé ?
 - Une étape qui pourrait casser une invariance existante ?
 
 Rends `revised-plan.md` avec :
+
 - Ce qui va bien (court, factuel)
 - Les concerns priorisés (P0/P1/P2)
 - Des propositions concrètes de changement
@@ -110,6 +120,7 @@ tools: Read, Edit, Write, Bash
 model: sonnet
 isolation: worktree
 ---
+
 Tu appliques plan.md littéralement.
 Si une étape n'est pas faisable en l'état : **stop**, reporte à l'utilisateur.
 À la fin, lance les tests. Si rouge, commit uniquement si c'est attendu.
@@ -128,27 +139,29 @@ description: Juge le code livré par rapport au plan et au revised-plan. Score s
 tools: Read, Grep, Bash
 model: opus
 ---
+
 Tu n'as PAS vu la conversation.
 Compare code livré vs plan.md + revised-plan.md + tests.
 Grille :
-- Complétude (toutes étapes du plan faites)  — /3
-- Conformité invariants projet (CLAUDE.md)   — /2
-- Qualité tests                               — /2
-- Lisibilité                                   — /2
-- Risques résiduels                            — /1
-Rends `verdict.md` avec score total + concerns.
+
+- Complétude (toutes étapes du plan faites) — /3
+- Conformité invariants projet (CLAUDE.md) — /2
+- Qualité tests — /2
+- Lisibilité — /2
+- Risques résiduels — /1
+  Rends `verdict.md` avec score total + concerns.
 ```
 
 **Critère de sortie** : score ≥ 7/10 **et** aucun P0 non résolu. Sinon : retour en implement ou plan selon la nature du concern.
 
 ## Budget tokens par phase
 
-| Phase | Max turns | Modèle | Estim. tokens |
-|-------|-----------|--------|--------------|
-| Plan | 10 | Opus | 30-60k |
-| Review | 6 | Opus | 20-40k |
-| Implement | 25 | Sonnet | 60-150k |
-| Judge | 6 | Opus | 20-40k |
+| Phase     | Max turns | Modèle | Estim. tokens |
+| --------- | --------- | ------ | ------------- |
+| Plan      | 10        | Opus   | 30-60k        |
+| Review    | 6         | Opus   | 20-40k        |
+| Implement | 25        | Sonnet | 60-150k       |
+| Judge     | 6         | Opus   | 20-40k        |
 
 Total typique : 150-300k tokens par cycle. Coût réel : $2-5. Comparé à 3h de rework humain, la rentabilité est immédiate.
 
@@ -184,14 +197,14 @@ Le script `check-score.sh` parse `verdict.md` ; si score < 7, exit 2 avec les co
 
 ## Comparatif — one-shot vs cycle
 
-| Aspect | One-shot | UltraPlan/UltraReview |
-|--------|----------|----------------------|
-| Durée totale | 30-60 min | 90-120 min |
-| Tokens consommés | 80-150k | 150-300k |
-| Coût API | $0.5-1.5 | $2-5 |
-| Rework humain post-livraison | 2-4h | 0-30 min |
-| Qualité code (score Judge) | 4-6/10 | 7-9/10 |
-| Bugs produits | 3-5 | 0-1 |
+| Aspect                       | One-shot  | UltraPlan/UltraReview |
+| ---------------------------- | --------- | --------------------- |
+| Durée totale                 | 30-60 min | 90-120 min            |
+| Tokens consommés             | 80-150k   | 150-300k              |
+| Coût API                     | $0.5-1.5  | $2-5                  |
+| Rework humain post-livraison | 2-4h      | 0-30 min              |
+| Qualité code (score Judge)   | 4-6/10    | 7-9/10                |
+| Bugs produits                | 3-5       | 0-1                   |
 
 **Point clé** : le cycle est **plus cher en tokens** mais **moins cher en temps humain**. Sur des tâches à fort enjeu (feature clé, refacto délicat), ça gagne largement.
 
@@ -223,10 +236,29 @@ Si le judge hérite du context de l'implementer, il a les mêmes biais. **Toujou
   scenario="Tu lances un UltraPlan et le planner te rend un document avec 'implémenter la logique auth de façon robuste'."
   question="Peux-tu passer à la phase Review ?"
   options={[
-    { text: "Oui, le reviewer affinera le plan.", correct: false, explanation: "Le reviewer n'est pas là pour compléter un plan vague. Son job est de challenger un plan concret. Si c'est flou, tu re-rentres en Plan." },
-    { text: "Non — le critère de sortie du plan (quelqu'un de froid peut l'exécuter) n'est pas atteint.", correct: true, explanation: "Exact. 'Implémenter de façon robuste' n'est pas exécutable. Il faut : fichiers précis, étapes ordonnées, critère de succès. Re-planner avant de passer." },
-    { text: "Oui, mais avec un reviewer plus sévère.", correct: false, explanation: "Le reviewer ne compense pas une plan vague — il trouve les failles dans un plan concret." },
-    { text: "Oui si on passe directement au Judge.", correct: false, explanation: "Aucun code à juger — saut complet de l'implement." }
+    {
+      text: "Oui, le reviewer affinera le plan.",
+      correct: false,
+      explanation:
+        "Le reviewer n'est pas là pour compléter un plan vague. Son job est de challenger un plan concret. Si c'est flou, tu re-rentres en Plan.",
+    },
+    {
+      text: "Non — le critère de sortie du plan (quelqu'un de froid peut l'exécuter) n'est pas atteint.",
+      correct: true,
+      explanation:
+        "Exact. 'Implémenter de façon robuste' n'est pas exécutable. Il faut : fichiers précis, étapes ordonnées, critère de succès. Re-planner avant de passer.",
+    },
+    {
+      text: "Oui, mais avec un reviewer plus sévère.",
+      correct: false,
+      explanation:
+        "Le reviewer ne compense pas une plan vague — il trouve les failles dans un plan concret.",
+    },
+    {
+      text: "Oui si on passe directement au Judge.",
+      correct: false,
+      explanation: "Aucun code à juger — saut complet de l'implement.",
+    },
   ]}
 />
 
@@ -236,10 +268,30 @@ Si le judge hérite du context de l'implementer, il a les mêmes biais. **Toujou
   scenario="Ton équipe a des tâches courtes (bug fixes < 30 min) et d'autres longues (feature majeure)."
   question="Sur quoi appliques-tu UltraPlan/UltraReview ?"
   options={[
-    { text: "Sur tout — la qualité est toujours importante.", correct: false, explanation: "Le cycle coûte 90 min et $2-5 — excessif pour un bug fix de 10 min. Le tooling doit correspondre à l'enjeu." },
-    { text: "Uniquement sur les features majeures qui vont vivre — le cycle rentabilise quand le rework évité est substantiel.", correct: true, explanation: "Exact. L'arbitrage est coût du cycle vs coût d'un rework humain. Sur du throwaway ou du court, un one-shot suffit. Sur du feature qui va durer, le cycle paie." },
-    { text: "Uniquement sur les bugs pour garantir la régression.", correct: false, explanation: "Un bug fix est souvent une modif locale — un cycle complet serait disproportionné." },
-    { text: "Jamais, c'est trop cher.", correct: false, explanation: "Sur des tâches à fort enjeu, ne pas l'utiliser coûte plus cher en temps humain." }
+    {
+      text: "Sur tout — la qualité est toujours importante.",
+      correct: false,
+      explanation:
+        "Le cycle coûte 90 min et $2-5 — excessif pour un bug fix de 10 min. Le tooling doit correspondre à l'enjeu.",
+    },
+    {
+      text: "Uniquement sur les features majeures qui vont vivre — le cycle rentabilise quand le rework évité est substantiel.",
+      correct: true,
+      explanation:
+        "Exact. L'arbitrage est coût du cycle vs coût d'un rework humain. Sur du throwaway ou du court, un one-shot suffit. Sur du feature qui va durer, le cycle paie.",
+    },
+    {
+      text: "Uniquement sur les bugs pour garantir la régression.",
+      correct: false,
+      explanation:
+        "Un bug fix est souvent une modif locale — un cycle complet serait disproportionné.",
+    },
+    {
+      text: "Jamais, c'est trop cher.",
+      correct: false,
+      explanation:
+        "Sur des tâches à fort enjeu, ne pas l'utiliser coûte plus cher en temps humain.",
+    },
   ]}
 />
 

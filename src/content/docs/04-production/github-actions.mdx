@@ -6,12 +6,12 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Ton équipe ouvre 20 PRs par semaine. Deux séniors passent chacun 1h par jour en
-  review, souvent à reprendre les mêmes points (tests manquants, gestion
+  Ton équipe ouvre 20 PRs par semaine. Deux séniors passent chacun 1h par jour
+  en review, souvent à reprendre les mêmes points (tests manquants, gestion
   d'erreur, nommage). Tu veux qu'une **passe automatique** vérifie ces basiques
   avant même que l'humain regarde — et commente directement sur la PR. Claude en
   GitHub Actions fait exactement ça.
@@ -39,7 +39,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write   # pour commenter la PR
+  pull-requests: write # pour commenter la PR
 
 jobs:
   review:
@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # besoin de l'historique pour `git diff`
+          fetch-depth: 0 # besoin de l'historique pour `git diff`
 
       - uses: anthropics/claude-code-action@v1
         with:
@@ -65,16 +65,16 @@ jobs:
 
 ## Les inputs importants
 
-| Input | Rôle |
-|-------|------|
-| `anthropic_api_key` | Secret repo — obligatoire. |
-| `model` | `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`. |
-| `prompt` | Ce que Claude doit faire. Multi-lignes OK. |
-| `allowed_tools` | Liste blanche des tools. Restreindre = sécurité. |
-| `timeout_minutes` | Hard kill après N min. Défaut 10. Mettre plus bas pour éviter coûts runaway. |
-| `disallowed_tools` | Liste noire (en complément). |
-| `custom_instructions` | Équivalent CLAUDE.md pour le run. |
-| `max_turns` | Limite dure sur le nombre de tours de l'agent. |
+| Input                 | Rôle                                                                         |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `anthropic_api_key`   | Secret repo — obligatoire.                                                   |
+| `model`               | `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`.         |
+| `prompt`              | Ce que Claude doit faire. Multi-lignes OK.                                   |
+| `allowed_tools`       | Liste blanche des tools. Restreindre = sécurité.                             |
+| `timeout_minutes`     | Hard kill après N min. Défaut 10. Mettre plus bas pour éviter coûts runaway. |
+| `disallowed_tools`    | Liste noire (en complément).                                                 |
+| `custom_instructions` | Équivalent CLAUDE.md pour le run.                                            |
+| `max_turns`           | Limite dure sur le nombre de tours de l'agent.                               |
 
 ## Permissions GITHUB_TOKEN
 
@@ -82,10 +82,10 @@ Claude agit comme un bot — il a les permissions du `GITHUB_TOKEN` injecté par
 
 ```yaml
 permissions:
-  contents: write        # modifier des fichiers et committer
-  pull-requests: write   # commenter, review, merger
-  issues: write          # fermer, labeller
-  actions: read          # lire les logs d'autres workflows
+  contents: write # modifier des fichiers et committer
+  pull-requests: write # commenter, review, merger
+  issues: write # fermer, labeller
+  actions: read # lire les logs d'autres workflows
 ```
 
 **Règle de sécurité** : commence par `read` partout. Élargis uniquement ce dont tu as besoin. Pas de `admin` côté token.
@@ -106,7 +106,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: claude-haiku-4-5-20251001   # Haiku suffit pour un tri
+          model: claude-haiku-4-5-20251001 # Haiku suffit pour un tri
           prompt: |
             Lis l'issue #${{ github.event.issue.number }}.
             Classe-la : bug / feature / question / duplicate.
@@ -173,7 +173,7 @@ Chaque PR push relance le workflow. Pour un gros repo, ça explose vite. Protect
 ```yaml
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true      # annule le précédent run de la même PR
+  cancel-in-progress: true # annule le précédent run de la même PR
 ```
 
 Et côté coût, un `timeout_minutes` bas + un modèle Haiku sur les taches simples = facture raisonnable.
@@ -205,7 +205,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}   # checkout explicite de la PR
+          ref: ${{ github.event.pull_request.head.sha }} # checkout explicite de la PR
           persist-credentials: false
 ```
 
@@ -231,10 +231,30 @@ act pull_request -W .github/workflows/claude-review.yml \
   scenario="Tu veux qu'un workflow Claude puisse poster des commentaires mais pas modifier le code."
   question="Quelle config est la plus sûre ?"
   options={[
-    { text: "`allowed_tools: '*'` et on fait confiance au prompt.", correct: false, explanation: "Le prompt peut être compromis (ex: instruction injectée dans une issue commentée par un tiers). Jamais de wildcard en CI." },
-    { text: "`allowed_tools: 'Read,Grep,Glob,Bash(gh pr comment:*),Bash(gh issue comment:*)'` + permissions: `pull-requests: write` uniquement.", correct: true, explanation: "Exact. Tools restreints à la lecture + un scope Bash minimal pour commenter, et permissions GitHub limitées à ce qui est utile. Principe du moindre privilège." },
-    { text: "Désactiver le `GITHUB_TOKEN` et laisser l'API key seule.", correct: false, explanation: "Sans GITHUB_TOKEN, Claude ne peut pas parler à GitHub — il ne peut ni lire ni commenter." },
-    { text: "Utiliser Opus 4.7 au lieu de Sonnet.", correct: false, explanation: "Le modèle n'est pas un levier de sécurité — seul le périmètre des tools et des permissions l'est." }
+    {
+      text: "`allowed_tools: '*'` et on fait confiance au prompt.",
+      correct: false,
+      explanation:
+        "Le prompt peut être compromis (ex: instruction injectée dans une issue commentée par un tiers). Jamais de wildcard en CI.",
+    },
+    {
+      text: "`allowed_tools: 'Read,Grep,Glob,Bash(gh pr comment:*),Bash(gh issue comment:*)'` + permissions: `pull-requests: write` uniquement.",
+      correct: true,
+      explanation:
+        "Exact. Tools restreints à la lecture + un scope Bash minimal pour commenter, et permissions GitHub limitées à ce qui est utile. Principe du moindre privilège.",
+    },
+    {
+      text: "Désactiver le `GITHUB_TOKEN` et laisser l'API key seule.",
+      correct: false,
+      explanation:
+        "Sans GITHUB_TOKEN, Claude ne peut pas parler à GitHub — il ne peut ni lire ni commenter.",
+    },
+    {
+      text: "Utiliser Opus 4.7 au lieu de Sonnet.",
+      correct: false,
+      explanation:
+        "Le modèle n'est pas un levier de sécurité — seul le périmètre des tools et des permissions l'est.",
+    },
   ]}
 />
 
@@ -244,10 +264,30 @@ act pull_request -W .github/workflows/claude-review.yml \
   scenario="Ton workflow commit sur la branche de la PR quand il auto-fixe des typos."
   question="Comment éviter qu'il se re-déclenche en boucle ?"
   options={[
-    { text: "Rien, GitHub déduplique automatiquement.", correct: false, explanation: "Pas de dédup — chaque push déclenche le workflow. C'est une cause classique de factures explosives." },
-    { text: "Ajouter `[skip ci]` dans le commit message généré par Claude, ou un `if: github.actor != 'github-actions[bot]'`.", correct: true, explanation: "Exact. Soit un marqueur que GitHub comprend, soit un filtre sur l'actor. Les deux sont des protections standard contre la boucle." },
-    { text: "Passer en workflow `workflow_dispatch` uniquement.", correct: false, explanation: "Tu perdrais l'automatisation — il faudrait cliquer à chaque PR." },
-    { text: "Augmenter le `timeout_minutes`.", correct: false, explanation: "Ça ne change rien — le workflow se relance à chaque commit, peu importe sa durée." }
+    {
+      text: "Rien, GitHub déduplique automatiquement.",
+      correct: false,
+      explanation:
+        "Pas de dédup — chaque push déclenche le workflow. C'est une cause classique de factures explosives.",
+    },
+    {
+      text: "Ajouter `[skip ci]` dans le commit message généré par Claude, ou un `if: github.actor != 'github-actions[bot]'`.",
+      correct: true,
+      explanation:
+        "Exact. Soit un marqueur que GitHub comprend, soit un filtre sur l'actor. Les deux sont des protections standard contre la boucle.",
+    },
+    {
+      text: "Passer en workflow `workflow_dispatch` uniquement.",
+      correct: false,
+      explanation:
+        "Tu perdrais l'automatisation — il faudrait cliquer à chaque PR.",
+    },
+    {
+      text: "Augmenter le `timeout_minutes`.",
+      correct: false,
+      explanation:
+        "Ça ne change rien — le workflow se relance à chaque commit, peu importe sa durée.",
+    },
   ]}
 />
 

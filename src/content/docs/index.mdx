@@ -17,8 +17,8 @@ hero:
 draft: false
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
-import ProgressTracker from '../../components/interactive/ProgressTracker.tsx';
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import ProgressTracker from "../../components/interactive/ProgressTracker.tsx";
 
 ## 5 niveaux, 1 capstone
 
@@ -46,17 +46,47 @@ import ProgressTracker from '../../components/interactive/ProgressTracker.tsx';
 ## Le pattern de chaque module
 
 Chaque module suit un format invariant : **Situation → Concept → Démo → Check → Quiz → Référence**.
-Aucune phrase ne commence par *"Dans ce module, nous allons…"* — on t'expose un scénario concret, puis la solution.
+Aucune phrase ne commence par _"Dans ce module, nous allons…"_ — on t'expose un scénario concret, puis la solution.
 
 <ProgressTracker
   client:only="react"
   title="Ta progression"
   modules={[
-    { id: 'orientation', label: '0 — Orientation', href: '/00-orientation/', requires: ['quiz.orientation-profile'] },
-    { id: 'fondations', label: '1 — Fondations', href: '/01-fondations/', requires: ['quiz.fondations-models', 'lab.lab-01-setup'] },
-    { id: 'cli-mastery', label: '2 — CLI Mastery', href: '/02-cli-mastery/', requires: ['quiz.cli-slash', 'lab.lab-02-hooks'] },
-    { id: 'multi-agents', label: '3 — Multi-agents', href: '/03-multi-agents/', requires: ['quiz.agents-choice', 'lab.lab-03-agents'] },
-    { id: 'production', label: '4 — Production', href: '/04-production/', requires: ['quiz.prod-routines', 'lab.lab-04-routines'] },
-    { id: 'expert', label: '5 — Expert', href: '/05-expert/', requires: ['lab.lab-05-capstone'] },
+    {
+      id: "orientation",
+      label: "0 — Orientation",
+      href: "/00-orientation/",
+      requires: ["quiz.orientation-profile"],
+    },
+    {
+      id: "fondations",
+      label: "1 — Fondations",
+      href: "/01-fondations/",
+      requires: ["quiz.fondations-models", "lab.lab-01-setup"],
+    },
+    {
+      id: "cli-mastery",
+      label: "2 — CLI Mastery",
+      href: "/02-cli-mastery/",
+      requires: ["quiz.cli-slash", "lab.lab-02-hooks"],
+    },
+    {
+      id: "multi-agents",
+      label: "3 — Multi-agents",
+      href: "/03-multi-agents/",
+      requires: ["quiz.agents-choice", "lab.lab-03-agents"],
+    },
+    {
+      id: "production",
+      label: "4 — Production",
+      href: "/04-production/",
+      requires: ["quiz.prod-routines", "lab.lab-04-routines"],
+    },
+    {
+      id: "expert",
+      label: "5 — Expert",
+      href: "/05-expert/",
+      requires: ["lab.lab-05-capstone"],
+    },
   ]}
 />

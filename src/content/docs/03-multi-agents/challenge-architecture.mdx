@@ -6,27 +6,27 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Tu as 5 mécanismes en main : **subagent, agent team, skill, MCP, hook, plugin**.
-  Toutes les briques se ressemblent dans leur promesse — "ça étend Claude". Mais
-  choisir la mauvaise brique coûte cher : architecture fragile, context gâché,
-  collègues qui comprennent pas. Ce module te donne la grille de décision et
-  3 scénarios à trancher.
+  Tu as 5 mécanismes en main : **subagent, agent team, skill, MCP, hook,
+  plugin**. Toutes les briques se ressemblent dans leur promesse — "ça étend
+  Claude". Mais choisir la mauvaise brique coûte cher : architecture fragile,
+  context gâché, collègues qui comprennent pas. Ce module te donne la grille de
+  décision et 3 scénarios à trancher.
 </Situation>
 
 ## La grille — quelle brique pour quoi
 
-| Besoin | Bonne brique | Pourquoi |
-|--------|-------------|----------|
-| Déléguer une recherche isolée qui rend une synthèse | **Subagent** | Context isolé, prompt autoportant |
-| Faire plusieurs streams de travail en parallèle | **Agent team** | Vraies sessions persistantes |
-| Charger du savoir seulement quand pertinent | **Skill** | À la demande, peu coûteux en context |
-| Connecter un système externe comme un tool | **MCP** | Tools typés, pas de parsing stdout |
-| Exécuter une règle déterministe sur un événement | **Hook** | Code, pas prompt — toujours appliqué |
-| Packager plusieurs de ces briques + versionner | **Plugin** | Distribution, update, sécurité |
+| Besoin                                              | Bonne brique   | Pourquoi                             |
+| --------------------------------------------------- | -------------- | ------------------------------------ |
+| Déléguer une recherche isolée qui rend une synthèse | **Subagent**   | Context isolé, prompt autoportant    |
+| Faire plusieurs streams de travail en parallèle     | **Agent team** | Vraies sessions persistantes         |
+| Charger du savoir seulement quand pertinent         | **Skill**      | À la demande, peu coûteux en context |
+| Connecter un système externe comme un tool          | **MCP**        | Tools typés, pas de parsing stdout   |
+| Exécuter une règle déterministe sur un événement    | **Hook**       | Code, pas prompt — toujours appliqué |
+| Packager plusieurs de ces briques + versionner      | **Plugin**     | Distribution, update, sécurité       |
 
 **Règle mnémotechnique** :
 
@@ -77,10 +77,30 @@ Je veux …
   id="challenge-1"
   question="Quelle architecture choisis-tu ?"
   options={[
-    { text: "Un subagent `reviewer` lancé par une simple ligne Bash dans l'Action.", correct: false, explanation: "Il faut aussi le MCP GitHub pour poster le commentaire, et un mécanisme qui fait échouer le CI. Un plugin packaged est plus propre." },
-    { text: "Un plugin `qa-pipeline` qui bundle : subagent `reviewer`, MCP `server-github` pour poster, hook `Stop` qui exit 2 si score < 7, slash-command `/qa`.", correct: true, explanation: "Exact. Le plugin packe toutes les briques, versionné dans le repo, installable en une commande par l'Action. C'est le cas type où un plugin apporte de la valeur." },
-    { text: "Un agent team avec 3 teammates.", correct: false, explanation: "Agent team = humain aux commandes. En CI, tu veux un pipeline déterministe sans interaction." },
-    { text: "Un skill `qa` qui décrit les règles de review.", correct: false, explanation: "Un skill décrit quoi faire mais n'orchestre pas le pipeline. Tu as besoin d'un bundle." }
+    {
+      text: "Un subagent `reviewer` lancé par une simple ligne Bash dans l'Action.",
+      correct: false,
+      explanation:
+        "Il faut aussi le MCP GitHub pour poster le commentaire, et un mécanisme qui fait échouer le CI. Un plugin packaged est plus propre.",
+    },
+    {
+      text: "Un plugin `qa-pipeline` qui bundle : subagent `reviewer`, MCP `server-github` pour poster, hook `Stop` qui exit 2 si score < 7, slash-command `/qa`.",
+      correct: true,
+      explanation:
+        "Exact. Le plugin packe toutes les briques, versionné dans le repo, installable en une commande par l'Action. C'est le cas type où un plugin apporte de la valeur.",
+    },
+    {
+      text: "Un agent team avec 3 teammates.",
+      correct: false,
+      explanation:
+        "Agent team = humain aux commandes. En CI, tu veux un pipeline déterministe sans interaction.",
+    },
+    {
+      text: "Un skill `qa` qui décrit les règles de review.",
+      correct: false,
+      explanation:
+        "Un skill décrit quoi faire mais n'orchestre pas le pipeline. Tu as besoin d'un bundle.",
+    },
   ]}
 />
 
@@ -99,10 +119,30 @@ Je veux …
   id="challenge-2"
   question="Quelle architecture choisis-tu ?"
   options={[
-    { text: "Un cron qui lance `claude --headless` avec un prompt figé, des MCP servers (`github`, `linear`, `slack`) activés, et un subagent `summarizer` par repo lancé en parallèle.", correct: true, explanation: "Exact. Tu parallélises avec des subagents (un par repo, context isolé), MCP pour les 3 systèmes, headless pour le cron. L'email final est posté via MCP Slack ou un script wrapper." },
-    { text: "Un agent team avec un teammate par repo.", correct: false, explanation: "Un team nécessite que tu sois humain aux commandes. Pour un cron, tu veux du headless." },
-    { text: "Un plugin `daily-digest`.", correct: false, explanation: "Tu pourrais packager ce workflow en plugin, mais le plugin ne remplace pas le cron qui le déclenche. Le plugin viendrait en sus, pas à la place." },
-    { text: "Un hook `SessionStart` qui fait la synthèse.", correct: false, explanation: "Un hook démarre quand toi tu ouvres une session — pas le matin à 8h sans toi. Cron est le déclencheur juste." }
+    {
+      text: "Un cron qui lance `claude --headless` avec un prompt figé, des MCP servers (`github`, `linear`, `slack`) activés, et un subagent `summarizer` par repo lancé en parallèle.",
+      correct: true,
+      explanation:
+        "Exact. Tu parallélises avec des subagents (un par repo, context isolé), MCP pour les 3 systèmes, headless pour le cron. L'email final est posté via MCP Slack ou un script wrapper.",
+    },
+    {
+      text: "Un agent team avec un teammate par repo.",
+      correct: false,
+      explanation:
+        "Un team nécessite que tu sois humain aux commandes. Pour un cron, tu veux du headless.",
+    },
+    {
+      text: "Un plugin `daily-digest`.",
+      correct: false,
+      explanation:
+        "Tu pourrais packager ce workflow en plugin, mais le plugin ne remplace pas le cron qui le déclenche. Le plugin viendrait en sus, pas à la place.",
+    },
+    {
+      text: "Un hook `SessionStart` qui fait la synthèse.",
+      correct: false,
+      explanation:
+        "Un hook démarre quand toi tu ouvres une session — pas le matin à 8h sans toi. Cron est le déclencheur juste.",
+    },
   ]}
 />
 
@@ -121,10 +161,30 @@ Je veux …
   id="challenge-3"
   question="Quelle architecture choisis-tu ?"
   options={[
-    { text: "Un seul Claude en --continue qui avance fichier par fichier.", correct: false, explanation: "Context sature vers le 20ᵉ fichier. Tu perds la cohérence du plan. Classique raté." },
-    { text: "Main principal = planner qui tient la vue d'ensemble et produit un `plan.md` persistant ; subagents `implementer` dispatchés fichier par fichier (context reset à chaque fichier) ; hook `PostToolUse` qui update `progress.md` après chaque fichier.", correct: true, explanation: "Exact. Le main garde le plan, chaque implementer démarre clean sur un fichier, le progress.md sur disque permet de reprendre. C'est le pattern 'orchestrateur + workers' qui scale au-delà du context." },
-    { text: "80 teammates en parallèle.", correct: false, explanation: "Impossible à orchestrer humainement. Et coûteux : 80 contexts à monter." },
-    { text: "Un plugin qui contient 80 agents.", correct: false, explanation: "Un plugin ne résout pas le problème de context. Il packagerait peut-être l'architecture ci-dessus, mais ce n'est pas la brique centrale." }
+    {
+      text: "Un seul Claude en --continue qui avance fichier par fichier.",
+      correct: false,
+      explanation:
+        "Context sature vers le 20ᵉ fichier. Tu perds la cohérence du plan. Classique raté.",
+    },
+    {
+      text: "Main principal = planner qui tient la vue d'ensemble et produit un `plan.md` persistant ; subagents `implementer` dispatchés fichier par fichier (context reset à chaque fichier) ; hook `PostToolUse` qui update `progress.md` après chaque fichier.",
+      correct: true,
+      explanation:
+        "Exact. Le main garde le plan, chaque implementer démarre clean sur un fichier, le progress.md sur disque permet de reprendre. C'est le pattern 'orchestrateur + workers' qui scale au-delà du context.",
+    },
+    {
+      text: "80 teammates en parallèle.",
+      correct: false,
+      explanation:
+        "Impossible à orchestrer humainement. Et coûteux : 80 contexts à monter.",
+    },
+    {
+      text: "Un plugin qui contient 80 agents.",
+      correct: false,
+      explanation:
+        "Un plugin ne résout pas le problème de context. Il packagerait peut-être l'architecture ci-dessus, mais ce n'est pas la brique centrale.",
+    },
   ]}
 />
 
@@ -154,10 +214,30 @@ Tu as 3 agents + 2 hooks + un MCP config utilisés par 4 devs. Continuer à tout
   scenario="Tu veux qu'à chaque fois que l'utilisateur mentionne 'RFC', Claude charge le template + les règles de ton entreprise."
   question="Bonne brique ?"
   options={[
-    { text: "Subagent", correct: false, explanation: "Un subagent exécute une tâche — il ne 'charge pas' dans l'agent principal." },
-    { text: "Skill (description contient 'RFC, design doc, proposal')", correct: true, explanation: "Exact. Le skill se charge automatiquement quand sa description matche, sans que tu tapes une commande." },
-    { text: "Hook UserPromptSubmit qui injecte les règles", correct: false, explanation: "Injecterait à CHAQUE prompt — pas seulement ceux qui mentionnent RFC. Coût context excessif." },
-    { text: "MCP", correct: false, explanation: "MCP = systèmes externes. Un template local n'a rien d'externe." }
+    {
+      text: "Subagent",
+      correct: false,
+      explanation:
+        "Un subagent exécute une tâche — il ne 'charge pas' dans l'agent principal.",
+    },
+    {
+      text: "Skill (description contient 'RFC, design doc, proposal')",
+      correct: true,
+      explanation:
+        "Exact. Le skill se charge automatiquement quand sa description matche, sans que tu tapes une commande.",
+    },
+    {
+      text: "Hook UserPromptSubmit qui injecte les règles",
+      correct: false,
+      explanation:
+        "Injecterait à CHAQUE prompt — pas seulement ceux qui mentionnent RFC. Coût context excessif.",
+    },
+    {
+      text: "MCP",
+      correct: false,
+      explanation:
+        "MCP = systèmes externes. Un template local n'a rien d'externe.",
+    },
   ]}
 />
 
@@ -167,10 +247,30 @@ Tu as 3 agents + 2 hooks + un MCP config utilisés par 4 devs. Continuer à tout
   scenario="Tu veux interdire les `git push` directs sur main, pour tout le monde dans ton équipe."
   question="Bonne brique ?"
   options={[
-    { text: "Règle dans CLAUDE.md", correct: false, explanation: "CLAUDE.md = instruction, pas garde-fou. L'agent pourrait 'oublier'." },
-    { text: "Hook PreToolUse Bash matcher qui exit 2 sur `git push ... main`, versionné dans `.claude/settings.json`", correct: true, explanation: "Exact. Déterministe, partagé via git, ne dépend pas de la vigilance de l'agent. Les règles non-négociables vont dans un hook." },
-    { text: "Skill 'git-safety'", correct: false, explanation: "Un skill décrit une règle mais ne l'applique pas mécaniquement." },
-    { text: "Subagent 'git-guard'", correct: false, explanation: "Un subagent ne tourne pas automatiquement avant chaque Bash — seul un hook le fait." }
+    {
+      text: "Règle dans CLAUDE.md",
+      correct: false,
+      explanation:
+        "CLAUDE.md = instruction, pas garde-fou. L'agent pourrait 'oublier'.",
+    },
+    {
+      text: "Hook PreToolUse Bash matcher qui exit 2 sur `git push ... main`, versionné dans `.claude/settings.json`",
+      correct: true,
+      explanation:
+        "Exact. Déterministe, partagé via git, ne dépend pas de la vigilance de l'agent. Les règles non-négociables vont dans un hook.",
+    },
+    {
+      text: "Skill 'git-safety'",
+      correct: false,
+      explanation:
+        "Un skill décrit une règle mais ne l'applique pas mécaniquement.",
+    },
+    {
+      text: "Subagent 'git-guard'",
+      correct: false,
+      explanation:
+        "Un subagent ne tourne pas automatiquement avant chaque Bash — seul un hook le fait.",
+    },
   ]}
 />
 

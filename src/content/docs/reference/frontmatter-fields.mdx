@@ -8,57 +8,57 @@ draft: false
 
 ## Subagent (`.claude/agents/<name>.md`)
 
-| Champ | Type | Usage |
-|-------|------|-------|
-| `name` | string | Identifiant unique (kebab-case). Utilisé par `Agent(name=...)`. |
-| `description` | string | Une ligne. Sert au routage automatique : Claude lit cette description pour décider d'invoquer le subagent. |
-| `model` | enum | `opus` / `sonnet` / `haiku` ou ID complet. Hérite du parent si omis. |
-| `tools` | list | Tools accessibles. `Read, Edit, Write, Bash, Grep, Glob, WebFetch, ...`. Restreint = plus sûr. |
-| `permissionMode` | enum | `default` / `acceptEdits` / `plan` / `bypassPermissions`. |
-| `maxTurns` | int | Hard cap sur les tours du subagent. Évite les boucles. |
-| `skills` | list | Skills auto-chargés au démarrage de ce subagent. |
-| `mcpServers` | list | Serveurs MCP exposés à ce subagent (sous-ensemble du parent). |
-| `hooks` | object | Hooks scopés à ce subagent. |
-| `memory` | bool | Lit `MEMORY.md` au démarrage (défaut `true`). |
-| `background` | bool | Démarre en background (Agent Teams). |
-| `effort` | enum | `low` / `medium` / `high` — adapte le thinking. |
-| `isolation` | enum | `worktree` crée un git worktree dédié pour ce subagent. |
-| `color` | string | Couleur dans l'UI Agent Teams. |
-| `initialPrompt` | string | Préfixé à chaque invocation. |
+| Champ            | Type   | Usage                                                                                                      |
+| ---------------- | ------ | ---------------------------------------------------------------------------------------------------------- |
+| `name`           | string | Identifiant unique (kebab-case). Utilisé par `Agent(name=...)`.                                            |
+| `description`    | string | Une ligne. Sert au routage automatique : Claude lit cette description pour décider d'invoquer le subagent. |
+| `model`          | enum   | `opus` / `sonnet` / `haiku` ou ID complet. Hérite du parent si omis.                                       |
+| `tools`          | list   | Tools accessibles. `Read, Edit, Write, Bash, Grep, Glob, WebFetch, ...`. Restreint = plus sûr.             |
+| `permissionMode` | enum   | `default` / `acceptEdits` / `plan` / `bypassPermissions`.                                                  |
+| `maxTurns`       | int    | Hard cap sur les tours du subagent. Évite les boucles.                                                     |
+| `skills`         | list   | Skills auto-chargés au démarrage de ce subagent.                                                           |
+| `mcpServers`     | list   | Serveurs MCP exposés à ce subagent (sous-ensemble du parent).                                              |
+| `hooks`          | object | Hooks scopés à ce subagent.                                                                                |
+| `memory`         | bool   | Lit `MEMORY.md` au démarrage (défaut `true`).                                                              |
+| `background`     | bool   | Démarre en background (Agent Teams).                                                                       |
+| `effort`         | enum   | `low` / `medium` / `high` — adapte le thinking.                                                            |
+| `isolation`      | enum   | `worktree` crée un git worktree dédié pour ce subagent.                                                    |
+| `color`          | string | Couleur dans l'UI Agent Teams.                                                                             |
+| `initialPrompt`  | string | Préfixé à chaque invocation.                                                                               |
 
 ## Skill (`.claude/skills/<name>/SKILL.md`)
 
-| Champ | Type | Usage |
-|-------|------|-------|
-| `name` | string | Identifiant unique. |
-| `description` | string | Décrit **quand** invoquer le skill — Claude charge à la demande sur match sémantique. |
-| `allowed-tools` | list | Tools utilisables pendant l'exécution du skill. |
-| `model` | enum | Force un modèle (rare — généralement on hérite). |
+| Champ           | Type   | Usage                                                                                 |
+| --------------- | ------ | ------------------------------------------------------------------------------------- |
+| `name`          | string | Identifiant unique.                                                                   |
+| `description`   | string | Décrit **quand** invoquer le skill — Claude charge à la demande sur match sémantique. |
+| `allowed-tools` | list   | Tools utilisables pendant l'exécution du skill.                                       |
+| `model`         | enum   | Force un modèle (rare — généralement on hérite).                                      |
 
 Le corps du SKILL.md contient les instructions ; les fichiers adjacents (`scripts/`, `templates/`) sont chargés à la demande.
 
 ## Slash-command (`.claude/commands/<name>.md`)
 
-| Champ | Type | Usage |
-|-------|------|-------|
-| `description` | string | Affiché dans l'UI quand l'utilisateur tape `/`. |
-| `allowed-tools` | list | Tools autorisés pendant la commande. |
-| `model` | enum | Modèle forcé pour la commande. |
-| `argument-hint` | string | Indication d'arguments (ex: `<filename>`). |
+| Champ           | Type   | Usage                                           |
+| --------------- | ------ | ----------------------------------------------- |
+| `description`   | string | Affiché dans l'UI quand l'utilisateur tape `/`. |
+| `allowed-tools` | list   | Tools autorisés pendant la commande.            |
+| `model`         | enum   | Modèle forcé pour la commande.                  |
+| `argument-hint` | string | Indication d'arguments (ex: `<filename>`).      |
 
 Le corps du `.md` est le **prompt** envoyé à Claude quand la commande est invoquée. `$ARGUMENTS` est interpolé avec les args utilisateur.
 
 ## Plugin (`.claude-plugin/plugin.json`)
 
-| Champ | Type | Usage |
-|-------|------|-------|
-| `name` | string | Identifiant unique du plugin. |
-| `version` | semver | `1.2.3`. |
-| `description` | string | Une ligne. |
-| `author` | object | `{ "name": "...", "url": "..." }`. |
-| `repository` | string | URL git. |
-| `license` | string | SPDX (`MIT`, `Apache-2.0`, ...). |
-| `keywords` | list | Tags pour la marketplace. |
+| Champ         | Type   | Usage                              |
+| ------------- | ------ | ---------------------------------- |
+| `name`        | string | Identifiant unique du plugin.      |
+| `version`     | semver | `1.2.3`.                           |
+| `description` | string | Une ligne.                         |
+| `author`      | object | `{ "name": "...", "url": "..." }`. |
+| `repository`  | string | URL git.                           |
+| `license`     | string | SPDX (`MIT`, `Apache-2.0`, ...).   |
+| `keywords`    | list   | Tags pour la marketplace.          |
 
 Le contenu du plugin (subagents, skills, hooks, commands) vit dans les sous-dossiers conventionnels (`agents/`, `skills/`, `commands/`, `hooks/`).
 

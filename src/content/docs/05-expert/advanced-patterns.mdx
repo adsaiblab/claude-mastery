@@ -6,8 +6,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu maîtrises les briques (subagents, hooks, MCP, context engineering) — mais
@@ -19,13 +19,13 @@ import Quiz from '../../../components/interactive/Quiz.tsx';
 
 ## Vue d'ensemble
 
-| Pattern | Quand l'utiliser | Coût | Fiche détaillée |
-|---------|-----------------|------|-----------------|
-| Doer/Judge | Tu veux un garde-fou auto sur la qualité | Bas (1 subagent) | [doer-judge](/architecture-patterns/doer-judge/) |
-| Fan-out/Fan-in | Tâche parallélisable en N branches indépendantes | Moyen (N subagents) | [fan-out](/architecture-patterns/fan-out/) |
-| Writer/Reviewer | Production de contenu nécessitant relecture | Bas (2 rôles) | [writer-reviewer](/architecture-patterns/writer-reviewer/) |
-| Mémoire cross-session | Continuité multi-sessions sur un projet | Bas (fichiers) | [context-engineering](/architecture-patterns/context-engineering/) |
-| Cascade de modèles | Optimiser coût sur pipeline multi-étapes | Variable | (intégré ci-dessous) |
+| Pattern               | Quand l'utiliser                                 | Coût                | Fiche détaillée                                                    |
+| --------------------- | ------------------------------------------------ | ------------------- | ------------------------------------------------------------------ |
+| Doer/Judge            | Tu veux un garde-fou auto sur la qualité         | Bas (1 subagent)    | [doer-judge](/architecture-patterns/doer-judge/)                   |
+| Fan-out/Fan-in        | Tâche parallélisable en N branches indépendantes | Moyen (N subagents) | [fan-out](/architecture-patterns/fan-out/)                         |
+| Writer/Reviewer       | Production de contenu nécessitant relecture      | Bas (2 rôles)       | [writer-reviewer](/architecture-patterns/writer-reviewer/)         |
+| Mémoire cross-session | Continuité multi-sessions sur un projet          | Bas (fichiers)      | [context-engineering](/architecture-patterns/context-engineering/) |
+| Cascade de modèles    | Optimiser coût sur pipeline multi-étapes         | Variable            | (intégré ci-dessous)                                               |
 
 ## Pattern 1 — Doer/Judge
 
@@ -46,12 +46,18 @@ score ≥ 7 ? → done : retour Doer avec concerns
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "hooks": [
-        { "type": "agent", "agent": "judge", "prompt": "Note ce qui a été fait." },
-        { "type": "command", "command": ".claude/hooks/check-score.sh" }
-      ]
-    }]
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "agent": "judge",
+            "prompt": "Note ce qui a été fait."
+          },
+          { "type": "command", "command": ".claude/hooks/check-score.sh" }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -73,11 +79,13 @@ Main : split + dispatch├──→ subagent B (module 2) ──┼──→ Mai
 ```
 
 **Quand** :
+
 - Audit multi-modules (un audit par dir).
 - Recherche de pattern dans un repo (un agent par chunk).
 - Génération parallèle de variantes (3 propositions de copy).
 
 **Critères de bonne tâche fan-out** :
+
 1. Chaque branche est **indépendante** (pas d'effet bord cross-branche).
 2. Le résultat de chaque branche est **borné** (≤ quelques k tokens).
 3. La fusion est **déterministe** (concat, vote, max).
@@ -152,6 +160,7 @@ Plus les critères sont concrets, moins le Reviewer dérive vers du subjectif.
 ```
 
 **Règles** :
+
 - `MEMORY.md` reste **petit** (< 200 lignes). Une ligne par mémoire avec un hook descriptif.
 - Chaque mémoire dans son fichier typé avec frontmatter (`name`, `description`, `type`).
 - Mise à jour **immédiate** quand un fait change. Pas de "je le ferai plus tard".
@@ -181,6 +190,7 @@ judge = ClaudeAgentOptions(model="claude-opus-4-7", max_turns=4)
 ```
 
 **Critère de choix** :
+
 - **Haiku** : trier, classer, extraire un champ, répondre court factuel.
 - **Sonnet** : raisonner, coder, tool use multi-étapes — la majorité du travail.
 - **Opus** : décision critique, planification ambitieuse, jugement final.
@@ -219,10 +229,30 @@ Empiler les patterns sans nécessité multiplie le coût et l'opacité :
   scenario="Tu veux auditer 8 microservices indépendants. Chaque audit est borné (≤ 500 mots de rapport)."
   question="Quel pattern ?"
   options={[
-    { text: "Séquentiel dans le main : un service après l'autre.", correct: false, explanation: "Tu vas saturer ton context et serializer un travail parallélisable. Coût et durée x8." },
-    { text: "Fan-out sur 8 subagents — chacun audite un service, le main agrège.", correct: true, explanation: "Exact. Branches indépendantes, sortie bornée, fusion triviale (concat). Cas d'école pour fan-out." },
-    { text: "Doer/Judge avec un seul Doer qui audite tout.", correct: false, explanation: "Doer/Judge ne parallèlise pas — tu auras toujours un seul Doer qui fait tout en série." },
-    { text: "Writer/Reviewer.", correct: false, explanation: "Production de contenu collaboratif, pas adapté à un audit multi-cible parallèle." }
+    {
+      text: "Séquentiel dans le main : un service après l'autre.",
+      correct: false,
+      explanation:
+        "Tu vas saturer ton context et serializer un travail parallélisable. Coût et durée x8.",
+    },
+    {
+      text: "Fan-out sur 8 subagents — chacun audite un service, le main agrège.",
+      correct: true,
+      explanation:
+        "Exact. Branches indépendantes, sortie bornée, fusion triviale (concat). Cas d'école pour fan-out.",
+    },
+    {
+      text: "Doer/Judge avec un seul Doer qui audite tout.",
+      correct: false,
+      explanation:
+        "Doer/Judge ne parallèlise pas — tu auras toujours un seul Doer qui fait tout en série.",
+    },
+    {
+      text: "Writer/Reviewer.",
+      correct: false,
+      explanation:
+        "Production de contenu collaboratif, pas adapté à un audit multi-cible parallèle.",
+    },
   ]}
 />
 
@@ -232,10 +262,30 @@ Empiler les patterns sans nécessité multiplie le coût et l'opacité :
   scenario="Pipeline : tri (200 issues) → fix (5 bugs) → review finale. Budget serré."
   question="Comment cascader les modèles ?"
   options={[
-    { text: "Opus partout — qualité maximale.", correct: false, explanation: "60-80% du coût va dans le tri qui ne nécessite pas Opus. Gaspillage massif." },
-    { text: "Haiku tri, Sonnet fix, Opus review finale.", correct: true, explanation: "Exact. Chaque modèle est mappé à la complexité de son étape. La décision critique (review) reste sur Opus, le bulk (tri) passe sur Haiku." },
-    { text: "Haiku partout — tout est trivial.", correct: false, explanation: "Le fix et la review demandent du raisonnement — Haiku produira du code fragile et des reviews creuses." },
-    { text: "Sonnet partout, c'est le compromis.", correct: false, explanation: "Tu payes Sonnet pour le tri (Haiku suffit) et tu rates le jugement plus profond d'Opus sur la review finale." }
+    {
+      text: "Opus partout — qualité maximale.",
+      correct: false,
+      explanation:
+        "60-80% du coût va dans le tri qui ne nécessite pas Opus. Gaspillage massif.",
+    },
+    {
+      text: "Haiku tri, Sonnet fix, Opus review finale.",
+      correct: true,
+      explanation:
+        "Exact. Chaque modèle est mappé à la complexité de son étape. La décision critique (review) reste sur Opus, le bulk (tri) passe sur Haiku.",
+    },
+    {
+      text: "Haiku partout — tout est trivial.",
+      correct: false,
+      explanation:
+        "Le fix et la review demandent du raisonnement — Haiku produira du code fragile et des reviews creuses.",
+    },
+    {
+      text: "Sonnet partout, c'est le compromis.",
+      correct: false,
+      explanation:
+        "Tu payes Sonnet pour le tri (Haiku suffit) et tu rates le jugement plus profond d'Opus sur la review finale.",
+    },
   ]}
 />
 

@@ -6,13 +6,13 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Claude peut lire ton code, mais il ne sait pas que le ticket Linear #412 décrit
-  le bug que tu traites, ni que le message Slack d'hier dans `#incidents`
+  Claude peut lire ton code, mais il ne sait pas que le ticket Linear #412
+  décrit le bug que tu traites, ni que le message Slack d'hier dans `#incidents`
   mentionne la root cause. Tu passes la moitié du temps à copier-coller ces
   contextes dans le prompt. **MCP** connecte Claude directement à ces systèmes
   externes comme s'ils étaient des outils natifs.
@@ -39,11 +39,11 @@ Le serveur MCP **expose des tools** que Claude peut appeler. Chaque tool a un no
 
 ## Les 3 transports
 
-| Transport | Quand l'utiliser | Exemple |
-|-----------|------------------|---------|
-| **stdio** | Serveur local, lancé par Claude Code | `@modelcontextprotocol/server-filesystem` |
-| **HTTP** | Serveur distant sans streaming | API interne d'entreprise |
-| **SSE** (Server-Sent Events) | Serveur distant avec streaming | MCP hébergé (ex: Linear cloud) |
+| Transport                    | Quand l'utiliser                     | Exemple                                   |
+| ---------------------------- | ------------------------------------ | ----------------------------------------- |
+| **stdio**                    | Serveur local, lancé par Claude Code | `@modelcontextprotocol/server-filesystem` |
+| **HTTP**                     | Serveur distant sans streaming       | API interne d'entreprise                  |
+| **SSE** (Server-Sent Events) | Serveur distant avec streaming       | MCP hébergé (ex: Linear cloud)            |
 
 **Règle** : commence par stdio (le plus simple), passe à HTTP/SSE seulement si tu as besoin de partager le serveur ou si le serveur est trop lourd à lancer localement.
 
@@ -73,11 +73,11 @@ mcp__github__get_pr_comments
 
 ## Les 3 scopes
 
-| Scope | Fichier | Visibilité |
-|-------|---------|-----------|
-| **User** | `~/.claude.json` | Tous tes repos |
-| **Project** | `<repo>/.mcp.json` | Équipe, versionné (⚠️ pas de secrets) |
-| **Local** | `<repo>/.claude/mcp.json` | Toi uniquement sur ce repo |
+| Scope       | Fichier                   | Visibilité                            |
+| ----------- | ------------------------- | ------------------------------------- |
+| **User**    | `~/.claude.json`          | Tous tes repos                        |
+| **Project** | `<repo>/.mcp.json`        | Équipe, versionné (⚠️ pas de secrets) |
+| **Local**   | `<repo>/.claude/mcp.json` | Toi uniquement sur ce repo            |
 
 Format `.mcp.json` :
 
@@ -102,12 +102,36 @@ Format `.mcp.json` :
 
 ## Serveurs officiels (Q1 2026)
 
-<FlipCard client:visible front="server-filesystem" back="Accès fichiers au-delà du working dir. Utile pour lire des ressources partagées hors du repo." />
-<FlipCard client:visible front="server-github" back="create_issue, list_prs, get_pr_comments, create_pr_review, merge_pr. Tout ce que tu fais avec `gh`." />
-<FlipCard client:visible front="server-slack" back="list_channels, post_message, get_thread. Notifier un team ou récupérer une discussion." />
-<FlipCard client:visible front="server-postgres" back="query, list_tables, describe_table. Explorer une DB en lecture directement." />
-<FlipCard client:visible front="server-puppeteer" back="Navigation web, screenshots, interactions — pour tester une UI ou scraper." />
-<FlipCard client:visible front="server-sentry" back="list_issues, get_event, resolve_issue. Connecter ton monitoring." />
+<FlipCard
+  client:visible
+  front="server-filesystem"
+  back="Accès fichiers au-delà du working dir. Utile pour lire des ressources partagées hors du repo."
+/>
+<FlipCard
+  client:visible
+  front="server-github"
+  back="create_issue, list_prs, get_pr_comments, create_pr_review, merge_pr. Tout ce que tu fais avec `gh`."
+/>
+<FlipCard
+  client:visible
+  front="server-slack"
+  back="list_channels, post_message, get_thread. Notifier un team ou récupérer une discussion."
+/>
+<FlipCard
+  client:visible
+  front="server-postgres"
+  back="query, list_tables, describe_table. Explorer une DB en lecture directement."
+/>
+<FlipCard
+  client:visible
+  front="server-puppeteer"
+  back="Navigation web, screenshots, interactions — pour tester une UI ou scraper."
+/>
+<FlipCard
+  client:visible
+  front="server-sentry"
+  back="list_issues, get_event, resolve_issue. Connecter ton monitoring."
+/>
 
 ## Authentification
 
@@ -166,8 +190,12 @@ Chaque tool MCP actif prend un peu de context (sa spec est injectée au démarra
 ```json
 {
   "mcpServers": {
-    "github": { /* activé */ },
-    "_slack": { /* préfixe underscore → désactivé */ }
+    "github": {
+      /* activé */
+    },
+    "_slack": {
+      /* préfixe underscore → désactivé */
+    }
   }
 }
 ```
@@ -210,10 +238,30 @@ Claude :
   scenario="Tu veux que Claude puisse créer des issues GitHub directement depuis la conversation."
   question="Comment tu configures ça ?"
   options={[
-    { text: "Un subagent qui lance `gh issue create` via Bash.", correct: false, explanation: "Ça marche mais c'est un hack : tu dois parser stdout, gérer les erreurs, passer les args en string. Avec MCP tu as un tool typé." },
-    { text: "Un skill avec des instructions pour appeler l'API GitHub.", correct: false, explanation: "Un skill explique quoi faire ; il ne fournit pas le tool. Tu restes obligé de l'appeler via Bash/curl." },
-    { text: "Installer `@modelcontextprotocol/server-github` via `claude mcp add`.", correct: true, explanation: "Exact. MCP expose `create_issue`, `list_prs`, etc. comme tools natifs typés — Claude les utilise avec les bonnes signatures sans parser du texte." },
-    { text: "Mettre mon token GitHub dans CLAUDE.md.", correct: false, explanation: "Non seulement ça ne donne pas de tool, mais c'est un secret fuité." }
+    {
+      text: "Un subagent qui lance `gh issue create` via Bash.",
+      correct: false,
+      explanation:
+        "Ça marche mais c'est un hack : tu dois parser stdout, gérer les erreurs, passer les args en string. Avec MCP tu as un tool typé.",
+    },
+    {
+      text: "Un skill avec des instructions pour appeler l'API GitHub.",
+      correct: false,
+      explanation:
+        "Un skill explique quoi faire ; il ne fournit pas le tool. Tu restes obligé de l'appeler via Bash/curl.",
+    },
+    {
+      text: "Installer `@modelcontextprotocol/server-github` via `claude mcp add`.",
+      correct: true,
+      explanation:
+        "Exact. MCP expose `create_issue`, `list_prs`, etc. comme tools natifs typés — Claude les utilise avec les bonnes signatures sans parser du texte.",
+    },
+    {
+      text: "Mettre mon token GitHub dans CLAUDE.md.",
+      correct: false,
+      explanation:
+        "Non seulement ça ne donne pas de tool, mais c'est un secret fuité.",
+    },
   ]}
 />
 
@@ -223,10 +271,30 @@ Claude :
   scenario="Tu ajoutes un MCP server GitHub dans `.mcp.json` pour que ton équipe profite de la config."
   question="Comment tu gères le token ?"
   options={[
-    { text: "Je mets le token en dur : `GITHUB_TOKEN: ghp_xxx`.", correct: false, explanation: "Token fuite dès le premier commit. Jamais en dur dans un fichier versionné." },
-    { text: "J'utilise `$GITHUB_TOKEN` et chaque dev le définit dans son env.", correct: true, explanation: "Exact. L'interpolation `$VAR` garde le fichier sans secret, chaque dev remplit son env localement." },
-    { text: "Je commit un `.mcp.json.template` et chacun copie.", correct: false, explanation: "Possible mais fragile — quelqu'un finira par committer le vrai. L'interpolation est le pattern canonique." },
-    { text: "Je désactive l'auth du serveur MCP.", correct: false, explanation: "Impossible, et ce serait catastrophique côté GitHub de toute façon." }
+    {
+      text: "Je mets le token en dur : `GITHUB_TOKEN: ghp_xxx`.",
+      correct: false,
+      explanation:
+        "Token fuite dès le premier commit. Jamais en dur dans un fichier versionné.",
+    },
+    {
+      text: "J'utilise `$GITHUB_TOKEN` et chaque dev le définit dans son env.",
+      correct: true,
+      explanation:
+        "Exact. L'interpolation `$VAR` garde le fichier sans secret, chaque dev remplit son env localement.",
+    },
+    {
+      text: "Je commit un `.mcp.json.template` et chacun copie.",
+      correct: false,
+      explanation:
+        "Possible mais fragile — quelqu'un finira par committer le vrai. L'interpolation est le pattern canonique.",
+    },
+    {
+      text: "Je désactive l'auth du serveur MCP.",
+      correct: false,
+      explanation:
+        "Impossible, et ce serait catastrophique côté GitHub de toute façon.",
+    },
   ]}
 />
 

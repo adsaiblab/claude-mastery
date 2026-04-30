@@ -76,9 +76,7 @@ export default function OrientationQuiz({
         totals[p] += opt.scores[p] ?? 0;
       }
     }
-    const sorted = (Object.keys(totals) as Profile[]).sort(
-      (a, b) => totals[b] - totals[a]
-    );
+    const sorted = (Object.keys(totals) as Profile[]).sort((a, b) => totals[b] - totals[a]);
     return sorted[0] ?? 'decouvreur';
   };
 
@@ -167,12 +165,7 @@ export default function OrientationQuiz({
         >
           ← Précédente
         </button>
-        <button
-          type="button"
-          className="cm-button"
-          onClick={reset}
-          disabled={answeredCount === 0}
-        >
+        <button type="button" className="cm-button" onClick={reset} disabled={answeredCount === 0}>
           Recommencer
         </button>
       </div>
@@ -192,10 +185,19 @@ function Result({
   const def = profiles[profile];
   return (
     <div className="cm-interactive" role="status" aria-live="polite">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}
+      >
         <span style={{ fontSize: '2rem' }}>{def.emoji}</span>
         <div>
-          <div style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7 }}>
+          <div
+            style={{
+              fontSize: '0.75rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              opacity: 0.7,
+            }}
+          >
             Ton profil
           </div>
           <h3 style={{ margin: 0 }}>{def.label}</h3>
@@ -221,7 +223,9 @@ function Result({
             <a href={step.href} style={{ fontWeight: 600 }}>
               {step.label}
             </a>
-            <span style={{ opacity: 0.75, marginLeft: '0.5rem', fontSize: '0.9rem' }}>— {step.note}</span>
+            <span style={{ opacity: 0.75, marginLeft: '0.5rem', fontSize: '0.9rem' }}>
+              — {step.note}
+            </span>
           </li>
         ))}
       </ol>

@@ -6,15 +6,15 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu veux qu'un agent travaille plusieurs minutes sans que tu aies à cliquer
-  "Approve" toutes les 10 secondes. Mais tu ne veux pas non plus qu'il lance
-  `rm -rf` sans te demander. Le bon réglage dépend de la **tâche** et du
-  **risque** — et il doit pouvoir changer en cours de session. C'est à ça que
-  servent les permission modes.
+  "Approve" toutes les 10 secondes. Mais tu ne veux pas non plus qu'il lance `rm
+  -rf` sans te demander. Le bon réglage dépend de la **tâche** et du **risque**
+  — et il doit pouvoir changer en cours de session. C'est à ça que servent les
+  permission modes.
 </Situation>
 
 ## Concept — qu'est-ce qu'un permission mode
@@ -28,13 +28,13 @@ Tu peux changer de mode **à tout moment** sans redémarrer la session.
 
 ## Les 5 modes
 
-| Mode | Comportement | Usage typique |
-|------|-------------|---------------|
-| `default` | Demande confirmation pour les actions "à risque" (Bash, Write, Edit sur fichiers sensibles). | Travail interactif courant. |
-| `acceptEdits` | Accepte automatiquement Edit/Write sans demander. Les autres restent en default. | Une fois le plan validé, pour laisser Claude itérer. |
-| `plan` | **Lecture seule**. Aucune écriture ni commande. L'agent produit un plan textuel. | Exploration, audit, draft de refacto. |
-| `auto` | Accepte automatiquement **toute** action considérée "safe" par Claude. | Tâches longues où tu fais confiance. |
-| `bypassPermissions` | ⚠️ **Aucune** confirmation, même sur les actions dangereuses. | CI headless avec sandbox contrôlé. |
+| Mode                | Comportement                                                                                 | Usage typique                                        |
+| ------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `default`           | Demande confirmation pour les actions "à risque" (Bash, Write, Edit sur fichiers sensibles). | Travail interactif courant.                          |
+| `acceptEdits`       | Accepte automatiquement Edit/Write sans demander. Les autres restent en default.             | Une fois le plan validé, pour laisser Claude itérer. |
+| `plan`              | **Lecture seule**. Aucune écriture ni commande. L'agent produit un plan textuel.             | Exploration, audit, draft de refacto.                |
+| `auto`              | Accepte automatiquement **toute** action considérée "safe" par Claude.                       | Tâches longues où tu fais confiance.                 |
+| `bypassPermissions` | ⚠️ **Aucune** confirmation, même sur les actions dangereuses.                                | CI headless avec sandbox contrôlé.                   |
 
 ## Le raccourci — `Shift+Tab`
 
@@ -146,10 +146,30 @@ Utile pour un projet sensible où tu veux que **tout le monde** (toi-même demai
   scenario="Tu dois refactorer 10 fichiers. Tu n'as pas encore décidé du plan exact."
   question="Quel est le meilleur enchaînement de modes ?"
   options={[
-    { text: "acceptEdits dès le départ", correct: false, explanation: "Tu laisses Claude coder avant de valider le plan — risque élevé de mauvais pattern." },
-    { text: "plan pour discuter, puis acceptEdits une fois le plan validé", correct: true, explanation: "Le pattern canonique. Plan pour borner le scope sans risque, acceptEdits pour fluidifier l'implémentation une fois la direction claire." },
-    { text: "plan du début à la fin", correct: false, explanation: "Tu ne laisses jamais l'agent écrire. Tu finiras par tout faire à la main, ce qui défait l'intérêt." },
-    { text: "bypassPermissions pour gagner du temps", correct: false, explanation: "Excessif pour un refactor local, et tu perds les garde-fous sur les actions risquées." }
+    {
+      text: "acceptEdits dès le départ",
+      correct: false,
+      explanation:
+        "Tu laisses Claude coder avant de valider le plan — risque élevé de mauvais pattern.",
+    },
+    {
+      text: "plan pour discuter, puis acceptEdits une fois le plan validé",
+      correct: true,
+      explanation:
+        "Le pattern canonique. Plan pour borner le scope sans risque, acceptEdits pour fluidifier l'implémentation une fois la direction claire.",
+    },
+    {
+      text: "plan du début à la fin",
+      correct: false,
+      explanation:
+        "Tu ne laisses jamais l'agent écrire. Tu finiras par tout faire à la main, ce qui défait l'intérêt.",
+    },
+    {
+      text: "bypassPermissions pour gagner du temps",
+      correct: false,
+      explanation:
+        "Excessif pour un refactor local, et tu perds les garde-fous sur les actions risquées.",
+    },
   ]}
 />
 
@@ -159,10 +179,30 @@ Utile pour un projet sensible où tu veux que **tout le monde** (toi-même demai
   scenario="Un collègue te dit : 'utilise --dangerously-skip-permissions, ça va plus vite.' Tu es sur ton poste de dev principal."
   question="Que fais-tu ?"
   options={[
-    { text: "J'accepte — si on me le recommande, c'est que c'est OK.", correct: false, explanation: "Ce flag désactive les protections sur les chemins sensibles (SSH, AWS creds). Un mauvais prompt peut faire des dégâts permanents sur ton poste." },
-    { text: "Je refuse — ce flag est fait pour des sandboxes contrôlés, pas pour un poste de dev.", correct: true, explanation: "Exactement. Les bons usages sont : CI éphémère, container isolé, sandbox de test. Sur un poste de dev, bypassPermissions (sans le flag dangerous) suffit largement." },
-    { text: "Je l'utilise uniquement dans des projets non-critiques.", correct: false, explanation: "Ton poste est le même pour tous les projets — les risques (ssh keys, aws creds) ne dépendent pas du projet courant." },
-    { text: "Je l'utilise mais je fais un backup d'abord.", correct: false, explanation: "Backup ≠ protection en temps réel. Et certaines actions (envoi HTTP, déclenchement de job) ne sont pas réversibles par backup." }
+    {
+      text: "J'accepte — si on me le recommande, c'est que c'est OK.",
+      correct: false,
+      explanation:
+        "Ce flag désactive les protections sur les chemins sensibles (SSH, AWS creds). Un mauvais prompt peut faire des dégâts permanents sur ton poste.",
+    },
+    {
+      text: "Je refuse — ce flag est fait pour des sandboxes contrôlés, pas pour un poste de dev.",
+      correct: true,
+      explanation:
+        "Exactement. Les bons usages sont : CI éphémère, container isolé, sandbox de test. Sur un poste de dev, bypassPermissions (sans le flag dangerous) suffit largement.",
+    },
+    {
+      text: "Je l'utilise uniquement dans des projets non-critiques.",
+      correct: false,
+      explanation:
+        "Ton poste est le même pour tous les projets — les risques (ssh keys, aws creds) ne dépendent pas du projet courant.",
+    },
+    {
+      text: "Je l'utilise mais je fais un backup d'abord.",
+      correct: false,
+      explanation:
+        "Backup ≠ protection en temps réel. Et certaines actions (envoi HTTP, déclenchement de job) ne sont pas réversibles par backup.",
+    },
   ]}
 />
 

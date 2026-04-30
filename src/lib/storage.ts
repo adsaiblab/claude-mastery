@@ -23,7 +23,7 @@ function canUseLocalStorage(): boolean {
 const HAS_LS = canUseLocalStorage();
 
 export function getItem<T>(key: string, fallback: T): T {
-  const raw = HAS_LS ? window.localStorage.getItem(key) : MEMORY_FALLBACK.get(key) ?? null;
+  const raw = HAS_LS ? window.localStorage.getItem(key) : (MEMORY_FALLBACK.get(key) ?? null);
   if (raw == null) return fallback;
   try {
     return JSON.parse(raw) as T;

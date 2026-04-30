@@ -81,21 +81,21 @@ Triage en Haiku, exécution en Sonnet, jugement en Opus. 60-80% d'économie sur 
 
 ## Métriques
 
-| Métrique | Signal |
-|----------|--------|
-| `/status` > 60% | Comprimer / forker bientôt |
-| Agent redemande un fichier déjà lu | Réactivité en baisse |
-| `...` dans tool results | Truncation, des détails échappent |
-| Tool result > 20k tokens | Filtrer (`head_limit`, glob plus étroit, déléguer) |
+| Métrique                           | Signal                                             |
+| ---------------------------------- | -------------------------------------------------- |
+| `/status` > 60%                    | Comprimer / forker bientôt                         |
+| Agent redemande un fichier déjà lu | Réactivité en baisse                               |
+| `...` dans tool results            | Truncation, des détails échappent                  |
+| Tool result > 20k tokens           | Filtrer (`head_limit`, glob plus étroit, déléguer) |
 
 ## Anti-patterns
 
-| AP | Conséquence | Fix |
-|----|-------------|-----|
-| Tout dans CLAUDE.md | 30k tokens chargés à chaque session | CLAUDE.md = règles, MEMORY.md = faits |
-| Pas de résumé entre phases | Phase N traîne le contexte des phases 1..N-1 | `/compact` ou subagent par phase |
-| Explosion silencieuse | Agent saturé sans alerte | `/status` régulier, réagir > 60% |
-| Subagent qui rend 5000 mots | Le main hérite du gain à zéro | Imposer "synthèse ≤ 300 mots" |
+| AP                          | Conséquence                                  | Fix                                   |
+| --------------------------- | -------------------------------------------- | ------------------------------------- |
+| Tout dans CLAUDE.md         | 30k tokens chargés à chaque session          | CLAUDE.md = règles, MEMORY.md = faits |
+| Pas de résumé entre phases  | Phase N traîne le contexte des phases 1..N-1 | `/compact` ou subagent par phase      |
+| Explosion silencieuse       | Agent saturé sans alerte                     | `/status` régulier, réagir > 60%      |
+| Subagent qui rend 5000 mots | Le main hérite du gain à zéro                | Imposer "synthèse ≤ 300 mots"         |
 
 ## Pattern combiné — orchestrateur + workers
 

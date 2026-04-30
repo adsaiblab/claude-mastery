@@ -6,16 +6,16 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  En 2024, "utiliser Claude" signifiait ouvrir claude.ai et écrire un prompt. En 2026,
-  ça veut dire piloter une **flotte d'agents**, chacun avec son modèle, ses outils MCP,
-  ses hooks, son CLAUDE.md, potentiellement son sandbox. Le vocabulaire a explosé.
-  Ce module fixe les termes **une fois pour toutes** pour que le reste du parcours
-  s'appuie sur une base solide.
+  En 2024, "utiliser Claude" signifiait ouvrir claude.ai et écrire un prompt. En
+  2026, ça veut dire piloter une **flotte d'agents**, chacun avec son modèle,
+  ses outils MCP, ses hooks, son CLAUDE.md, potentiellement son sandbox. Le
+  vocabulaire a explosé. Ce module fixe les termes **une fois pour toutes** pour
+  que le reste du parcours s'appuie sur une base solide.
 </Situation>
 
 ## Concept — Les 5 couches
@@ -24,13 +24,13 @@ L'écosystème Claude s'empile en **5 couches**, de la plus fondamentale à la p
 
 <div style="overflow-x: auto;">
 
-| # | Couche | Réponse à la question | Exemples concrets |
-|---|--------|-----------------------|-------------------|
-| **1** | Modèles | *Quel cerveau ?* | Opus 4.7, Sonnet 4.6, Haiku 4.5 |
-| **2** | Capacités | *Quoi faire nativement ?* | Tool use, vision, extended thinking, caching |
-| **3** | Interfaces | *D'où je lui parle ?* | API, Claude Code (CLI + IDE), claude.ai, apps |
-| **4** | Orchestration | *Comment l'étendre ?* | Subagents, Skills, MCP, Hooks, Plugins |
-| **5** | Déploiement | *Comment l'industrialiser ?* | GitHub Actions, Agent SDK, sandboxing, Managed Agents |
+| #     | Couche        | Réponse à la question        | Exemples concrets                                     |
+| ----- | ------------- | ---------------------------- | ----------------------------------------------------- |
+| **1** | Modèles       | _Quel cerveau ?_             | Opus 4.7, Sonnet 4.6, Haiku 4.5                       |
+| **2** | Capacités     | _Quoi faire nativement ?_    | Tool use, vision, extended thinking, caching          |
+| **3** | Interfaces    | _D'où je lui parle ?_        | API, Claude Code (CLI + IDE), claude.ai, apps         |
+| **4** | Orchestration | _Comment l'étendre ?_        | Subagents, Skills, MCP, Hooks, Plugins                |
+| **5** | Déploiement   | _Comment l'industrialiser ?_ | GitHub Actions, Agent SDK, sandboxing, Managed Agents |
 
 </div>
 
@@ -109,12 +109,12 @@ Ce que les modèles savent faire **sans extension** :
 
 ## Détail — Couche 3 : les interfaces
 
-| Interface | Support | Quand l'utiliser |
-|-----------|---------|------------------|
-| **API brute** | HTTP + SDK (Python/TS) | Intégration produit, automations backend |
-| **Claude Code (CLI)** | Terminal + IDE plugins | Développement local, pair-programming |
-| **claude.ai** | Web | Exploration, Q&A, documents |
-| **Apps desktop/mobile** | Mac/Windows + iOS/Android | Usage ambiant, hors développement |
+| Interface               | Support                   | Quand l'utiliser                         |
+| ----------------------- | ------------------------- | ---------------------------------------- |
+| **API brute**           | HTTP + SDK (Python/TS)    | Intégration produit, automations backend |
+| **Claude Code (CLI)**   | Terminal + IDE plugins    | Développement local, pair-programming    |
+| **claude.ai**           | Web                       | Exploration, Q&A, documents              |
+| **Apps desktop/mobile** | Mac/Windows + iOS/Android | Usage ambiant, hors développement        |
 
 Ce parcours se concentre sur **Claude Code (CLI)** avec des excursions vers **Agent SDK** au Niveau 4.
 
@@ -170,13 +170,13 @@ C'est **ici que la complexité réelle commence**. Cinq mécanismes distincts, s
 
 ## Détail — Couche 5 : déploiement
 
-| Composant | Rôle |
-|-----------|------|
-| **GitHub Actions** | Déclenche Claude sur PR / issue / schedule |
-| **Agent SDK (Python / TypeScript)** | Construction d'agents custom hors CLI |
-| **Sandboxing** | Exécution isolée (container, VM) pour actions risquées |
-| **Routines** | Agents long-running pilotés par un orchestrateur |
-| **Managed Agents** | Déploiement d'agents hébergés par Anthropic |
+| Composant                           | Rôle                                                   |
+| ----------------------------------- | ------------------------------------------------------ |
+| **GitHub Actions**                  | Déclenche Claude sur PR / issue / schedule             |
+| **Agent SDK (Python / TypeScript)** | Construction d'agents custom hors CLI                  |
+| **Sandboxing**                      | Exécution isolée (container, VM) pour actions risquées |
+| **Routines**                        | Agents long-running pilotés par un orchestrateur       |
+| **Managed Agents**                  | Déploiement d'agents hébergés par Anthropic            |
 
 ## Check — vérifie que tu vois la forêt
 
@@ -189,23 +189,27 @@ C'est **ici que la complexité réelle commence**. Cinq mécanismes distincts, s
     {
       text: "Un Subagent que je relance à chaque push",
       correct: false,
-      explanation: "Un subagent est appelé explicitement pendant une session. Pour un déclenchement automatique par événement, ce n'est pas la bonne couche."
+      explanation:
+        "Un subagent est appelé explicitement pendant une session. Pour un déclenchement automatique par événement, ce n'est pas la bonne couche.",
     },
     {
       text: "Un Hook (pre-push)",
       correct: true,
-      explanation: "Les hooks répondent à des événements système (git, PreToolUse, Stop…). C'est exactement le rôle d'un pre-push hook : policy enforcement au moment de l'action."
+      explanation:
+        "Les hooks répondent à des événements système (git, PreToolUse, Stop…). C'est exactement le rôle d'un pre-push hook : policy enforcement au moment de l'action.",
     },
     {
       text: "Un serveur MCP",
       correct: false,
-      explanation: "MCP sert à exposer des outils externes (une API, une DB). Ici on veut déclencher une action locale, pas exposer un outil."
+      explanation:
+        "MCP sert à exposer des outils externes (une API, une DB). Ici on veut déclencher une action locale, pas exposer un outil.",
     },
     {
       text: "Un Plugin",
       correct: false,
-      explanation: "Le plugin est un bundle qui pourrait contenir le hook, mais ce n'est pas le mécanisme primaire. Tu peux commencer par un hook simple sans bundler."
-    }
+      explanation:
+        "Le plugin est un bundle qui pourrait contenir le hook, mais ce n'est pas le mécanisme primaire. Tu peux commencer par un hook simple sans bundler.",
+    },
   ]}
 />
 
@@ -217,23 +221,27 @@ C'est **ici que la complexité réelle commence**. Cinq mécanismes distincts, s
     {
       text: "Opus 4.7 partout pour la qualité maximale",
       correct: false,
-      explanation: "Coût prohibitif pour une tâche de classification simple. Opus s'utilise sur le raisonnement final, pas sur 20 tris parallèles."
+      explanation:
+        "Coût prohibitif pour une tâche de classification simple. Opus s'utilise sur le raisonnement final, pas sur 20 tris parallèles.",
     },
     {
       text: "Sonnet 4.6 pour équilibrer qualité et coût",
       correct: false,
-      explanation: "Acceptable mais sur-dimensionné. Sonnet est le bon défaut pour de l'implémentation, pas pour du tri à grand volume."
+      explanation:
+        "Acceptable mais sur-dimensionné. Sonnet est le bon défaut pour de l'implémentation, pas pour du tri à grand volume.",
     },
     {
       text: "Haiku 4.5 pour les workers, agrégation par Sonnet ou Opus",
       correct: true,
-      explanation: "C'est le pattern canonique. Haiku est ~10× moins cher que Sonnet et suffit largement pour de la classification. Le modèle coûteux n'intervient qu'à l'agrégation."
+      explanation:
+        "C'est le pattern canonique. Haiku est ~10× moins cher que Sonnet et suffit largement pour de la classification. Le modèle coûteux n'intervient qu'à l'agrégation.",
     },
     {
       text: "Peu importe, le modèle est secondaire face au prompt",
       correct: false,
-      explanation: "Le choix de modèle est le premier levier de coût et de latence sur un fan-out. Le prompt vient après."
-    }
+      explanation:
+        "Le choix de modèle est le premier levier de coût et de latence sur un fan-out. Le prompt vient après.",
+    },
   ]}
 />
 

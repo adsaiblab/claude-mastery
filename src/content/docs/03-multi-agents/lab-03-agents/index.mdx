@@ -9,17 +9,17 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~75 min** · Scripts dans [`labs/lab-03-agents/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-03-agents)
 
 <Situation>
   Variant du Lab 03. On reprend les subagents — mais cette fois pas en pipeline
   séquentiel : en **fan-out**. Tu as un monorepo avec 3 services indépendants à
-  auditer. Plutôt qu'un explorateur en série qui mange ton context, tu dispatches
-  un subagent **auditor** par service, en parallèle, puis tu agrèges. Le
-  pattern qui permet d'auditer 50 modules sans saturer la fenêtre.
+  auditer. Plutôt qu'un explorateur en série qui mange ton context, tu
+  dispatches un subagent **auditor** par service, en parallèle, puis tu agrèges.
+  Le pattern qui permet d'auditer 50 modules sans saturer la fenêtre.
 </Situation>
 
 ## Objectif
@@ -55,13 +55,30 @@ Tu dois créer dans `.claude/` :
   labId="lab-03-agents"
   title="Lab 03 alt — Checklist"
   steps={[
-    { id: 'auditor', label: 'Subagent auditor.md (Read/Grep/Glob, pas d\'écriture)' },
-    { id: 'aggregator', label: 'Subagent aggregator.md (Read + Write contraint à audit-report.md)' },
-    { id: 'cmd', label: 'Slash-command /audit-all qui lance les auditors en parallèle' },
-    { id: 'hook', label: 'Hook PreToolUse garde-fou (bloque écritures hors audit/)' },
-    { id: 'fanout', label: 'Slash-command détecte services/* et fan-out' },
-    { id: 'aggregate', label: 'audit-report.md généré avec table par service' },
-    { id: 'validate', label: 'validate.sh — fan-out OK + garde-fou actif', hint: 'bash labs/lab-03-agents/validate.sh' },
+    {
+      id: "auditor",
+      label: "Subagent auditor.md (Read/Grep/Glob, pas d'écriture)",
+    },
+    {
+      id: "aggregator",
+      label:
+        "Subagent aggregator.md (Read + Write contraint à audit-report.md)",
+    },
+    {
+      id: "cmd",
+      label: "Slash-command /audit-all qui lance les auditors en parallèle",
+    },
+    {
+      id: "hook",
+      label: "Hook PreToolUse garde-fou (bloque écritures hors audit/)",
+    },
+    { id: "fanout", label: "Slash-command détecte services/* et fan-out" },
+    { id: "aggregate", label: "audit-report.md généré avec table par service" },
+    {
+      id: "validate",
+      label: "validate.sh — fan-out OK + garde-fou actif",
+      hint: "bash labs/lab-03-agents/validate.sh",
+    },
   ]}
 />
 

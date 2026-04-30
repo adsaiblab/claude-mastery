@@ -8,52 +8,52 @@ draft: false
 
 ## Authentification
 
-| Variable | Usage |
-|----------|-------|
-| `ANTHROPIC_API_KEY` | Clé API standard. Injectée par les workflows CI. |
+| Variable               | Usage                                                       |
+| ---------------------- | ----------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`    | Clé API standard. Injectée par les workflows CI.            |
 | `ANTHROPIC_AUTH_TOKEN` | Token alternatif (proxies internes, gateways d'entreprise). |
-| `ANTHROPIC_BASE_URL` | Override l'endpoint API (proxy / régionalisation). |
+| `ANTHROPIC_BASE_URL`   | Override l'endpoint API (proxy / régionalisation).          |
 
 ## Sélection de modèle
 
-| Variable | Usage |
-|----------|-------|
-| `ANTHROPIC_MODEL` | Modèle par défaut si non spécifié au lancement. |
+| Variable                     | Usage                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `ANTHROPIC_MODEL`            | Modèle par défaut si non spécifié au lancement.                            |
 | `ANTHROPIC_SMALL_FAST_MODEL` | Modèle utilisé pour les tâches "fast" internes (résumés, classifications). |
 
 ## Providers alternatifs
 
-| Variable | Usage |
-|----------|-------|
-| `CLAUDE_CODE_USE_BEDROCK=1` | Route les appels via AWS Bedrock. |
-| `CLAUDE_CODE_USE_VERTEX=1` | Route les appels via GCP Vertex AI. |
-| `AWS_REGION` / `AWS_PROFILE` | Lus quand Bedrock est actif. |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Lu quand Vertex est actif. |
+| Variable                         | Usage                               |
+| -------------------------------- | ----------------------------------- |
+| `CLAUDE_CODE_USE_BEDROCK=1`      | Route les appels via AWS Bedrock.   |
+| `CLAUDE_CODE_USE_VERTEX=1`       | Route les appels via GCP Vertex AI. |
+| `AWS_REGION` / `AWS_PROFILE`     | Lus quand Bedrock est actif.        |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Lu quand Vertex est actif.          |
 
 ## Comportement CLI
 
-| Variable | Défaut | Usage |
-|----------|--------|-------|
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | `0` | `1` active les Agent Teams (multi-agents en parallèle visibles). |
-| `CLAUDE_CODE_SKIP_UPDATE_CHECK` | `0` | `1` saute le check auto de mise à jour au démarrage. |
-| `DISABLE_TELEMETRY` | `0` | `1` coupe l'envoi de télémétrie anonyme. |
-| `CLAUDE_CODE_AUTO_CONNECT_IDE` | `1` | `0` désactive la détection auto de l'IDE. |
+| Variable                               | Défaut | Usage                                                            |
+| -------------------------------------- | ------ | ---------------------------------------------------------------- |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | `0`    | `1` active les Agent Teams (multi-agents en parallèle visibles). |
+| `CLAUDE_CODE_SKIP_UPDATE_CHECK`        | `0`    | `1` saute le check auto de mise à jour au démarrage.             |
+| `DISABLE_TELEMETRY`                    | `0`    | `1` coupe l'envoi de télémétrie anonyme.                         |
+| `CLAUDE_CODE_AUTO_CONNECT_IDE`         | `1`    | `0` désactive la détection auto de l'IDE.                        |
 
 ## Limites runtime
 
-| Variable | Défaut | Usage |
-|----------|--------|-------|
+| Variable                  | Défaut   | Usage                                                |
+| ------------------------- | -------- | ---------------------------------------------------- |
 | `BASH_DEFAULT_TIMEOUT_MS` | `120000` | Timeout par défaut des Bash tool calls (max 600000). |
-| `BASH_MAX_OUTPUT_LENGTH` | — | Cap sur la taille d'output Bash retourné. |
-| `MAX_MCP_OUTPUT_TOKENS` | — | Cap sur la taille d'un tool result MCP. |
-| `MAX_THINKING_TOKENS` | — | Cap sur les tokens de pensée extended thinking. |
+| `BASH_MAX_OUTPUT_LENGTH`  | —        | Cap sur la taille d'output Bash retourné.            |
+| `MAX_MCP_OUTPUT_TOKENS`   | —        | Cap sur la taille d'un tool result MCP.              |
+| `MAX_THINKING_TOKENS`     | —        | Cap sur les tokens de pensée extended thinking.      |
 
 ## Debug
 
-| Variable | Usage |
-|----------|-------|
+| Variable              | Usage                                            |
+| --------------------- | ------------------------------------------------ |
 | `DEBUG=claude-code:*` | Active les logs internes (équivalent `--debug`). |
-| `MCP_DEBUG=1` | Logs verbeux MCP (équivalent `--mcp-debug`). |
+| `MCP_DEBUG=1`         | Logs verbeux MCP (équivalent `--mcp-debug`).     |
 
 ## Bonnes pratiques
 

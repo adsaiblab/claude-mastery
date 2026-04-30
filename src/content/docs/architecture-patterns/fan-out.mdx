@@ -25,11 +25,11 @@ Main : split + dispatch├──→ subagent B (chunk 2) ──┼──→ Main
 
 ## Critères d'éligibilité
 
-| Critère | Pourquoi |
-|---------|----------|
-| Branches **indépendantes** | Sinon il faut un canal de coordination → revient au séquentiel |
-| Sortie **bornée** par branche | Sinon le main sature à la fusion |
-| Fusion **déterministe** (concat, vote, max) | Sinon la valeur ajoutée est perdue |
+| Critère                                     | Pourquoi                                                       |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| Branches **indépendantes**                  | Sinon il faut un canal de coordination → revient au séquentiel |
+| Sortie **bornée** par branche               | Sinon le main sature à la fusion                               |
+| Fusion **déterministe** (concat, vote, max) | Sinon la valeur ajoutée est perdue                             |
 
 Si une seule de ces 3 conditions n'est pas remplie, fan-out **n'est pas le pattern**.
 
@@ -84,12 +84,12 @@ N subagents répondent à la même question, le main vote (majorité ou max-conf
 
 ## Pièges
 
-| Piège | Fix |
-|-------|-----|
-| Branches qui ont besoin de se voir | Repenser : ce n'est pas du fan-out |
-| Sortie illimitée par branche | Imposer un cap ≤ N mots dans le prompt |
-| Échecs partiels invisibles | `asyncio.gather(..., return_exceptions=True)` + log |
-| Coût linéaire en tokens | Cascader Haiku/Sonnet selon complexité par branche |
+| Piège                              | Fix                                                 |
+| ---------------------------------- | --------------------------------------------------- |
+| Branches qui ont besoin de se voir | Repenser : ce n'est pas du fan-out                  |
+| Sortie illimitée par branche       | Imposer un cap ≤ N mots dans le prompt              |
+| Échecs partiels invisibles         | `asyncio.gather(..., return_exceptions=True)` + log |
+| Coût linéaire en tokens            | Cascader Haiku/Sonnet selon complexité par branche  |
 
 ## Coût typique
 

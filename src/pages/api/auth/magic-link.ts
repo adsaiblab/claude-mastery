@@ -27,10 +27,7 @@ export const POST: APIRoute = async (context) => {
   const url = import.meta.env.PUBLIC_SUPABASE_URL;
   const anon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
-    return context.redirect(
-      `/login?error=${encodeURIComponent('Supabase non configuré')}`,
-      302,
-    );
+    return context.redirect(`/login?error=${encodeURIComponent('Supabase non configuré')}`, 302);
   }
 
   const supabase = createServerClient(url, anon, {

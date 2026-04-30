@@ -69,7 +69,10 @@ export default function LabProgress({ labId, title, steps }: LabProgressProps) {
         {steps.map((step) => {
           const isDone = done.has(step.id);
           return (
-            <li key={step.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--sl-color-gray-5)' }}>
+            <li
+              key={step.id}
+              style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--sl-color-gray-5)' }}
+            >
               <label
                 style={{
                   display: 'flex',
@@ -117,12 +120,18 @@ export default function LabProgress({ labId, title, steps }: LabProgressProps) {
           role="status"
           style={{ marginTop: '1rem' }}
         >
-          <strong>🎉 Lab complété.</strong> Lance <code>bash labs/{labId}/validate.sh</code> pour confirmer.
+          <strong>🎉 Lab complété.</strong> Lance <code>bash labs/{labId}/validate.sh</code> pour
+          confirmer.
         </div>
       )}
 
       {count > 0 && (
-        <button type="button" className="cm-button" onClick={reset} style={{ marginTop: '0.75rem' }}>
+        <button
+          type="button"
+          className="cm-button"
+          onClick={reset}
+          style={{ marginTop: '0.75rem' }}
+        >
           Réinitialiser
         </button>
       )}

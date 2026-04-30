@@ -4,7 +4,7 @@ const year = new Date().getFullYear();
 const version = import.meta.env.PUBLIC_APP_VERSION ?? '0.1.0';
 ---
 
-<Default {...(Astro.props as any)}><slot /></Default>
+<Default {...Astro.props as any}><slot /></Default>
 
 <footer class="cm-footer">
   <div>

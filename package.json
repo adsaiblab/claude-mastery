@@ -13,7 +13,9 @@
     "astro": "astro",
     "typecheck": "astro check",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:md": "remark \"src/content/docs/**/*.{md,mdx}\" --quiet --frail",
     "format": "prettier --write \"src/**/*.{ts,tsx,astro,mdx,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,astro,mdx,css}\"",
     "labs:validate": "bash scripts/validate-all-labs.sh",
     "db:seed": "node scripts/seed-local-db.mjs"
   },
@@ -43,6 +45,11 @@
     "eslint": "^10.2.1",
     "prettier": "^3.4.2",
     "prettier-plugin-astro": "^0.14.1",
+    "remark-cli": "^12.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-mdx": "^3.1.1",
+    "remark-preset-lint-markdown-style-guide": "^6.0.1",
+    "remark-preset-lint-recommended": "^7.0.1",
     "typescript-eslint": "^8.59.1"
   },
   "engines": {

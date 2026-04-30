@@ -9,18 +9,18 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~3-5h sur ton repo perso** · Templates dans [`labs/lab-05-capstone/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-05-capstone)
 
 <Situation>
   Lab final, format **capstone** : tu sors du sandbox et tu poses Claude Code
   sur **ton vrai repo** — perso, side-project, ou un module isolable de ton job.
-  Pas de starter à compléter. Tu choisis une mission parmi quatre archétypes,
-  tu la scopes, tu la livres, tu la débriefes. Le validate vérifie la
-  **structure de la livraison**, pas la correctness — c'est toi qui juges si
-  la mission est réussie.
+  Pas de starter à compléter. Tu choisis une mission parmi quatre archétypes, tu
+  la scopes, tu la livres, tu la débriefes. Le validate vérifie la **structure
+  de la livraison**, pas la correctness — c'est toi qui juges si la mission est
+  réussie.
 </Situation>
 
 ## Pourquoi un capstone freeform
@@ -64,12 +64,33 @@ cd work/
   labId="lab-05-capstone"
   title="Lab 05 alt — Checklist"
   steps={[
-    { id: 'mission', label: 'mission.md rempli — repo cible + archétype + 3 critères de succès' },
-    { id: 'plan', label: 'plan.md rempli — ≥ 4 étapes numérotées + budget temps' },
-    { id: 'execution', label: 'Exécution sur ton repo — au moins 1 commit ou 1 artefact livré' },
-    { id: 'log', label: 'session-log.md rempli — chronologie + ≥ 2 prompts cités' },
-    { id: 'retro', label: 'retrospective.md rempli — sections "marché" + "foiré" + "à retenir"' },
-    { id: 'validate', label: 'validate.sh — structure + non-vide', hint: 'bash labs/lab-05-capstone/validate.sh' },
+    {
+      id: "mission",
+      label:
+        "mission.md rempli — repo cible + archétype + 3 critères de succès",
+    },
+    {
+      id: "plan",
+      label: "plan.md rempli — ≥ 4 étapes numérotées + budget temps",
+    },
+    {
+      id: "execution",
+      label: "Exécution sur ton repo — au moins 1 commit ou 1 artefact livré",
+    },
+    {
+      id: "log",
+      label: "session-log.md rempli — chronologie + ≥ 2 prompts cités",
+    },
+    {
+      id: "retro",
+      label:
+        'retrospective.md rempli — sections "marché" + "foiré" + "à retenir"',
+    },
+    {
+      id: "validate",
+      label: "validate.sh — structure + non-vide",
+      hint: "bash labs/lab-05-capstone/validate.sh",
+    },
   ]}
 />
 

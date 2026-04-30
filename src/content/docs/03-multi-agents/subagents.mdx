@@ -6,16 +6,17 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Tu lances Claude sur une question vague : « regarde d'où vient cette lenteur ».
-  Il ouvre 40 fichiers pour comprendre, ton context sature avant même qu'il ait
-  une hypothèse, et tu dois `/compact` au milieu de l'investigation — en perdant
-  la trace des fichiers qu'il avait déjà lus. Un **subagent Explore** aurait fait
-  ce travail dans sa propre fenêtre, et t'aurait rendu une synthèse de 200 mots.
+  Tu lances Claude sur une question vague : « regarde d'où vient cette lenteur
+  ». Il ouvre 40 fichiers pour comprendre, ton context sature avant même qu'il
+  ait une hypothèse, et tu dois `/compact` au milieu de l'investigation — en
+  perdant la trace des fichiers qu'il avait déjà lus. Un **subagent Explore**
+  aurait fait ce travail dans sa propre fenêtre, et t'aurait rendu une synthèse
+  de 200 mots.
 </Situation>
 
 ## Concept — qu'est-ce qu'un subagent
@@ -30,15 +31,15 @@ Trois propriétés qui changent tout :
 
 ## Quand utiliser un subagent
 
-| Situation | Faire soi-même | Déléguer à subagent |
-|-----------|---------------|---------------------|
-| Lire 3 fichiers connus | ✓ | |
-| Trouver où `X` est défini | ✓ | |
-| « Comment marche le module auth ? » | | ✓ |
-| Exploration ouverte sur le repo | | ✓ |
-| Audit de sécurité sur 15 fichiers | | ✓ |
-| Review indépendante du code qu'on vient d'écrire | | ✓ |
-| Recherche en parallèle sur 3 sujets | | ✓ |
+| Situation                                        | Faire soi-même | Déléguer à subagent |
+| ------------------------------------------------ | -------------- | ------------------- |
+| Lire 3 fichiers connus                           | ✓              |                     |
+| Trouver où `X` est défini                        | ✓              |                     |
+| « Comment marche le module auth ? »              |                | ✓                   |
+| Exploration ouverte sur le repo                  |                | ✓                   |
+| Audit de sécurité sur 15 fichiers                |                | ✓                   |
+| Review indépendante du code qu'on vient d'écrire |                | ✓                   |
+| Recherche en parallèle sur 3 sujets              |                | ✓                   |
 
 **Règle** : si la recherche va coûter plus de **3 requêtes** ou **consommer plus de 10% du context principal**, délègue.
 
@@ -56,6 +57,7 @@ Tu es un explorateur. Ta mission : trouver l'information demandée
 et la restituer de façon dense et navigable.
 
 Règles :
+
 - Toujours citer les chemins (format `file.ts:42`).
 - Synthèse finale <= 300 mots.
 - Ne jamais modifier de fichier.
@@ -63,21 +65,41 @@ Règles :
 
 Champs du frontmatter :
 
-<FlipCard client:visible front="name" back="Identifiant unique (kebab-case). Sert à l'invoquer via Agent({subagent_type: 'name'})." />
-<FlipCard client:visible front="description" back="Phrase qui explique **quand** l'utiliser. L'agent principal lit cette description pour décider s'il délègue." />
-<FlipCard client:visible front="tools" back="Liste blanche de tools. Si omis, hérite de l'agent principal. Restreindre = sécurité + focus." />
-<FlipCard client:visible front="model" back="opus / sonnet / haiku. Défaut = hérite. Un judge bénéficie d'Opus, un tri Haiku suffit." />
-<FlipCard client:visible front="isolation" back="worktree pour un git worktree isolé — parfait pour un implementer qui modifie des fichiers sans polluer ton working dir." />
+<FlipCard
+  client:visible
+  front="name"
+  back="Identifiant unique (kebab-case). Sert à l'invoquer via Agent({subagent_type: 'name'})."
+/>
+<FlipCard
+  client:visible
+  front="description"
+  back="Phrase qui explique **quand** l'utiliser. L'agent principal lit cette description pour décider s'il délègue."
+/>
+<FlipCard
+  client:visible
+  front="tools"
+  back="Liste blanche de tools. Si omis, hérite de l'agent principal. Restreindre = sécurité + focus."
+/>
+<FlipCard
+  client:visible
+  front="model"
+  back="opus / sonnet / haiku. Défaut = hérite. Un judge bénéficie d'Opus, un tri Haiku suffit."
+/>
+<FlipCard
+  client:visible
+  front="isolation"
+  back="worktree pour un git worktree isolé — parfait pour un implementer qui modifie des fichiers sans polluer ton working dir."
+/>
 
 ## Les 5 scopes — où placer tes subagents
 
-| Scope | Chemin | Visibilité | Usage |
-|-------|--------|-----------|-------|
-| **User** | `~/.claude/agents/<name>.md` | Toi, tous tes repos | Tes agents perso (ex: code-reviewer) |
-| **Project** | `<repo>/.claude/agents/<name>.md` | Équipe, versionné | Agents spécifiques au projet |
-| **Plugin** | `<plugin>/agents/<name>.md` | Distribuable | Partage inter-équipes |
-| **Dynamic** | Injecté via `/agent` CLI | Session courante | Agents créés à la volée |
-| **Ephemeral** | Inline dans un prompt | Un seul appel | Test rapide avant de promouvoir |
+| Scope         | Chemin                            | Visibilité          | Usage                                |
+| ------------- | --------------------------------- | ------------------- | ------------------------------------ |
+| **User**      | `~/.claude/agents/<name>.md`      | Toi, tous tes repos | Tes agents perso (ex: code-reviewer) |
+| **Project**   | `<repo>/.claude/agents/<name>.md` | Équipe, versionné   | Agents spécifiques au projet         |
+| **Plugin**    | `<plugin>/agents/<name>.md`       | Distribuable        | Partage inter-équipes                |
+| **Dynamic**   | Injecté via `/agent` CLI          | Session courante    | Agents créés à la volée              |
+| **Ephemeral** | Inline dans un prompt             | Un seul appel       | Test rapide avant de promouvoir      |
 
 **Promotion naturelle** : ephemeral → user (`~/.claude/agents/`) → project (`<repo>/.claude/agents/`). Chaque niveau élargit la visibilité.
 
@@ -92,6 +114,7 @@ description: Recherche dans le codebase et répond aux questions ouvertes.
 tools: Read, Grep, Glob, WebFetch
 model: sonnet
 ---
+
 Tu es un explorateur. Retourne une synthèse dense avec `file:line` à chaque claim.
 ```
 
@@ -104,6 +127,7 @@ description: Review critique du travail fait. Retourne APPROVED ou liste de conc
 tools: Read, Grep
 model: opus
 ---
+
 Tu es un reviewer senior. Tu n'as PAS vu la conversation qui a produit ce code.
 Ta mission : relire et challenger.
 ```
@@ -119,10 +143,15 @@ description: Transforme une demande floue en plan d'implémentation structuré.
 tools: Read, Grep, Glob
 model: opus
 ---
+
 Retourne un plan Markdown avec :
+
 ## Objectif
+
 ## Fichiers à toucher
+
 ## Étapes ordonnées
+
 ## Risques
 ```
 
@@ -136,6 +165,7 @@ tools: Read, Edit, Write, Bash
 model: sonnet
 isolation: worktree
 ---
+
 Tu reçois un plan. Tu l'exécutes tel quel. Si ambigu, tu t'arrêtes et demandes.
 ```
 
@@ -189,7 +219,7 @@ Assistant :
     ← résumé de 240 mots
   → Agent(planner, "Avec ce résumé, propose un plan d'extraction.")
     ← plan de 15 étapes
-  
+
   [Affiche plan]  "Plan prêt. Tu valides ?"
 ```
 
@@ -203,10 +233,30 @@ Le main a consommé ~1000 tokens. Les deux subagents en ont dépensé 30 000 **d
   scenario="On te demande de renommer une fonction `oldName` en `newName` dans un fichier que tu as déjà lu."
   question="Tu délègues à un subagent ?"
   options={[
-    { text: "Oui — par principe, toujours déléguer.", correct: false, explanation: "Déléguer a un coût (tokens, latence). Pour une édition ponctuelle, tu es plus rapide en direct." },
-    { text: "Non — l'action est ciblée, le context est déjà chargé, pas de valeur ajoutée.", correct: true, explanation: "Exact. Un subagent se justifie quand (a) la recherche est large, (b) le résultat peut être synthétisé, ou (c) tu veux un point de vue indépendant (judge)." },
-    { text: "Uniquement si je suis en mode plan.", correct: false, explanation: "Le mode permission n'a rien à voir avec la décision de déléguer." },
-    { text: "Oui, pour isoler l'édition dans un worktree.", correct: false, explanation: "Excessif pour un rename. Le worktree est utile sur des changements massifs ou à risque." }
+    {
+      text: "Oui — par principe, toujours déléguer.",
+      correct: false,
+      explanation:
+        "Déléguer a un coût (tokens, latence). Pour une édition ponctuelle, tu es plus rapide en direct.",
+    },
+    {
+      text: "Non — l'action est ciblée, le context est déjà chargé, pas de valeur ajoutée.",
+      correct: true,
+      explanation:
+        "Exact. Un subagent se justifie quand (a) la recherche est large, (b) le résultat peut être synthétisé, ou (c) tu veux un point de vue indépendant (judge).",
+    },
+    {
+      text: "Uniquement si je suis en mode plan.",
+      correct: false,
+      explanation:
+        "Le mode permission n'a rien à voir avec la décision de déléguer.",
+    },
+    {
+      text: "Oui, pour isoler l'édition dans un worktree.",
+      correct: false,
+      explanation:
+        "Excessif pour un rename. Le worktree est utile sur des changements massifs ou à risque.",
+    },
   ]}
 />
 
@@ -216,10 +266,27 @@ Le main a consommé ~1000 tokens. Les deux subagents en ont dépensé 30 000 **d
   scenario="Tu as implémenté une feature, tu veux une review critique avant de commit."
   question="Pourquoi déléguer à un subagent `judge` plutôt que demander à Claude lui-même de relire ?"
   options={[
-    { text: "C'est plus rapide.", correct: false, explanation: "Souvent non — lancer un subagent ajoute de la latence." },
-    { text: "Le subagent n'a pas vu la conversation qui a produit le code — il juge sur pièces, sans biais.", correct: true, explanation: "C'est la feature principale. Une review qui connaît les intentions a tendance à les confirmer. Une review aveugle attrape ce qui est réellement dans le code." },
-    { text: "C'est moins cher en tokens.", correct: false, explanation: "Pas forcément — un subagent a son propre context à monter." },
-    { text: "Ça évite les hooks.", correct: false, explanation: "Rien à voir avec les hooks." }
+    {
+      text: "C'est plus rapide.",
+      correct: false,
+      explanation: "Souvent non — lancer un subagent ajoute de la latence.",
+    },
+    {
+      text: "Le subagent n'a pas vu la conversation qui a produit le code — il juge sur pièces, sans biais.",
+      correct: true,
+      explanation:
+        "C'est la feature principale. Une review qui connaît les intentions a tendance à les confirmer. Une review aveugle attrape ce qui est réellement dans le code.",
+    },
+    {
+      text: "C'est moins cher en tokens.",
+      correct: false,
+      explanation: "Pas forcément — un subagent a son propre context à monter.",
+    },
+    {
+      text: "Ça évite les hooks.",
+      correct: false,
+      explanation: "Rien à voir avec les hooks.",
+    },
   ]}
 />
 

@@ -6,32 +6,32 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Vendredi 17h, tu fermes le terminal. Lundi matin, tu veux reprendre exactement
   là où tu t'étais arrêté : même contexte, même fil de pensée, mêmes décisions.
   Tu ouvres Claude, tu vois **12 sessions dans ton historique**, toutes nommées
-  "session-2026-04-21-13-48". Impossible de retrouver la bonne. Ce module t'évite
-  ce lundi matin.
+  "session-2026-04-21-13-48". Impossible de retrouver la bonne. Ce module
+  t'évite ce lundi matin.
 </Situation>
 
 ## Deux mécanismes de persistance
 
 Ne confonds pas les deux :
 
-| | **CLAUDE.md** | **MEMORY.md + fichiers typés** |
-|---|---|---|
-| Qui écrit ? | Toi | Claude |
-| Quand ? | Avant la session | Pendant la session, quand il détecte une info clé |
-| Scope | Projet ou user | Par projet (par défaut) |
-| Objectif | Règles stables | Apprentissage cross-session |
-| Format | Libre, court | Index + fichiers typés (user/feedback/project/reference) |
+|             | **CLAUDE.md**    | **MEMORY.md + fichiers typés**                           |
+| ----------- | ---------------- | -------------------------------------------------------- |
+| Qui écrit ? | Toi              | Claude                                                   |
+| Quand ?     | Avant la session | Pendant la session, quand il détecte une info clé        |
+| Scope       | Projet ou user   | Par projet (par défaut)                                  |
+| Objectif    | Règles stables   | Apprentissage cross-session                              |
+| Format      | Libre, court     | Index + fichiers typés (user/feedback/project/reference) |
 
 ## Auto-memory — comment Claude se souvient
 
-Quand tu dis : *"Note que les PRs doivent passer par la queue prioritaire `ci-fast`"*, Claude peut :
+Quand tu dis : _"Note que les PRs doivent passer par la queue prioritaire `ci-fast`"_, Claude peut :
 
 1. Créer ou mettre à jour `.claude/memory/project_ci.md` avec la règle.
 2. Ajouter une ligne dans `.claude/memory/MEMORY.md` qui pointe vers ce fichier.
@@ -55,27 +55,23 @@ Au démarrage de la prochaine session, Claude scanne `MEMORY.md`, identifie les 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0;">
 
 <div class="concept-card">
-#### 👤 `user`
-Qui tu es, ton rôle, tes connaissances, tes préférences.
-*Ex : "Data scientist, Python expert, nouveau sur React."*
+  #### 👤 `user` Qui tu es, ton rôle, tes connaissances, tes préférences. *Ex :
+  "Data scientist, Python expert, nouveau sur React."*
 </div>
 
 <div class="concept-card">
-#### 💬 `feedback`
-Ce que tu as corrigé ou validé explicitement.
-*Ex : "Ne pas mocker la DB dans les tests — on s'est fait avoir au T2."*
+  #### 💬 `feedback` Ce que tu as corrigé ou validé explicitement. *Ex : "Ne pas
+  mocker la DB dans les tests — on s'est fait avoir au T2."*
 </div>
 
 <div class="concept-card">
-#### 📦 `project`
-Contexte du projet : constraints, stakeholders, goals.
-*Ex : "Compliance bancaire, pas de données perso en dev."*
+  #### 📦 `project` Contexte du projet : constraints, stakeholders, goals. *Ex :
+  "Compliance bancaire, pas de données perso en dev."*
 </div>
 
 <div class="concept-card">
-#### 🔗 `reference`
-Pointeurs vers systèmes externes.
-*Ex : "Bugs trackés dans Linear projet INGEST."*
+  #### 🔗 `reference` Pointeurs vers systèmes externes. *Ex : "Bugs trackés dans
+  Linear projet INGEST."*
 </div>
 
 </div>
@@ -207,10 +203,30 @@ Sans `--name`, tu aurais eu "session-2026-04-25-14-48" et tu serais perdu.
   scenario="Tu viens de dire à Claude : 'Ne mocke jamais Redis dans nos tests, on s'est fait avoir la semaine dernière'."
   question="Où cette info devrait-elle finir ?"
   options={[
-    { text: "Dans CLAUDE.md — c'est une règle de projet.", correct: false, explanation: "Presque. C'est effectivement une règle, mais elle vient d'un incident spécifique et a une dimension 'apprentissage'. Elle appartient plus naturellement à la mémoire feedback, que Claude met à jour de lui-même." },
-    { text: "Dans un fichier de mémoire `feedback_*.md`, référencé par MEMORY.md.", correct: true, explanation: "Exact. Le type `feedback` est fait pour ça : une règle dérivée d'un incident, avec le pourquoi (pour juger les edge cases). Claude crée le fichier tout seul si tu lui demandes de se souvenir." },
-    { text: "Dans MEMORY.md directement — c'est une ligne.", correct: false, explanation: "MEMORY.md est un **index**. Les lignes pointent vers des fichiers, elles ne contiennent pas la mémoire elle-même." },
-    { text: "Nulle part — Claude s'en souviendra pour la session courante, c'est suffisant.", correct: false, explanation: "Il l'oubliera au prochain /clear ou à la session suivante. C'est le cas d'école pour la mémoire persistante." }
+    {
+      text: "Dans CLAUDE.md — c'est une règle de projet.",
+      correct: false,
+      explanation:
+        "Presque. C'est effectivement une règle, mais elle vient d'un incident spécifique et a une dimension 'apprentissage'. Elle appartient plus naturellement à la mémoire feedback, que Claude met à jour de lui-même.",
+    },
+    {
+      text: "Dans un fichier de mémoire `feedback_*.md`, référencé par MEMORY.md.",
+      correct: true,
+      explanation:
+        "Exact. Le type `feedback` est fait pour ça : une règle dérivée d'un incident, avec le pourquoi (pour juger les edge cases). Claude crée le fichier tout seul si tu lui demandes de se souvenir.",
+    },
+    {
+      text: "Dans MEMORY.md directement — c'est une ligne.",
+      correct: false,
+      explanation:
+        "MEMORY.md est un **index**. Les lignes pointent vers des fichiers, elles ne contiennent pas la mémoire elle-même.",
+    },
+    {
+      text: "Nulle part — Claude s'en souviendra pour la session courante, c'est suffisant.",
+      correct: false,
+      explanation:
+        "Il l'oubliera au prochain /clear ou à la session suivante. C'est le cas d'école pour la mémoire persistante.",
+    },
   ]}
 />
 
@@ -220,10 +236,30 @@ Sans `--name`, tu aurais eu "session-2026-04-25-14-48" et tu serais perdu.
   scenario="Tu as une session en cours où tu viens de finir une feature. Tu veux explorer un refacto risqué, mais garder la possibilité de revenir à l'état actuel si ça tourne mal."
   question="Quelle commande utilises-tu ?"
   options={[
-    { text: "/clear et tu recommences.", correct: false, explanation: "Tu perds tout l'état de la feature finie. Exactement ce que tu voulais éviter." },
-    { text: "claude --fork-session <id>", correct: true, explanation: "Le fork crée une copie à l'état courant. Tu explores dans le fork, et si ça tourne mal, tu reprends la session originale intacte." },
-    { text: "Je commit d'abord, puis je continue dans la même session.", correct: false, explanation: "Commit sauve le code, mais pas la session Claude (conversation, mémoire injectée, décisions). Le fork sauve les deux." },
-    { text: "git stash et /compact.", correct: false, explanation: "Aucun des deux ne crée un point de reprise reversible pour la session elle-même." }
+    {
+      text: "/clear et tu recommences.",
+      correct: false,
+      explanation:
+        "Tu perds tout l'état de la feature finie. Exactement ce que tu voulais éviter.",
+    },
+    {
+      text: "claude --fork-session <id>",
+      correct: true,
+      explanation:
+        "Le fork crée une copie à l'état courant. Tu explores dans le fork, et si ça tourne mal, tu reprends la session originale intacte.",
+    },
+    {
+      text: "Je commit d'abord, puis je continue dans la même session.",
+      correct: false,
+      explanation:
+        "Commit sauve le code, mais pas la session Claude (conversation, mémoire injectée, décisions). Le fork sauve les deux.",
+    },
+    {
+      text: "git stash et /compact.",
+      correct: false,
+      explanation:
+        "Aucun des deux ne crée un point de reprise reversible pour la session elle-même.",
+    },
   ]}
 />
 

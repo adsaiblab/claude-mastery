@@ -6,16 +6,16 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu veux lancer Claude sur un repo hérité, avec un modèle précis, en mode plan
   (lecture seule), avec seulement les outils Read/Grep, sans MCP, et nommer la
   session. Tu sais que c'est possible mais tu ne te souviens plus des flags. Dix
-  minutes plus tard, tu as toujours le terminal ouvert avec `claude --help`.
-  Ce module fixe les réflexes.
+  minutes plus tard, tu as toujours le terminal ouvert avec `claude --help`. Ce
+  module fixe les réflexes.
 </Situation>
 
 ## Concept — 10 catégories
@@ -277,10 +277,30 @@ claude --permission-mode plan --model opus --name refacto-auth-042026
   scenario="Tu dois faire un audit de sécurité d'un repo que tu ne connais pas. Tu veux que Claude ne puisse QUE lire, pas exécuter ni écrire."
   question="Quel combo utilises-tu ?"
   options={[
-    { text: "claude --permission-mode acceptEdits", correct: false, explanation: "Au contraire, acceptEdits accepte automatiquement les écritures. C'est l'opposé de ce que tu veux." },
-    { text: "claude --permission-mode plan --allowed-tools 'Read,Grep,Glob'", correct: true, explanation: "Mode plan = lecture seule par conception, et on restreint en plus aux outils de lecture. Double garantie." },
-    { text: "claude --dangerously-skip-permissions", correct: false, explanation: "C'est l'opposé du comportement voulu — ce flag désactive les protections." },
-    { text: "claude --no-mcp --no-plugins", correct: false, explanation: "Ça coupe MCP et plugins, mais l'agent peut toujours écrire des fichiers via Edit/Write. Pas assez restrictif." }
+    {
+      text: "claude --permission-mode acceptEdits",
+      correct: false,
+      explanation:
+        "Au contraire, acceptEdits accepte automatiquement les écritures. C'est l'opposé de ce que tu veux.",
+    },
+    {
+      text: "claude --permission-mode plan --allowed-tools 'Read,Grep,Glob'",
+      correct: true,
+      explanation:
+        "Mode plan = lecture seule par conception, et on restreint en plus aux outils de lecture. Double garantie.",
+    },
+    {
+      text: "claude --dangerously-skip-permissions",
+      correct: false,
+      explanation:
+        "C'est l'opposé du comportement voulu — ce flag désactive les protections.",
+    },
+    {
+      text: "claude --no-mcp --no-plugins",
+      correct: false,
+      explanation:
+        "Ça coupe MCP et plugins, mais l'agent peut toujours écrire des fichiers via Edit/Write. Pas assez restrictif.",
+    },
   ]}
 />
 
@@ -290,10 +310,29 @@ claude --permission-mode plan --model opus --name refacto-auth-042026
   scenario="Tu veux lancer Claude dans une GitHub Action pour qu'il commente une PR."
   question="Quels flags sont strictement nécessaires pour que ça marche en non-interactif ?"
   options={[
-    { text: "--interactive", correct: false, explanation: "Il n'y a pas de flag --interactive, et c'est l'inverse de ce que tu veux pour la CI." },
-    { text: "-p (print) et --output-format json", correct: true, explanation: "-p met en mode headless : Claude lit stdin, traite, imprime, sort. --output-format json permet de parser la réponse côté CI." },
-    { text: "--name + --continue", correct: false, explanation: "Ces flags gèrent des sessions interactives. En CI tu veux une exécution one-shot." },
-    { text: "--ide github-actions", correct: false, explanation: "Ce n'est pas un IDE valide, et ça n'existe pas." }
+    {
+      text: "--interactive",
+      correct: false,
+      explanation:
+        "Il n'y a pas de flag --interactive, et c'est l'inverse de ce que tu veux pour la CI.",
+    },
+    {
+      text: "-p (print) et --output-format json",
+      correct: true,
+      explanation:
+        "-p met en mode headless : Claude lit stdin, traite, imprime, sort. --output-format json permet de parser la réponse côté CI.",
+    },
+    {
+      text: "--name + --continue",
+      correct: false,
+      explanation:
+        "Ces flags gèrent des sessions interactives. En CI tu veux une exécution one-shot.",
+    },
+    {
+      text: "--ide github-actions",
+      correct: false,
+      explanation: "Ce n'est pas un IDE valide, et ça n'existe pas.",
+    },
   ]}
 />
 

@@ -6,15 +6,15 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Trois semaines plus tôt, tu avais eu une idée brillante avec Claude pendant une
-  session d'exploration. Tu l'avais mise de côté "pour plus tard". Aujourd'hui
-  tu veux la retrouver — mais ton `~/.claude/projects/` contient 47 sessions
-  toutes nommées `session-2026-XX-XX`. Ce module fait en sorte que cette situation
-  ne t'arrive plus jamais.
+  Trois semaines plus tôt, tu avais eu une idée brillante avec Claude pendant
+  une session d'exploration. Tu l'avais mise de côté "pour plus tard".
+  Aujourd'hui tu veux la retrouver — mais ton `~/.claude/projects/` contient 47
+  sessions toutes nommées `session-2026-XX-XX`. Ce module fait en sorte que
+  cette situation ne t'arrive plus jamais.
 </Situation>
 
 ## Concept — ce qu'est vraiment une session
@@ -167,10 +167,30 @@ Sans convention de naming, tu aurais 10 sessions sans rien distinguer.
   scenario="Tu fais `claude --resume abc123` dans un premier terminal, puis tu ouvres un second terminal et fais la même chose pour gagner du temps."
   question="Quel est l'effet ?"
   options={[
-    { text: "Les deux sessions tournent séparément sans interférer.", correct: false, explanation: "Faux : elles écrivent dans le même JSONL, les events s'entrelacent." },
-    { text: "Les events des deux terminaux s'entrelacent dans le même JSONL, la reprise devient incohérente.", correct: true, explanation: "Exactement. C'est le piège #1. Pour deux fils parallèles, utilise --fork-session pour obtenir un second ID indépendant." },
-    { text: "Le deuxième `--resume` échoue avec une erreur de lock.", correct: false, explanation: "Il n'y a pas de verrou — c'est précisément pour ça que c'est piégeux." },
-    { text: "Le deuxième prend la main et le premier est mis en pause.", correct: false, explanation: "Non, les deux tournent, les deux écrivent — le fichier se pollue." }
+    {
+      text: "Les deux sessions tournent séparément sans interférer.",
+      correct: false,
+      explanation:
+        "Faux : elles écrivent dans le même JSONL, les events s'entrelacent.",
+    },
+    {
+      text: "Les events des deux terminaux s'entrelacent dans le même JSONL, la reprise devient incohérente.",
+      correct: true,
+      explanation:
+        "Exactement. C'est le piège #1. Pour deux fils parallèles, utilise --fork-session pour obtenir un second ID indépendant.",
+    },
+    {
+      text: "Le deuxième `--resume` échoue avec une erreur de lock.",
+      correct: false,
+      explanation:
+        "Il n'y a pas de verrou — c'est précisément pour ça que c'est piégeux.",
+    },
+    {
+      text: "Le deuxième prend la main et le premier est mis en pause.",
+      correct: false,
+      explanation:
+        "Non, les deux tournent, les deux écrivent — le fichier se pollue.",
+    },
   ]}
 />
 
@@ -180,10 +200,30 @@ Sans convention de naming, tu aurais 10 sessions sans rien distinguer.
   scenario="Tu explores deux patterns d'archi différents. Tu veux les garder complètement séparés pour pouvoir partager l'un ou l'autre à un collègue."
   question="Quelle commande utilises-tu ?"
   options={[
-    { text: "/branch pour chaque pattern", correct: false, explanation: "/branch crée un point de branche à l'intérieur de la même session — les deux explorations resteraient liées. Pour une vraie séparation, il faut des sessions distinctes." },
-    { text: "claude --fork-session pour la seconde exploration", correct: true, explanation: "Exact. Le fork crée une session autonome avec son propre ID, que tu peux partager ou abandonner sans affecter l'originale." },
-    { text: "/compact avant d'explorer le second pattern", correct: false, explanation: "/compact libère des tokens mais ne sépare rien. Tu garderais les deux explorations dans la même session." },
-    { text: "Deux terminaux avec le même --resume", correct: false, explanation: "Surtout pas — c'est pile le piège #1 qui corrompt les JSONL." }
+    {
+      text: "/branch pour chaque pattern",
+      correct: false,
+      explanation:
+        "/branch crée un point de branche à l'intérieur de la même session — les deux explorations resteraient liées. Pour une vraie séparation, il faut des sessions distinctes.",
+    },
+    {
+      text: "claude --fork-session pour la seconde exploration",
+      correct: true,
+      explanation:
+        "Exact. Le fork crée une session autonome avec son propre ID, que tu peux partager ou abandonner sans affecter l'originale.",
+    },
+    {
+      text: "/compact avant d'explorer le second pattern",
+      correct: false,
+      explanation:
+        "/compact libère des tokens mais ne sépare rien. Tu garderais les deux explorations dans la même session.",
+    },
+    {
+      text: "Deux terminaux avec le même --resume",
+      correct: false,
+      explanation:
+        "Surtout pas — c'est pile le piège #1 qui corrompt les JSONL.",
+    },
   ]}
 />
 

@@ -6,75 +6,75 @@ sidebar:
 draft: false
 ---
 
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
 
 > 8 cartes · ~6 min · Source : [Niveau 3 — Multi-agents](/03-multi-agents/)
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin: 1rem 0;">
 
-  <FlipCard
-    client:visible
-    frontLabel="Frontmatter"
-    backLabel="Champs requis"
-    front="Subagent .md"
-    back="name (kebab-case) + description (quand l'invoquer) + tools (liste blanche) + model. Optionnel : isolation: worktree."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Frontmatter"
+  backLabel="Champs requis"
+  front="Subagent .md"
+  back="name (kebab-case) + description (quand l'invoquer) + tools (liste blanche) + model. Optionnel : isolation: worktree."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Tool"
-    backLabel="Pattern"
-    front="Agent (Task)"
-    back="Délègue à un subagent. N appels Agent dans le MÊME message = parallèle (fan-out). Sinon séquentiel."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Tool"
+  backLabel="Pattern"
+  front="Agent (Task)"
+  back="Délègue à un subagent. N appels Agent dans le MÊME message = parallèle (fan-out). Sinon séquentiel."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Frontmatter"
-    backLabel="Effet"
-    front="isolation: worktree"
-    back="Le subagent travaille dans un git worktree temporaire. Permet modifs concurrentes sans conflit. Cleanup auto si rien changé."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Frontmatter"
+  backLabel="Effet"
+  front="isolation: worktree"
+  back="Le subagent travaille dans un git worktree temporaire. Permet modifs concurrentes sans conflit. Cleanup auto si rien changé."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="MCP"
-    backLabel="Transports"
-    front="stdio vs http"
-    back="stdio : local, lance le serveur en sous-process. http : distant, REST. Choix selon : where the data lives + auth."
-  />
+<FlipCard
+  client:visible
+  frontLabel="MCP"
+  backLabel="Transports"
+  front="stdio vs http"
+  back="stdio : local, lance le serveur en sous-process. http : distant, REST. Choix selon : where the data lives + auth."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Concept"
-    backLabel="Différence"
-    front="Skills vs Subagents"
-    back="Skill = comportement réutilisable (slash command + prompt + tools). Subagent = persona avec contexte isolé. Skills s'invoquent dans la conv courante, subagents dans une conv neuve."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Concept"
+  backLabel="Différence"
+  front="Skills vs Subagents"
+  back="Skill = comportement réutilisable (slash command + prompt + tools). Subagent = persona avec contexte isolé. Skills s'invoquent dans la conv courante, subagents dans une conv neuve."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Pattern"
-    backLabel="Quand"
-    front="Fan-out / Fan-in"
-    back="Fan-out : N agents en parallèle sur sous-problèmes. Fan-in : un aggregator merge les résultats. Idéal pour audits, recherches, exploration multi-modules."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Pattern"
+  backLabel="Quand"
+  front="Fan-out / Fan-in"
+  back="Fan-out : N agents en parallèle sur sous-problèmes. Fan-in : un aggregator merge les résultats. Idéal pour audits, recherches, exploration multi-modules."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Plugin"
-    backLabel="Structure"
-    front=".claude-plugin/"
-    back="Dir d'un plugin : plugin.json (manifest) + agents/, hooks/, skills/. Versioning sémantique. Installable via plugin install."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Plugin"
+  backLabel="Structure"
+  front=".claude-plugin/"
+  back="Dir d'un plugin : plugin.json (manifest) + agents/, hooks/, skills/. Versioning sémantique. Installable via plugin install."
+/>
 
-  <FlipCard
-    client:visible
-    frontLabel="Frontmatter"
-    backLabel="Bonne pratique"
-    front="tools: [Read, Grep]"
-    back="Liste blanche d'outils. Un auditeur read-only n'a pas Edit/Write/Bash. Defense-in-depth quand combiné avec un hook PreToolUse."
-  />
+<FlipCard
+  client:visible
+  frontLabel="Frontmatter"
+  backLabel="Bonne pratique"
+  front="tools: [Read, Grep]"
+  back="Liste blanche d'outils. Un auditeur read-only n'a pas Edit/Write/Bash. Defense-in-depth quand combiné avec un hook PreToolUse."
+/>
 
 </div>
 

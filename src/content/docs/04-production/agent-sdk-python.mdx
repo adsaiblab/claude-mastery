@@ -6,23 +6,23 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu veux exposer un endpoint `/analyze` à ton équipe : on poste l'URL d'un repo
-  + une question, Claude répond. Avec la CLI, c'est un tunnel tmux artisanal.
+  avec une question, Claude répond. Avec la CLI, c'est un tunnel tmux artisanal.
   Avec l'**Agent SDK Python**, tu as `query(...)` async qui te rend un stream de
   messages, tu plombes ça dans FastAPI, déployé sur ton infra existante.
 </Situation>
 
 ## Concept — SDK vs CLI vs API brute
 
-| Couche | Quoi | Quand l'utiliser |
-|--------|------|------------------|
-| **API brute** (`anthropic`) | HTTP direct à `/v1/messages` | Chat simple, prompt engineering |
-| **Agent SDK** (`claude-agent-sdk`) | Wrapper qui gère tools, sessions, permissions, hooks | Backends agentiques |
-| **Claude Code CLI** | TUI interactive | Dev au quotidien |
+| Couche                             | Quoi                                                 | Quand l'utiliser                |
+| ---------------------------------- | ---------------------------------------------------- | ------------------------------- |
+| **API brute** (`anthropic`)        | HTTP direct à `/v1/messages`                         | Chat simple, prompt engineering |
+| **Agent SDK** (`claude-agent-sdk`) | Wrapper qui gère tools, sessions, permissions, hooks | Backends agentiques             |
+| **Claude Code CLI**                | TUI interactive                                      | Dev au quotidien                |
 
 L'Agent SDK ajoute par-dessus l'API : boucle agentique, gestion des tools, permission modes, subagents, memory, checkpointing — toute la sémantique Claude Code, mais programmable.
 
@@ -94,17 +94,17 @@ Le `ResultMessage` final donne le **coût réel** du run — essentiel pour fact
 
 ## `ClaudeAgentOptions` — les options qui comptent
 
-| Option | Effet |
-|--------|-------|
-| `system_prompt` | Équivalent CLAUDE.md pour ce run. |
-| `allowed_tools` | Liste blanche. |
-| `disallowed_tools` | Liste noire (prioritaire). |
-| `permission_mode` | `"default"` / `"acceptEdits"` / `"plan"` / `"bypassPermissions"`. |
-| `model` | `"claude-opus-4-7"` / `"claude-sonnet-4-6"` / `"claude-haiku-4-5-20251001"`. |
-| `max_turns` | Garde-fou dur. Défaut 20. |
-| `cwd` | Working directory. Fondamental — définit le scope filesystem. |
-| `mcp_servers` | Dict de MCP servers à connecter. |
-| `hooks` | Hooks custom inline (équivalent `.claude/settings.json`). |
+| Option             | Effet                                                                        |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `system_prompt`    | Équivalent CLAUDE.md pour ce run.                                            |
+| `allowed_tools`    | Liste blanche.                                                               |
+| `disallowed_tools` | Liste noire (prioritaire).                                                   |
+| `permission_mode`  | `"default"` / `"acceptEdits"` / `"plan"` / `"bypassPermissions"`.            |
+| `model`            | `"claude-opus-4-7"` / `"claude-sonnet-4-6"` / `"claude-haiku-4-5-20251001"`. |
+| `max_turns`        | Garde-fou dur. Défaut 20.                                                    |
+| `cwd`              | Working directory. Fondamental — définit le scope filesystem.                |
+| `mcp_servers`      | Dict de MCP servers à connecter.                                             |
+| `hooks`            | Hooks custom inline (équivalent `.claude/settings.json`).                    |
 
 ## Intégration FastAPI — endpoint `/analyze`
 
@@ -210,13 +210,13 @@ except MaxTurnsExceeded:
 
 ## Différence SDK vs API brute
 
-| Aspect | API brute | Agent SDK |
-|--------|-----------|-----------|
-| Tool use | Tu gères la boucle toi-même | Géré automatiquement |
-| Permission modes | N'existe pas | Natif |
-| CLAUDE.md | À injecter manuellement en system | Chargé automatiquement si `cwd` est un repo claudien |
-| Subagents | À implémenter à la main | `Agent(subagent_type=...)` |
-| Coût signalé | Calculer toi-même | `ResultMessage.total_cost_usd` |
+| Aspect           | API brute                         | Agent SDK                                            |
+| ---------------- | --------------------------------- | ---------------------------------------------------- |
+| Tool use         | Tu gères la boucle toi-même       | Géré automatiquement                                 |
+| Permission modes | N'existe pas                      | Natif                                                |
+| CLAUDE.md        | À injecter manuellement en system | Chargé automatiquement si `cwd` est un repo claudien |
+| Subagents        | À implémenter à la main           | `Agent(subagent_type=...)`                           |
+| Coût signalé     | Calculer toi-même                 | `ResultMessage.total_cost_usd`                       |
 
 **Règle** : pour du chat pur, API brute. Pour tout ce qui implique du filesystem, des outils, ou une boucle agentique, SDK.
 
@@ -240,10 +240,30 @@ Tu as des hooks dans `.claude/settings.json` qui appellent des scripts locaux. S
   scenario="Tu veux juste poser une question à Claude et récupérer la réponse en JSON — pas de tools, pas de filesystem."
   question="Quel outil choisis-tu ?"
   options={[
-    { text: "Agent SDK avec `allowed_tools=[]`.", correct: false, explanation: "Possible mais overkill — tu payes la complexité de la boucle agentique pour rien." },
-    { text: "API brute Anthropic (package `anthropic`).", correct: true, explanation: "Exact. Pour un appel simple sans tools, l'API est plus directe, moins de dépendances, latence moindre." },
-    { text: "Claude Code CLI en mode headless.", correct: false, explanation: "Tu lancerais un process CLI à chaque requête — coût de démarrage + complexité de parsing stdout." },
-    { text: "GitHub Actions.", correct: false, explanation: "Sans rapport — GitHub Actions est pour du CI, pas un endpoint API." }
+    {
+      text: "Agent SDK avec `allowed_tools=[]`.",
+      correct: false,
+      explanation:
+        "Possible mais overkill — tu payes la complexité de la boucle agentique pour rien.",
+    },
+    {
+      text: "API brute Anthropic (package `anthropic`).",
+      correct: true,
+      explanation:
+        "Exact. Pour un appel simple sans tools, l'API est plus directe, moins de dépendances, latence moindre.",
+    },
+    {
+      text: "Claude Code CLI en mode headless.",
+      correct: false,
+      explanation:
+        "Tu lancerais un process CLI à chaque requête — coût de démarrage + complexité de parsing stdout.",
+    },
+    {
+      text: "GitHub Actions.",
+      correct: false,
+      explanation:
+        "Sans rapport — GitHub Actions est pour du CI, pas un endpoint API.",
+    },
   ]}
 />
 
@@ -253,10 +273,27 @@ Tu as des hooks dans `.claude/settings.json` qui appellent des scripts locaux. S
   scenario="Ton endpoint reçoit 1000 requêtes/jour, avec `max_turns=50` et model Opus."
   question="Quel est le risque principal ?"
   options={[
-    { text: "Latence trop haute.", correct: false, explanation: "Réel mais pas le plus grave." },
-    { text: "Facture explosive + loops qui ne se terminent jamais.", correct: true, explanation: "Exact. max_turns haut + Opus = chaque run potentiellement cher. Et 50 tours, c'est souvent un signe que le prompt pousse l'agent dans une loop infinie. Plafonner à 8-10 est presque toujours le bon réflexe." },
-    { text: "Pas de streaming possible.", correct: false, explanation: "Le streaming marche indépendamment de max_turns." },
-    { text: "L'API key expire.", correct: false, explanation: "Les API keys ne tournent pas automatiquement." }
+    {
+      text: "Latence trop haute.",
+      correct: false,
+      explanation: "Réel mais pas le plus grave.",
+    },
+    {
+      text: "Facture explosive + loops qui ne se terminent jamais.",
+      correct: true,
+      explanation:
+        "Exact. max_turns haut + Opus = chaque run potentiellement cher. Et 50 tours, c'est souvent un signe que le prompt pousse l'agent dans une loop infinie. Plafonner à 8-10 est presque toujours le bon réflexe.",
+    },
+    {
+      text: "Pas de streaming possible.",
+      correct: false,
+      explanation: "Le streaming marche indépendamment de max_turns.",
+    },
+    {
+      text: "L'API key expire.",
+      correct: false,
+      explanation: "Les API keys ne tournent pas automatiquement.",
+    },
   ]}
 />
 

@@ -9,18 +9,18 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~90 min** · Scripts dans [`labs/lab-04-routines/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-04-routines)
 
 <Situation>
   Variant du Lab 04. On sort de GitHub Actions pour déployer **une vraie routine
   côté serveur** : un cron quotidien qui produit un digest, un endpoint webhook
-  pour trigger manuel, et toute la quincaillerie qui va avec —
-  **idempotence**, **retry exponentiel**, **DLQ**, **HMAC**. Ce sont les
-  patterns qui empêchent une routine de rejouer 3× la même action ou de perdre
-  silencieusement des événements.
+  pour trigger manuel, et toute la quincaillerie qui va avec — **idempotence**,
+  **retry exponentiel**, **DLQ**, **HMAC**. Ce sont les patterns qui empêchent
+  une routine de rejouer 3× la même action ou de perdre silencieusement des
+  événements.
 </Situation>
 
 ## Objectif
@@ -51,14 +51,37 @@ pip install -r requirements.txt
   labId="lab-04-routines"
   title="Lab 04 alt — Checklist"
   steps={[
-    { id: 'idempotence', label: 'lib/idempotence.py — clé déterministe + store SQLite' },
-    { id: 'retry', label: 'lib/retry.py — décorateur retry + backoff exponentiel + jitter' },
-    { id: 'dlq', label: 'lib/dlq.py — push vers dlq.jsonl si échec persistant' },
-    { id: 'cron', label: 'daily_digest.py — entrypoint cron, idempotent par date' },
-    { id: 'webhook', label: 'webhook.py — FastAPI + vérification HMAC + 401 si signature invalide' },
-    { id: 'crontab', label: 'crontab.example — entrée cron prête à coller' },
-    { id: 'tests', label: 'tests/ pytest verts (idempotence, retry, DLQ, HMAC)' },
-    { id: 'validate', label: 'validate.sh — tests + structure + sanity', hint: 'bash labs/lab-04-routines/validate.sh' },
+    {
+      id: "idempotence",
+      label: "lib/idempotence.py — clé déterministe + store SQLite",
+    },
+    {
+      id: "retry",
+      label: "lib/retry.py — décorateur retry + backoff exponentiel + jitter",
+    },
+    {
+      id: "dlq",
+      label: "lib/dlq.py — push vers dlq.jsonl si échec persistant",
+    },
+    {
+      id: "cron",
+      label: "daily_digest.py — entrypoint cron, idempotent par date",
+    },
+    {
+      id: "webhook",
+      label:
+        "webhook.py — FastAPI + vérification HMAC + 401 si signature invalide",
+    },
+    { id: "crontab", label: "crontab.example — entrée cron prête à coller" },
+    {
+      id: "tests",
+      label: "tests/ pytest verts (idempotence, retry, DLQ, HMAC)",
+    },
+    {
+      id: "validate",
+      label: "validate.sh — tests + structure + sanity",
+      hint: "bash labs/lab-04-routines/validate.sh",
+    },
   ]}
 />
 

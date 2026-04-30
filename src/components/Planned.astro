@@ -24,14 +24,18 @@ const { session, blocs = [] } = Astro.props;
   </div>
   <div class="cm-planned-body">
     <slot />
-    {blocs.length > 0 && (
-      <>
-        <p class="cm-planned-sources-label">Sources Doc B :</p>
-        <ul class="cm-planned-sources">
-          {blocs.map((b) => <li>{b}</li>)}
-        </ul>
-      </>
-    )}
+    {
+      blocs.length > 0 && (
+        <>
+          <p class="cm-planned-sources-label">Sources Doc B :</p>
+          <ul class="cm-planned-sources">
+            {blocs.map((b) => (
+              <li>{b}</li>
+            ))}
+          </ul>
+        </>
+      )
+    }
   </div>
 </aside>
 

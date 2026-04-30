@@ -1,0 +1,24 @@
+# Build artifacts
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Local data
+src/data/progress.json
+
+# Lab work directories (regénérés à chaque setup.sh)
+labs/*/work/
+
+# Lab sub-projects gardent leurs propres conventions
+labs/*/starter/
+labs/*/solution/
+
+# Empty scaffold dirs
+anki-decks/
+obsidian-vault/
+
+# OS
+.DS_Store

@@ -63,7 +63,9 @@ export default function ArchitectureChallenge({
         </div>
       )}
 
-      <label style={{ display: 'block', fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.25rem' }}>
+      <label
+        style={{ display: 'block', fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.25rem' }}
+      >
         {prompt}
       </label>
       <textarea
@@ -106,7 +108,14 @@ export default function ArchitectureChallenge({
                 <p style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '0.9rem' }}>
                   {a.description}
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.75rem',
+                    fontSize: '0.85rem',
+                  }}
+                >
                   <div>
                     <strong style={{ color: 'var(--cm-success-fg)' }}>+ Pour</strong>
                     <ul style={{ margin: '0.25rem 0 0 1rem', padding: 0 }}>

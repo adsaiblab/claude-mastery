@@ -8,45 +8,45 @@ draft: false
 
 ## Natives — session
 
-| Commande | Effet |
-|----------|-------|
-| `/help` | Affiche l'aide. |
-| `/clear` | Vide tout le contexte conversationnel. |
-| `/compact` | Résume l'historique pour libérer de la place. |
-| `/fork` | Crée une nouvelle session héritant du contexte courant. |
-| `/resume <id>` | Reprend une session par ID. |
-| `/rename <name>` | Renomme la session courante. |
-| `/branch` | Branche vers une nouvelle sous-session liée. |
+| Commande         | Effet                                                   |
+| ---------------- | ------------------------------------------------------- |
+| `/help`          | Affiche l'aide.                                         |
+| `/clear`         | Vide tout le contexte conversationnel.                  |
+| `/compact`       | Résume l'historique pour libérer de la place.           |
+| `/fork`          | Crée une nouvelle session héritant du contexte courant. |
+| `/resume <id>`   | Reprend une session par ID.                             |
+| `/rename <name>` | Renomme la session courante.                            |
+| `/branch`        | Branche vers une nouvelle sous-session liée.            |
 
 ## Natives — configuration
 
-| Commande | Effet |
-|----------|-------|
-| `/model` | Switch de modèle à chaud. |
-| `/fast` | Toggle Fast mode (Opus 4.6 plus rapide). |
-| `/permissions` | Affiche/édite les permissions courantes. |
-| `/hooks` | Affiche les hooks configurés. |
-| `/agents` | Liste les subagents disponibles. |
-| `/mcp` | Liste les serveurs MCP. |
-| `/plugin` | Gère les plugins (`install`, `uninstall`, `list`). |
-| `/skill` | Liste/invoque les skills. |
-| `/output-style` | Change le style de sortie. |
+| Commande        | Effet                                              |
+| --------------- | -------------------------------------------------- |
+| `/model`        | Switch de modèle à chaud.                          |
+| `/fast`         | Toggle Fast mode (Opus 4.6 plus rapide).           |
+| `/permissions`  | Affiche/édite les permissions courantes.           |
+| `/hooks`        | Affiche les hooks configurés.                      |
+| `/agents`       | Liste les subagents disponibles.                   |
+| `/mcp`          | Liste les serveurs MCP.                            |
+| `/plugin`       | Gère les plugins (`install`, `uninstall`, `list`). |
+| `/skill`        | Liste/invoque les skills.                          |
+| `/output-style` | Change le style de sortie.                         |
 
 ## Natives — auth et infra
 
-| Commande | Effet |
-|----------|-------|
-| `/login` | Authentifie via OAuth ou clé API. |
-| `/logout` | Déconnecte. |
-| `/status` | Stats de la session (tokens, durée, model). |
+| Commande        | Effet                                          |
+| --------------- | ---------------------------------------------- |
+| `/login`        | Authentifie via OAuth ou clé API.              |
+| `/logout`       | Déconnecte.                                    |
+| `/status`       | Stats de la session (tokens, durée, model).    |
 | `/cleanup-team` | Nettoie les sous-agents Agent Teams orphelins. |
 
 ## Natives — meta
 
-| Commande | Effet |
-|----------|-------|
-| `/init` | Crée un `CLAUDE.md` initial. |
-| `/feedback` | Ouvre le repo pour reporter un bug. |
+| Commande         | Effet                                       |
+| ---------------- | ------------------------------------------- |
+| `/init`          | Crée un `CLAUDE.md` initial.                |
+| `/feedback`      | Ouvre le repo pour reporter un bug.         |
 | `/release-notes` | Affiche les changes de la dernière version. |
 
 ## Créer une commande custom
@@ -74,20 +74,20 @@ Invocation : `/audit src/utils/cache.ts` → `$ARGUMENTS` = `"src/utils/cache.ts
 
 ## Frontmatter accepté
 
-| Champ | Usage |
-|-------|-------|
-| `description` | Affiché dans l'autocomplétion `/`. |
-| `argument-hint` | Indication d'arguments. |
+| Champ           | Usage                                |
+| --------------- | ------------------------------------ |
+| `description`   | Affiché dans l'autocomplétion `/`.   |
+| `argument-hint` | Indication d'arguments.              |
 | `allowed-tools` | Tools autorisés pendant la commande. |
-| `model` | Modèle forcé. |
+| `model`         | Modèle forcé.                        |
 
 ## Body — variables disponibles
 
-| Variable | Contenu |
-|----------|---------|
-| `$ARGUMENTS` | Tout ce qui suit le nom de la commande. |
+| Variable        | Contenu                                    |
+| --------------- | ------------------------------------------ |
+| `$ARGUMENTS`    | Tout ce qui suit le nom de la commande.    |
 | `$1`, `$2`, ... | Arguments positionnels (split par espace). |
-| `$CWD` | Working directory. |
+| `$CWD`          | Working directory.                         |
 
 ## Bonnes pratiques
 

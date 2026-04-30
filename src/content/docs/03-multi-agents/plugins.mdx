@@ -6,12 +6,12 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Tu as mis au point une pipeline `Planner + Implementer + Judge` qui marche bien
-  chez toi. Deux collègues la veulent. Tu pourrais envoyer un zip de
+  Tu as mis au point une pipeline `Planner + Implementer + Judge` qui marche
+  bien chez toi. Deux collègues la veulent. Tu pourrais envoyer un zip de
   `.claude/agents/`, mais demain tu corrigeras un bug dans le judge — comment le
   propager ? Les **plugins** résolvent ça : un bundle versionné, installable en
   une commande, mis à jour comme un package npm.
@@ -93,9 +93,9 @@ Alternativement, la commande interactive `/plugins` dans une session ouvre un TU
 
 ## Les 2 marketplaces
 
-| Marketplace | Qui publie | Confiance |
-|-------------|-----------|-----------|
-| **Officiel Anthropic** | Anthropic + partenaires validés | Haute — review manuelle |
+| Marketplace               | Qui publie                         | Confiance                          |
+| ------------------------- | ---------------------------------- | ---------------------------------- |
+| **Officiel Anthropic**    | Anthropic + partenaires validés    | Haute — review manuelle            |
 | **Tiers / communautaire** | Tout le monde (ex: GitHub publics) | Variable — review le code toi-même |
 
 **Règle de sécurité** : un plugin **exécute du code** sur ta machine (hooks, scripts MCP). Avant d'installer un plugin tiers, lis au minimum :
@@ -144,7 +144,7 @@ Les plugins suivent SemVer : `MAJOR.MINOR.PATCH`. La commande `claude plugin upd
 ```json
 {
   "plugins": {
-    "doer-judge": "^1.2.0"    // autorise 1.x.x, pas 2.x.x
+    "doer-judge": "^1.2.0" // autorise 1.x.x, pas 2.x.x
   }
 }
 ```
@@ -168,12 +168,12 @@ Sans plugin, ton `.claude/` contient **ton** code. Avec plugin, du **code tiers*
 
 ## Exemples de plugins utiles
 
-| Plugin | Contenu | Usage |
-|--------|---------|-------|
-| `doer-judge` | Planner + Implementer + Judge + hook Stop | Qualité automatique |
-| `rfc-toolkit` | Skill RFC + agent reviewer + `/rfc-new` | Productivité écriture |
-| `ops-pack` | MCP sentry, datadog, pagerduty + agents incident | Bug triage |
-| `data-science` | Skills pandas/jupyter + agent notebook-writer | Analyse de données |
+| Plugin         | Contenu                                          | Usage                 |
+| -------------- | ------------------------------------------------ | --------------------- |
+| `doer-judge`   | Planner + Implementer + Judge + hook Stop        | Qualité automatique   |
+| `rfc-toolkit`  | Skill RFC + agent reviewer + `/rfc-new`          | Productivité écriture |
+| `ops-pack`     | MCP sentry, datadog, pagerduty + agents incident | Bug triage            |
+| `data-science` | Skills pandas/jupyter + agent notebook-writer    | Analyse de données    |
 
 ## Démo — créer et tester un plugin minimal
 
@@ -232,10 +232,30 @@ Un plugin tiers peut ne plus être maintenu. Avant d'en adopter un pour ton équ
   scenario="Tu as 3 agents + 2 hooks + 1 MCP config qui marchent bien chez toi, et ton équipe de 5 dev veut en profiter."
   question="Qu'est-ce qui est le plus adapté ?"
   options={[
-    { text: "Envoyer un zip de `.claude/` à chacun.", correct: false, explanation: "Pas versionné, pas updatable, divergence garantie dans 2 semaines." },
-    { text: "Packager en plugin avec `plugin.json` puis `claude plugin install` depuis le repo Git commun.", correct: true, explanation: "Exact. Version, update, désactivation — tout ce qui manque à une copie manuelle. Et les collègues restent en phase." },
-    { text: "Committer tout dans leur repo de projet.", correct: false, explanation: "Possible si c'est spécifique au projet, mais un plugin est plus propre pour un ensemble d'agents génériques réutilisables." },
-    { text: "Un subagent unique qui fait les 3.", correct: false, explanation: "Ne packagé ni les hooks ni le MCP, et une soupe monolithique." }
+    {
+      text: "Envoyer un zip de `.claude/` à chacun.",
+      correct: false,
+      explanation:
+        "Pas versionné, pas updatable, divergence garantie dans 2 semaines.",
+    },
+    {
+      text: "Packager en plugin avec `plugin.json` puis `claude plugin install` depuis le repo Git commun.",
+      correct: true,
+      explanation:
+        "Exact. Version, update, désactivation — tout ce qui manque à une copie manuelle. Et les collègues restent en phase.",
+    },
+    {
+      text: "Committer tout dans leur repo de projet.",
+      correct: false,
+      explanation:
+        "Possible si c'est spécifique au projet, mais un plugin est plus propre pour un ensemble d'agents génériques réutilisables.",
+    },
+    {
+      text: "Un subagent unique qui fait les 3.",
+      correct: false,
+      explanation:
+        "Ne packagé ni les hooks ni le MCP, et une soupe monolithique.",
+    },
   ]}
 />
 
@@ -245,10 +265,30 @@ Un plugin tiers peut ne plus être maintenu. Avant d'en adopter un pour ton équ
   scenario="Un collègue te dit : 'installe ce plugin tiers trouvé sur GitHub, il a un hook qui gère les notifs Slack.'"
   question="Que vérifies-tu avant `claude plugin install` ?"
   options={[
-    { text: "Rien, c'est Claude Code qui me protège.", correct: false, explanation: "Claude Code fait tourner le code du plugin — il ne l'audite pas. C'est à toi de vérifier." },
-    { text: "Je lis `plugin.json` (permissions), grep `hooks/` pour les commandes sensibles, je vérifie qu'aucun endpoint externe suspect n'apparaît.", correct: true, explanation: "Exact. Un plugin exécute du code sur ta machine. Review avant install = hygiène minimale." },
-    { text: "Je l'installe mais uniquement en mode plan.", correct: false, explanation: "Le mode plan ne protège pas contre un hook qui exécute un script." },
-    { text: "J'installe et je `/cleanup-team` si ça me plaît pas.", correct: false, explanation: "`/cleanup-team` concerne les teammates, pas les plugins. Et un script malicieux a déjà tourné." }
+    {
+      text: "Rien, c'est Claude Code qui me protège.",
+      correct: false,
+      explanation:
+        "Claude Code fait tourner le code du plugin — il ne l'audite pas. C'est à toi de vérifier.",
+    },
+    {
+      text: "Je lis `plugin.json` (permissions), grep `hooks/` pour les commandes sensibles, je vérifie qu'aucun endpoint externe suspect n'apparaît.",
+      correct: true,
+      explanation:
+        "Exact. Un plugin exécute du code sur ta machine. Review avant install = hygiène minimale.",
+    },
+    {
+      text: "Je l'installe mais uniquement en mode plan.",
+      correct: false,
+      explanation:
+        "Le mode plan ne protège pas contre un hook qui exécute un script.",
+    },
+    {
+      text: "J'installe et je `/cleanup-team` si ça me plaît pas.",
+      correct: false,
+      explanation:
+        "`/cleanup-team` concerne les teammates, pas les plugins. Et un script malicieux a déjà tourné.",
+    },
   ]}
 />
 

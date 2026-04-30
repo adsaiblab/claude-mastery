@@ -9,12 +9,7 @@ export interface FlipCardProps {
   backLabel?: string;
 }
 
-export default function FlipCard({
-  front,
-  back,
-  frontLabel,
-  backLabel,
-}: FlipCardProps) {
+export default function FlipCard({ front, back, frontLabel, backLabel }: FlipCardProps) {
   const [flipped, setFlipped] = useState(false);
   const toggle = useCallback(() => setFlipped((f) => !f), []);
 
@@ -38,7 +33,14 @@ export default function FlipCard({
       <div className="cm-flipcard-inner">
         <div className="cm-flipcard-face">
           {frontLabel && (
-            <span style={{ fontSize: '0.7rem', opacity: 0.6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                opacity: 0.6,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
               {frontLabel}
             </span>
           )}
@@ -46,7 +48,14 @@ export default function FlipCard({
         </div>
         <div className="cm-flipcard-face cm-flipcard-back">
           {backLabel && (
-            <span style={{ fontSize: '0.7rem', opacity: 0.6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                opacity: 0.6,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
               {backLabel}
             </span>
           )}

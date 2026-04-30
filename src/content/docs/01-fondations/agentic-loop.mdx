@@ -6,15 +6,15 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Tu écris : *"corrige le bug dans auth.ts"*. Tu vois passer des Bash, des Read, des
-  Edit, une relecture, puis une réponse. Entre ton prompt et la réponse finale,
-  Claude a enchaîné **une dizaine d'étapes autonomes** — pas parce qu'on lui a dit
-  de les faire, mais parce que c'est la nature d'un agent : boucler jusqu'à avoir
-  un résultat vérifié.
+  Tu écris : *"corrige le bug dans auth.ts"*. Tu vois passer des Bash, des Read,
+  des Edit, une relecture, puis une réponse. Entre ton prompt et la réponse
+  finale, Claude a enchaîné **une dizaine d'étapes autonomes** — pas parce qu'on
+  lui a dit de les faire, mais parce que c'est la nature d'un agent : boucler
+  jusqu'à avoir un résultat vérifié.
 </Situation>
 
 ## Concept — les 3 phases
@@ -70,25 +70,25 @@ S'il détecte un problème, il **replonge en phase 1** : il va chercher plus de 
 
 Un LLM sans outils ne peut que parler. Les outils sont ce qui le transforme en agent. Claude Code en a 5 familles :
 
-| # | Catégorie | Exemples | Rôle |
-|---|-----------|----------|------|
-| 1 | **Lecture** | `Read`, `Glob`, `Grep`, `NotebookRead` | Rassembler du contexte |
-| 2 | **Écriture** | `Write`, `Edit`, `NotebookEdit` | Modifier des fichiers |
-| 3 | **Exécution** | `Bash` | Lancer des processus, des tests |
-| 4 | **Délégation** | `Agent` (subagents), `TodoWrite` | Orchestrer, planifier |
-| 5 | **Web** | `WebFetch`, `WebSearch` | Info externe |
+| #   | Catégorie      | Exemples                               | Rôle                            |
+| --- | -------------- | -------------------------------------- | ------------------------------- |
+| 1   | **Lecture**    | `Read`, `Glob`, `Grep`, `NotebookRead` | Rassembler du contexte          |
+| 2   | **Écriture**   | `Write`, `Edit`, `NotebookEdit`        | Modifier des fichiers           |
+| 3   | **Exécution**  | `Bash`                                 | Lancer des processus, des tests |
+| 4   | **Délégation** | `Agent` (subagents), `TodoWrite`       | Orchestrer, planifier           |
+| 5   | **Web**        | `WebFetch`, `WebSearch`                | Info externe                    |
 
 S'ajoutent à ça les outils **MCP** (branchés depuis l'extérieur) et les outils que tu **enable/disable** via `--allowed-tools`.
 
 ## Différence fondamentale avec un copilote
 
-| | Copilote (autocomplétion) | Agent (Claude Code) |
-|---|---|---|
-| Input | Code courant | Intention + contexte |
-| Output | Un patch | Une série d'actions vérifiées |
-| Contrôle | Accepte/refuse | Interrompt/guide |
-| Vérification | Toi | Lui, puis toi |
-| Durée d'une interaction | Secondes | Secondes à plusieurs minutes |
+|                         | Copilote (autocomplétion) | Agent (Claude Code)           |
+| ----------------------- | ------------------------- | ----------------------------- |
+| Input                   | Code courant              | Intention + contexte          |
+| Output                  | Un patch                  | Une série d'actions vérifiées |
+| Contrôle                | Accepte/refuse            | Interrompt/guide              |
+| Vérification            | Toi                       | Lui, puis toi                 |
+| Durée d'une interaction | Secondes                  | Secondes à plusieurs minutes  |
 
 Un copilote **prédit ta prochaine frappe**. Un agent **exécute une tâche**. Ce sont deux métaphores différentes — s'attendre à un comportement d'agent quand on utilise un copilote (et vice-versa) est la source #1 de frustration.
 
@@ -124,7 +124,7 @@ Tu peux interrompre la boucle à tout moment avec `Esc` (ou `Ctrl+C` dans certai
 - L'agent a lu 15 fichiers inutiles → `Esc`, tu pointes le bon fichier.
 - L'agent modifie un fichier que tu ne voulais pas toucher → `Esc + Esc` (rewind, cf. Niveau 2).
 
-**Règle d'or** : intervenir *tôt* dans la boucle coûte moins cher que laisser faire puis rewind. Si à la 2ᵉ lecture d'un fichier non pertinent tu vois qu'il part en vrille, arrête-le.
+**Règle d'or** : intervenir _tôt_ dans la boucle coûte moins cher que laisser faire puis rewind. Si à la 2ᵉ lecture d'un fichier non pertinent tu vois qu'il part en vrille, arrête-le.
 
 ## Check
 
@@ -133,10 +133,30 @@ Tu peux interrompre la boucle à tout moment avec `Esc` (ou `Ctrl+C` dans certai
   id="loop-phases"
   question="Dans l'agentic loop, quelle phase correspond à 'l'agent relit le fichier qu'il vient de modifier et lance les tests' ?"
   options={[
-    { text: "Gather context", correct: false, explanation: "Gather c'est rassembler l'info avant d'agir — typiquement au début d'un cycle ou avant un nouveau fichier." },
-    { text: "Take action", correct: false, explanation: "Take action c'est l'étape où l'agent modifie/crée/exécute. Relire un fichier déjà modifié n'est pas un 'act'." },
-    { text: "Verify results", correct: true, explanation: "Exactement — c'est la phase de vérification : l'agent contrôle que son action a bien produit le résultat attendu avant de répondre." },
-    { text: "Aucune — c'est fait par l'utilisateur", correct: false, explanation: "Non, un agent vérifie son propre travail. C'est précisément ce qui le distingue d'un copilote." }
+    {
+      text: "Gather context",
+      correct: false,
+      explanation:
+        "Gather c'est rassembler l'info avant d'agir — typiquement au début d'un cycle ou avant un nouveau fichier.",
+    },
+    {
+      text: "Take action",
+      correct: false,
+      explanation:
+        "Take action c'est l'étape où l'agent modifie/crée/exécute. Relire un fichier déjà modifié n'est pas un 'act'.",
+    },
+    {
+      text: "Verify results",
+      correct: true,
+      explanation:
+        "Exactement — c'est la phase de vérification : l'agent contrôle que son action a bien produit le résultat attendu avant de répondre.",
+    },
+    {
+      text: "Aucune — c'est fait par l'utilisateur",
+      correct: false,
+      explanation:
+        "Non, un agent vérifie son propre travail. C'est précisément ce qui le distingue d'un copilote.",
+    },
   ]}
 />
 
@@ -146,10 +166,29 @@ Tu peux interrompre la boucle à tout moment avec `Esc` (ou `Ctrl+C` dans certai
   scenario="Ton collègue dit : 'Claude Code, c'est comme Copilot mais dans un terminal.'"
   question="Quelle est la correction la plus importante à apporter ?"
   options={[
-    { text: "Aucune — c'est équivalent", correct: false, explanation: "Non, la différence est structurelle, pas cosmétique." },
-    { text: "Claude Code exécute des outils et vérifie son travail, Copilot prédit une complétion.", correct: true, explanation: "C'est LA distinction : Copilot est un prédicteur de tokens ; Claude Code est un agent qui boucle (gather → act → verify) pour accomplir une tâche. Deux métaphores différentes, deux usages différents." },
-    { text: "Claude Code est plus intelligent parce qu'il utilise un modèle plus gros.", correct: false, explanation: "La différence n'est pas la taille du modèle, c'est l'architecture : boucle agentique vs prédiction ponctuelle." },
-    { text: "Claude Code ne marche que dans le terminal, Copilot dans tous les IDE.", correct: false, explanation: "C'est accessoire. Claude Code a des intégrations IDE ; ce qui compte c'est sa nature d'agent." }
+    {
+      text: "Aucune — c'est équivalent",
+      correct: false,
+      explanation: "Non, la différence est structurelle, pas cosmétique.",
+    },
+    {
+      text: "Claude Code exécute des outils et vérifie son travail, Copilot prédit une complétion.",
+      correct: true,
+      explanation:
+        "C'est LA distinction : Copilot est un prédicteur de tokens ; Claude Code est un agent qui boucle (gather → act → verify) pour accomplir une tâche. Deux métaphores différentes, deux usages différents.",
+    },
+    {
+      text: "Claude Code est plus intelligent parce qu'il utilise un modèle plus gros.",
+      correct: false,
+      explanation:
+        "La différence n'est pas la taille du modèle, c'est l'architecture : boucle agentique vs prédiction ponctuelle.",
+    },
+    {
+      text: "Claude Code ne marche que dans le terminal, Copilot dans tous les IDE.",
+      correct: false,
+      explanation:
+        "C'est accessoire. Claude Code a des intégrations IDE ; ce qui compte c'est sa nature d'agent.",
+    },
   ]}
 />
 

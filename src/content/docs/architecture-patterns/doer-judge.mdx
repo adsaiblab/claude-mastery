@@ -41,7 +41,9 @@ description: Note un livrable sur grille fixe. N'a pas vu la conversation.
 tools: Read, Grep, Bash
 model: opus
 ---
+
 Tu reçois un artefact. Notes-le sur 5 critères (chacun /2) :
+
 - Correctness
 - Lisibilité
 - Tests
@@ -62,12 +64,18 @@ P1: <list>
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "hooks": [
-        { "type": "agent", "agent": "judge" },
-        { "type": "command", "command": ".claude/hooks/check-score.sh", "timeout": 10 }
-      ]
-    }]
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "agent", "agent": "judge" },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-score.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -102,12 +110,12 @@ echo $((count+1)) > .claude/memory/iteration_count.txt
 
 ## Pièges
 
-| Piège | Conséquence | Fix |
-|-------|-------------|-----|
-| Judge hérite du contexte du Doer | Mêmes biais, validation complaisante | `Agent()` frais avec subagent dédié |
-| Critères flous (ex: "que ce soit bien") | Score subjectif, instabilité | Grille concrète /N par critère |
-| Boucle infinie | Cost runaway | Cap `maxIterations` dans le hook |
-| Judge en Sonnet | Manque de jugement profond | Opus pour le Judge |
+| Piège                                   | Conséquence                          | Fix                                 |
+| --------------------------------------- | ------------------------------------ | ----------------------------------- |
+| Judge hérite du contexte du Doer        | Mêmes biais, validation complaisante | `Agent()` frais avec subagent dédié |
+| Critères flous (ex: "que ce soit bien") | Score subjectif, instabilité         | Grille concrète /N par critère      |
+| Boucle infinie                          | Cost runaway                         | Cap `maxIterations` dans le hook    |
+| Judge en Sonnet                         | Manque de jugement profond           | Opus pour le Judge                  |
 
 ## Coût typique
 

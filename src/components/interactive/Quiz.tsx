@@ -28,13 +28,7 @@ interface SavedState {
   correct: boolean;
 }
 
-export default function Quiz({
-  id,
-  scenario,
-  question,
-  options,
-  retry = true,
-}: QuizProps) {
+export default function Quiz({ id, scenario, question, options, retry = true }: QuizProps) {
   const storageKey = useMemo(() => `cm.quiz.${id}`, [id]);
   const [chosen, setChosen] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
@@ -117,7 +111,12 @@ export default function Quiz({
       )}
 
       {locked && retry && chosenOption && !chosenOption.correct && (
-        <button type="button" className="cm-button" onClick={reset} style={{ marginTop: '0.75rem' }}>
+        <button
+          type="button"
+          className="cm-button"
+          onClick={reset}
+          style={{ marginTop: '0.75rem' }}
+        >
           Réessayer
         </button>
       )}

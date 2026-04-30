@@ -27,7 +27,9 @@ function nodeKey(path: number[]): string {
 }
 
 export default function DecisionTree({ root, defaultOpen = false }: DecisionTreeProps) {
-  const [open, setOpen] = useState<Set<string>>(() => (defaultOpen ? new Set([nodeKey([])]) : new Set()));
+  const [open, setOpen] = useState<Set<string>>(() =>
+    defaultOpen ? new Set([nodeKey([])]) : new Set(),
+  );
 
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {

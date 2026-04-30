@@ -6,13 +6,13 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
+import Situation from "../../../components/Situation.astro";
 
 <Situation>
-  Avant d'attaquer le Niveau 1, dix minutes pour caler le **mode d'emploi** : rythme
-  conseillé, structure des modules, comment utiliser les labs, quand relancer
-  Claude à côté (ou pas), et comment relier ce parcours à **Anki** et **Obsidian**
-  si tu en utilises déjà.
+  Avant d'attaquer le Niveau 1, dix minutes pour caler le **mode d'emploi** :
+  rythme conseillé, structure des modules, comment utiliser les labs, quand
+  relancer Claude à côté (ou pas), et comment relier ce parcours à **Anki** et
+  **Obsidian** si tu en utilises déjà.
 </Situation>
 
 ## La structure d'un module
@@ -29,14 +29,14 @@ Chaque module du parcours suit **5 phases** dans cet ordre :
 
 ## Les niveaux et leur durée
 
-| Niveau | Focus | Durée estimée | Lab |
-|--------|-------|---------------|-----|
-| 0 — Orientation | Carte, quiz, mode d'emploi | **30 min** | — |
-| 1 — Fondations | Modèles, agentic loop, CLAUDE.md | **2h** | Lab 01 (30 min) |
-| 2 — CLI Mastery | Slash, hooks, checkpointing, permissions | **3h** | Lab 02 (60 min) |
-| 3 — Multi-agents | Subagents, Skills, MCP, Plugins | **3h** | Lab 03 (90 min) |
-| 4 — Production | GitHub Actions, SDK, sandboxing | **2h30** | Lab 04 (60 min) |
-| 5 — Expert | UltraPlan, Context engineering, Patterns | **2h** | Lab 05 (120 min, capstone) |
+| Niveau           | Focus                                    | Durée estimée | Lab                        |
+| ---------------- | ---------------------------------------- | ------------- | -------------------------- |
+| 0 — Orientation  | Carte, quiz, mode d'emploi               | **30 min**    | —                          |
+| 1 — Fondations   | Modèles, agentic loop, CLAUDE.md         | **2h**        | Lab 01 (30 min)            |
+| 2 — CLI Mastery  | Slash, hooks, checkpointing, permissions | **3h**        | Lab 02 (60 min)            |
+| 3 — Multi-agents | Subagents, Skills, MCP, Plugins          | **3h**        | Lab 03 (90 min)            |
+| 4 — Production   | GitHub Actions, SDK, sandboxing          | **2h30**      | Lab 04 (60 min)            |
+| 5 — Expert       | UltraPlan, Context engineering, Patterns | **2h**        | Lab 05 (120 min, capstone) |
 
 **Total : ~15h de travail effectif** si tu fais tout. L'objectif n'est pas de foncer — chaque niveau gagne à être digéré sur quelques jours.
 
@@ -44,14 +44,14 @@ Chaque module du parcours suit **5 phases** dans cet ordre :
 
 Pour faire les labs, il te faut :
 
-| Outil | Version minimale | Installation |
-|-------|------------------|--------------|
-| **Node.js** | 20.x | `nvm install 20` ou [nodejs.org](https://nodejs.org/) |
-| **Python** | 3.11+ | Pour le Niveau 4 (Agent SDK Python). `pyenv` recommandé. |
-| **Claude Code** | la plus récente | `npm install -g @anthropic-ai/claude-code` |
-| **Git** | n'importe laquelle moderne | Très probablement déjà installé |
-| **tmux** (optionnel) | — | Pour les sessions avancées du Niveau 2 |
-| **uv** (optionnel) | — | Gestion rapide de venvs Python au Niveau 4 |
+| Outil                | Version minimale           | Installation                                             |
+| -------------------- | -------------------------- | -------------------------------------------------------- |
+| **Node.js**          | 20.x                       | `nvm install 20` ou [nodejs.org](https://nodejs.org/)    |
+| **Python**           | 3.11+                      | Pour le Niveau 4 (Agent SDK Python). `pyenv` recommandé. |
+| **Claude Code**      | la plus récente            | `npm install -g @anthropic-ai/claude-code`               |
+| **Git**              | n'importe laquelle moderne | Très probablement déjà installé                          |
+| **tmux** (optionnel) | —                          | Pour les sessions avancées du Niveau 2                   |
+| **uv** (optionnel)   | —                          | Gestion rapide de venvs Python au Niveau 4               |
 
 Le Lab 01 vérifie ton setup complet avec un `validate.sh` coloré. **Fais-le dès le début du Niveau 1**, pas en cours de route.
 

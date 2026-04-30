@@ -1,10 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import {
-  CompletionSchema,
-  ProgressSchema,
-  QuizAnswerSchema,
-  type DbAdapter,
-} from './types';
+import { CompletionSchema, ProgressSchema, QuizAnswerSchema, type DbAdapter } from './types';
 
 /**
  * Adaptateur Supabase — utilisé en production (PUBLIC_ENV=production).
@@ -30,10 +25,7 @@ function getClient(): SupabaseClient {
 
 export const supabaseAdapter: DbAdapter = {
   async getProgress(userId) {
-    const { data, error } = await getClient()
-      .from('progress')
-      .select('*')
-      .eq('user_id', userId);
+    const { data, error } = await getClient().from('progress').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data ?? []).map((row) => ProgressSchema.parse(row));
   },
@@ -53,10 +45,7 @@ export const supabaseAdapter: DbAdapter = {
   },
 
   async listCompletions(userId) {
-    const { data, error } = await getClient()
-      .from('completions')
-      .select('*')
-      .eq('user_id', userId);
+    const { data, error } = await getClient().from('completions').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data ?? []).map((row) => CompletionSchema.parse(row));
   },

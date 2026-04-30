@@ -99,7 +99,8 @@ export const localAdapter: DbAdapter = {
     return serialize(async () => {
       const db = await readDb();
       const exists = db.completions.some(
-        (c) => c.user_id === parsed.user_id && c.item_id === parsed.item_id && c.kind === parsed.kind,
+        (c) =>
+          c.user_id === parsed.user_id && c.item_id === parsed.item_id && c.kind === parsed.kind,
       );
       if (!exists) db.completions.push(parsed);
       await writeDb(db);

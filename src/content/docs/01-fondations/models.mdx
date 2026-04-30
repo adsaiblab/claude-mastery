@@ -6,16 +6,16 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import FlipCard from '../../../components/interactive/FlipCard.tsx';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import FlipCard from "../../../components/interactive/FlipCard.tsx";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu ouvres Claude Code pour la première fois, tu tapes une question. Ça répond.
-  Tu ne sais pas **quel modèle** vient de te répondre, ni si c'était le bon choix.
-  Dans trois semaines, ta facture API arrive et tu comprends que 95% de tes requêtes
-  auraient pu tourner sur un modèle 10× moins cher — sans aucune perte de qualité.
-  Ce module évite cette facture.
+  Tu ne sais pas **quel modèle** vient de te répondre, ni si c'était le bon
+  choix. Dans trois semaines, ta facture API arrive et tu comprends que 95% de
+  tes requêtes auraient pu tourner sur un modèle 10× moins cher — sans aucune
+  perte de qualité. Ce module évite cette facture.
 </Situation>
 
 ## Concept — la famille Claude 4.X
@@ -30,7 +30,8 @@ Trois modèles, un seul principe : **plus on paie, plus on raisonne**. Il faut c
 
 Le plus puissant. Raisonnement long, code complexe, jugement. Coût élevé, latence plus haute. **Par défaut dans Claude Code interactif.**
 
-*Utilise-le pour :* architecture, debug difficile, review critique, UltraPlan/UltraReview, juger des sorties d'autres agents.
+_Utilise-le pour :_ architecture, debug difficile, review critique, UltraPlan/UltraReview, juger des sorties d'autres agents.
+
 </div>
 
 <div class="concept-card">
@@ -39,7 +40,8 @@ Le plus puissant. Raisonnement long, code complexe, jugement. Coût élevé, lat
 
 Équilibre qualité/coût. Très bon défaut pour des tâches d'implémentation avec un plan clair.
 
-*Utilise-le pour :* écrire du code à partir d'un plan, refactors, tests, documentation, subagents de travail courants.
+_Utilise-le pour :_ écrire du code à partir d'un plan, refactors, tests, documentation, subagents de travail courants.
+
 </div>
 
 <div class="concept-card">
@@ -48,7 +50,8 @@ Le plus puissant. Raisonnement long, code complexe, jugement. Coût élevé, lat
 
 Rapide et bon marché (~10× moins cher que Sonnet). Moins profond, très capable sur des tâches courtes et bien cadrées.
 
-*Utilise-le pour :* classification, tri, extraction, sous-tâches parallèles dans un fan-out, prétraitement.
+_Utilise-le pour :_ classification, tri, extraction, sous-tâches parallèles dans un fan-out, prétraitement.
+
 </div>
 
 </div>
@@ -154,23 +157,27 @@ Si le modèle demandé est indisponible (rate-limit, incident), Claude Code peut
     {
       text: "Opus pour tout — pour la qualité",
       correct: false,
-      explanation: "Gâchis. 95% du travail est de la classification. Opus 100× coûte 10× à 100× plus cher pour un gain nul sur ce type de tâche."
+      explanation:
+        "Gâchis. 95% du travail est de la classification. Opus 100× coûte 10× à 100× plus cher pour un gain nul sur ce type de tâche.",
     },
     {
       text: "Haiku pour classer chaque issue, Sonnet pour agréger le rapport",
       correct: true,
-      explanation: "Pattern canonique. Haiku est très bon pour la classification simple à grand volume. Sonnet apporte le raisonnement structuré sur l'agrégation finale. Opus n'est pas nécessaire ici."
+      explanation:
+        "Pattern canonique. Haiku est très bon pour la classification simple à grand volume. Sonnet apporte le raisonnement structuré sur l'agrégation finale. Opus n'est pas nécessaire ici.",
     },
     {
       text: "Sonnet pour tout",
       correct: false,
-      explanation: "Acceptable mais sur-dimensionné pour 100 classifications. Haiku fera le même job 10× moins cher sur la phase de classement."
+      explanation:
+        "Acceptable mais sur-dimensionné pour 100 classifications. Haiku fera le même job 10× moins cher sur la phase de classement.",
     },
     {
       text: "Aucun — tout doit passer par Opus pour la cohérence",
       correct: false,
-      explanation: "La 'cohérence' n'est pas meilleure avec un modèle plus cher. L'orchestration (prompts identiques + schéma de sortie) fait la cohérence, pas le modèle."
-    }
+      explanation:
+        "La 'cohérence' n'est pas meilleure avec un modèle plus cher. L'orchestration (prompts identiques + schéma de sortie) fait la cohérence, pas le modèle.",
+    },
   ]}
 />
 
@@ -179,10 +186,30 @@ Si le modèle demandé est indisponible (rate-limit, incident), Claude Code peut
   id="models-default"
   question="Dans Claude Code en mode interactif, quel modèle est utilisé par défaut ?"
   options={[
-    { text: "Haiku — pour aller vite", correct: false, explanation: "Trop faible pour le travail interactif où l'agent doit raisonner sur ton code." },
-    { text: "Sonnet", correct: false, explanation: "Proche, mais en 2026 le défaut interactif est Opus pour les tâches riches." },
-    { text: "Opus", correct: true, explanation: "Claude Code interactif utilise Opus par défaut pour maximiser la qualité du raisonnement sur ton code. Tu peux rétrograder à Sonnet/Haiku pour des tâches simples." },
-    { text: "Ça dépend du prompt", correct: false, explanation: "Non, le modèle est choisi au lancement ou via /model, pas inféré du prompt." }
+    {
+      text: "Haiku — pour aller vite",
+      correct: false,
+      explanation:
+        "Trop faible pour le travail interactif où l'agent doit raisonner sur ton code.",
+    },
+    {
+      text: "Sonnet",
+      correct: false,
+      explanation:
+        "Proche, mais en 2026 le défaut interactif est Opus pour les tâches riches.",
+    },
+    {
+      text: "Opus",
+      correct: true,
+      explanation:
+        "Claude Code interactif utilise Opus par défaut pour maximiser la qualité du raisonnement sur ton code. Tu peux rétrograder à Sonnet/Haiku pour des tâches simples.",
+    },
+    {
+      text: "Ça dépend du prompt",
+      correct: false,
+      explanation:
+        "Non, le modèle est choisi au lancement ou via /model, pas inféré du prompt.",
+    },
   ]}
 />
 

@@ -9,16 +9,16 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~45 min** · Shell scripts dans [`labs/lab-01-setup/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-01-setup)
 
 <Situation>
-  Tu clones le starter d'un petit module Node. Tu dois le transformer en **projet
-  Claude-ready** : un `CLAUDE.md` qui sert, une mémoire typée qui survivra à tes
-  sessions, et la preuve que tu peux fermer ton terminal et revenir sans rien perdre.
-  Tout ça en **45 minutes**.
+  Tu clones le starter d'un petit module Node. Tu dois le transformer en
+  **projet Claude-ready** : un `CLAUDE.md` qui sert, une mémoire typée qui
+  survivra à tes sessions, et la preuve que tu peux fermer ton terminal et
+  revenir sans rien perdre. Tout ça en **45 minutes**.
 </Situation>
 
 ## Objectif
@@ -48,12 +48,29 @@ Tout ton travail se passe dans `work/` (qui est gitignoré — tu peux tout cass
   labId="lab-01-setup"
   title="Lab 01 — Checklist"
   steps={[
-    { id: 'init', label: 'Cloner le starter et lancer setup.sh', hint: 'bash labs/lab-01-setup/setup.sh' },
-    { id: 'claude-md', label: 'Écrire un CLAUDE.md adapté (<150 instructions)' },
-    { id: 'settings', label: 'Configurer .claude/settings.json (permissions.allow minimal)' },
-    { id: 'mode', label: 'Tester les permission modes (default, acceptEdits, plan)' },
-    { id: 'session', label: 'Nommer la session et utiliser /rewind' },
-    { id: 'validate', label: 'Exécuter validate.sh — tous les checks verts', hint: 'bash labs/lab-01-setup/validate.sh' },
+    {
+      id: "init",
+      label: "Cloner le starter et lancer setup.sh",
+      hint: "bash labs/lab-01-setup/setup.sh",
+    },
+    {
+      id: "claude-md",
+      label: "Écrire un CLAUDE.md adapté (<150 instructions)",
+    },
+    {
+      id: "settings",
+      label: "Configurer .claude/settings.json (permissions.allow minimal)",
+    },
+    {
+      id: "mode",
+      label: "Tester les permission modes (default, acceptEdits, plan)",
+    },
+    { id: "session", label: "Nommer la session et utiliser /rewind" },
+    {
+      id: "validate",
+      label: "Exécuter validate.sh — tous les checks verts",
+      hint: "bash labs/lab-01-setup/validate.sh",
+    },
   ]}
 />
 

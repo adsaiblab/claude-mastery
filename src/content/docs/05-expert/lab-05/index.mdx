@@ -9,8 +9,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../../components/Situation.astro';
-import LabProgress from '../../../../components/interactive/LabProgress.tsx';
+import Situation from "../../../../components/Situation.astro";
+import LabProgress from "../../../../components/interactive/LabProgress.tsx";
 
 > **Durée : ~120 min** · Scripts dans [`labs/lab-05-cowork/`](https://github.com/tonrepo/claude-mastery/tree/main/labs/lab-05-cowork)
 
@@ -57,14 +57,41 @@ Et dans `.claude/`:
   labId="lab-05-cowork"
   title="Lab 05 — Checklist"
   steps={[
-    { id: 'baseline', label: 'Produire la version one-shot (baseline.md + code dans baseline/)' },
-    { id: 'plan', label: 'Exécuter ultra-planner — produire plan.md versionné' },
-    { id: 'review', label: 'Exécuter ultra-reviewer — revised-plan.md avec ≥ 3 concerns' },
-    { id: 'implement', label: 'Exécuter ultra-implementer en worktree — tests verts' },
-    { id: 'judge', label: 'Exécuter ultra-judge sur les 2 versions — verdict-baseline.md + verdict-cycle.md' },
-    { id: 'memory', label: 'Mémoire typée : MEMORY.md + project_<sujet>.md mis à jour' },
-    { id: 'compare', label: 'diff.md : tableau comparatif baseline vs cycle (durée, tokens, score, concerns)' },
-    { id: 'validate', label: 'validate.sh — artefacts présents + score cycle > baseline', hint: 'bash labs/lab-05-cowork/validate.sh' },
+    {
+      id: "baseline",
+      label: "Produire la version one-shot (baseline.md + code dans baseline/)",
+    },
+    {
+      id: "plan",
+      label: "Exécuter ultra-planner — produire plan.md versionné",
+    },
+    {
+      id: "review",
+      label: "Exécuter ultra-reviewer — revised-plan.md avec ≥ 3 concerns",
+    },
+    {
+      id: "implement",
+      label: "Exécuter ultra-implementer en worktree — tests verts",
+    },
+    {
+      id: "judge",
+      label:
+        "Exécuter ultra-judge sur les 2 versions — verdict-baseline.md + verdict-cycle.md",
+    },
+    {
+      id: "memory",
+      label: "Mémoire typée : MEMORY.md + project_<sujet>.md mis à jour",
+    },
+    {
+      id: "compare",
+      label:
+        "diff.md : tableau comparatif baseline vs cycle (durée, tokens, score, concerns)",
+    },
+    {
+      id: "validate",
+      label: "validate.sh — artefacts présents + score cycle > baseline",
+      hint: "bash labs/lab-05-cowork/validate.sh",
+    },
   ]}
 />
 

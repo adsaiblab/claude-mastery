@@ -10,58 +10,58 @@ Référence rapide. La source faisant autorité reste `claude --help`.
 
 ## Mode et exécution
 
-| Flag | Alias | Défaut | Usage |
-|------|-------|--------|-------|
-| `--print` | `-p` | off | Mode non-interactif. Imprime la réponse et sort. |
-| `--continue` | `-c` | — | Reprend la dernière session du cwd. |
-| `--resume <id>` | — | — | Reprend une session par ID. |
-| `--fork-session <id>` | — | — | Démarre une nouvelle session héritant du contexte de `<id>`. |
-| `--name <n>` | `-n` | — | Étiquette la session pour la retrouver. |
-| `--session-id <id>` | — | — | Force un ID de session précis (utile pour scripts). |
+| Flag                  | Alias | Défaut | Usage                                                        |
+| --------------------- | ----- | ------ | ------------------------------------------------------------ |
+| `--print`             | `-p`  | off    | Mode non-interactif. Imprime la réponse et sort.             |
+| `--continue`          | `-c`  | —      | Reprend la dernière session du cwd.                          |
+| `--resume <id>`       | —     | —      | Reprend une session par ID.                                  |
+| `--fork-session <id>` | —     | —      | Démarre une nouvelle session héritant du contexte de `<id>`. |
+| `--name <n>`          | `-n`  | —      | Étiquette la session pour la retrouver.                      |
+| `--session-id <id>`   | —     | —      | Force un ID de session précis (utile pour scripts).          |
 
 ## Modèle
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--model <name>` | settings | `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`. |
-| `--fallback-model <name>` | none | Modèle de repli si le primaire est down/saturé. |
+| Flag                      | Défaut   | Usage                                                                |
+| ------------------------- | -------- | -------------------------------------------------------------------- |
+| `--model <name>`          | settings | `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`. |
+| `--fallback-model <name>` | none     | Modèle de repli si le primaire est down/saturé.                      |
 
 ## Permissions et tools
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--permission-mode <mode>` | `default` | `default` / `acceptEdits` / `plan` / `bypassPermissions`. |
-| `--allowed-tools <list>` | — | Whitelist : `"Read,Edit,Bash(git:*)"`. |
-| `--disallowed-tools <list>` | — | Blacklist : `"WebFetch,Bash(rm:*)"`. |
-| `--dangerously-skip-permissions` | off | Désactive **toutes** les invites. À utiliser uniquement en sandbox. |
+| Flag                             | Défaut    | Usage                                                               |
+| -------------------------------- | --------- | ------------------------------------------------------------------- |
+| `--permission-mode <mode>`       | `default` | `default` / `acceptEdits` / `plan` / `bypassPermissions`.           |
+| `--allowed-tools <list>`         | —         | Whitelist : `"Read,Edit,Bash(git:*)"`.                              |
+| `--disallowed-tools <list>`      | —         | Blacklist : `"WebFetch,Bash(rm:*)"`.                                |
+| `--dangerously-skip-permissions` | off       | Désactive **toutes** les invites. À utiliser uniquement en sandbox. |
 
 ## Contexte et FS
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--add-dir <path>` | — | Étend le cwd accessible (multi-répétable). |
-| `--cwd <path>` | $PWD | Force le working directory. |
+| Flag               | Défaut | Usage                                      |
+| ------------------ | ------ | ------------------------------------------ |
+| `--add-dir <path>` | —      | Étend le cwd accessible (multi-répétable). |
+| `--cwd <path>`     | $PWD   | Force le working directory.                |
 
 ## MCP
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--mcp-config <file>` | `.mcp.json` | Charge un fichier de config MCP alternatif. |
-| `--mcp-debug` | off | Verbose sur les échanges MCP (transports, prompts, errors). |
+| Flag                  | Défaut      | Usage                                                       |
+| --------------------- | ----------- | ----------------------------------------------------------- |
+| `--mcp-config <file>` | `.mcp.json` | Charge un fichier de config MCP alternatif.                 |
+| `--mcp-debug`         | off         | Verbose sur les échanges MCP (transports, prompts, errors). |
 
 ## Subagents
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--agent <name>` | — | Lance un subagent dès l'entrée (mode dirigé). |
+| Flag             | Défaut | Usage                                         |
+| ---------------- | ------ | --------------------------------------------- |
+| `--agent <name>` | —      | Lance un subagent dès l'entrée (mode dirigé). |
 
 ## Sortie et debug
 
-| Flag | Défaut | Usage |
-|------|--------|-------|
-| `--output-format <fmt>` | `text` | `text` / `json` / `stream-json`. |
-| `--verbose` | off | Logs étendus côté CLI. |
-| `--debug` | off | Stack traces internes Claude Code. |
+| Flag                    | Défaut | Usage                              |
+| ----------------------- | ------ | ---------------------------------- |
+| `--output-format <fmt>` | `text` | `text` / `json` / `stream-json`.   |
+| `--verbose`             | off    | Logs étendus côté CLI.             |
+| `--debug`               | off    | Stack traces internes Claude Code. |
 
 ## Exemples utiles
 

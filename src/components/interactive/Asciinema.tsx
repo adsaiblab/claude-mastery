@@ -145,7 +145,11 @@ export default function Asciinema({
         </div>
       )}
       {status === 'error' && (
-        <div className="cm-asciinema-placeholder" role="alert" style={{ color: 'var(--cm-danger-fg)' }}>
+        <div
+          className="cm-asciinema-placeholder"
+          role="alert"
+          style={{ color: 'var(--cm-danger-fg)' }}
+        >
           Erreur du player : {errorMessage}
         </div>
       )}

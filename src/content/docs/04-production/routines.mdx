@@ -6,8 +6,8 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
   Tu veux qu'une synthèse des PRs ouvertes tombe chaque matin à 8h dans Slack,
@@ -27,13 +27,13 @@ Une **routine** est un run Claude qui tourne **hors d'une session interactive**,
 
 Les contraintes changent par rapport à un dev local :
 
-| Dimension | Session interactive | Routine |
-|-----------|---------------------|---------|
-| Qui corrige si ça foire | Toi, en temps réel | Toi, le lendemain matin quand tu vois l'alerte |
-| Idempotence | Pas critique | **Essentielle** |
-| Observabilité | Tu vois le terminal | Logs structurés + metrics |
-| Gestion d'erreur | « Je relance » | Retry + dead-letter queue |
-| Coût | Amorti par ton temps | Multiplié par le nombre d'exécutions |
+| Dimension               | Session interactive  | Routine                                        |
+| ----------------------- | -------------------- | ---------------------------------------------- |
+| Qui corrige si ça foire | Toi, en temps réel   | Toi, le lendemain matin quand tu vois l'alerte |
+| Idempotence             | Pas critique         | **Essentielle**                                |
+| Observabilité           | Tu vois le terminal  | Logs structurés + metrics                      |
+| Gestion d'erreur        | « Je relance »       | Retry + dead-letter queue                      |
+| Coût                    | Amorti par ton temps | Multiplié par le nombre d'exécutions           |
 
 ## Les 3 déclencheurs
 
@@ -284,10 +284,30 @@ Le prompt de la routine évolue. S'il vit dans un `.py` non versionné ou une UI
   scenario="Ton webhook Linear est rejoué 3 fois (retries du provider, jitter réseau)."
   question="Pourquoi ta routine doit être idempotente ?"
   options={[
-    { text: "Sinon elle plante au 2ᵉ appel.", correct: false, explanation: "Pas forcément — elle marche, mais elle crée des doublons. Le symptôme est parfois pire qu'un crash franc." },
-    { text: "Sinon tu crées 3 fois les mêmes effets (3 issues, 3 messages Slack, 3 updates) — et les providers rejouent vraiment leurs webhooks.", correct: true, explanation: "Exact. Les webhooks sont 'at-least-once'. Une routine non-idempotente qui crée un Slack post à chaque appel spamme 3× le channel. La clé idempotente (hash, date, job_id) garantit le même résultat peu importe combien de fois on l'appelle." },
-    { text: "Sinon le provider te désactive.", correct: false, explanation: "Le provider ne sait pas si ta routine est idempotente ; ton code doit s'en occuper." },
-    { text: "Sinon Claude répond différemment à chaque call.", correct: false, explanation: "Le problème est l'effet de bord côté Slack/GitHub, pas la réponse du modèle." }
+    {
+      text: "Sinon elle plante au 2ᵉ appel.",
+      correct: false,
+      explanation:
+        "Pas forcément — elle marche, mais elle crée des doublons. Le symptôme est parfois pire qu'un crash franc.",
+    },
+    {
+      text: "Sinon tu crées 3 fois les mêmes effets (3 issues, 3 messages Slack, 3 updates) — et les providers rejouent vraiment leurs webhooks.",
+      correct: true,
+      explanation:
+        "Exact. Les webhooks sont 'at-least-once'. Une routine non-idempotente qui crée un Slack post à chaque appel spamme 3× le channel. La clé idempotente (hash, date, job_id) garantit le même résultat peu importe combien de fois on l'appelle.",
+    },
+    {
+      text: "Sinon le provider te désactive.",
+      correct: false,
+      explanation:
+        "Le provider ne sait pas si ta routine est idempotente ; ton code doit s'en occuper.",
+    },
+    {
+      text: "Sinon Claude répond différemment à chaque call.",
+      correct: false,
+      explanation:
+        "Le problème est l'effet de bord côté Slack/GitHub, pas la réponse du modèle.",
+    },
   ]}
 />
 
@@ -297,10 +317,30 @@ Le prompt de la routine évolue. S'il vit dans un `.py` non versionné ou une UI
   scenario="Tu lances 50 routines en parallèle à 8h00 pile. Toutes appellent l'API Anthropic."
   question="Quelle protection est la plus efficace contre un rate-limit massif ?"
   options={[
-    { text: "Augmenter le quota sans autre changement.", correct: false, explanation: "Ça repousse le problème mais ne le règle pas — plus tu scales, plus tu re-heurtes le nouveau plafond." },
-    { text: "Backoff exponentiel **avec jitter** sur les retries, pour disperser les réveils.", correct: true, explanation: "Exact. Sans jitter, 50 jobs réveillent tous à t+2s, t+4s, t+8s — ils se re-empilent. Avec jitter (random 0-X ajouté), ils se dispersent naturellement et le rate-limit se résorbe." },
-    { text: "Passer en synchrone (un job à la fois).", correct: false, explanation: "Tu serialises 50 jobs — le dernier finit 2h plus tard. Correct en dernier recours, pas idéal." },
-    { text: "Stocker la réponse Claude dans un cache.", correct: false, explanation: "Aide pour des prompts identiques, mais ne protège pas un cas où les prompts diffèrent par nature." }
+    {
+      text: "Augmenter le quota sans autre changement.",
+      correct: false,
+      explanation:
+        "Ça repousse le problème mais ne le règle pas — plus tu scales, plus tu re-heurtes le nouveau plafond.",
+    },
+    {
+      text: "Backoff exponentiel **avec jitter** sur les retries, pour disperser les réveils.",
+      correct: true,
+      explanation:
+        "Exact. Sans jitter, 50 jobs réveillent tous à t+2s, t+4s, t+8s — ils se re-empilent. Avec jitter (random 0-X ajouté), ils se dispersent naturellement et le rate-limit se résorbe.",
+    },
+    {
+      text: "Passer en synchrone (un job à la fois).",
+      correct: false,
+      explanation:
+        "Tu serialises 50 jobs — le dernier finit 2h plus tard. Correct en dernier recours, pas idéal.",
+    },
+    {
+      text: "Stocker la réponse Claude dans un cache.",
+      correct: false,
+      explanation:
+        "Aide pour des prompts identiques, mais ne protège pas un cas où les prompts diffèrent par nature.",
+    },
   ]}
 />
 

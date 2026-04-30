@@ -6,15 +6,15 @@ sidebar:
 draft: false
 ---
 
-import Situation from '../../../components/Situation.astro';
-import Quiz from '../../../components/interactive/Quiz.tsx';
+import Situation from "../../../components/Situation.astro";
+import Quiz from "../../../components/interactive/Quiz.tsx";
 
 <Situation>
-  Ton équipe a trois règles : les fichiers Python doivent être formatés avec `black`,
-  les push directs sur `main` sont interdits, et chaque début de session doit
-  afficher la version du modèle utilisé. Tu peux espérer que chaque dev s'en souvienne
-  — ou tu peux coder ces règles une fois pour toutes dans des **hooks**, et que
-  Claude les applique tout seul. C'est tout ce module.
+  Ton équipe a trois règles : les fichiers Python doivent être formatés avec
+  `black`, les push directs sur `main` sont interdits, et chaque début de
+  session doit afficher la version du modèle utilisé. Tu peux espérer que chaque
+  dev s'en souvienne — ou tu peux coder ces règles une fois pour toutes dans des
+  **hooks**, et que Claude les applique tout seul. C'est tout ce module.
 </Situation>
 
 ## Concept — qu'est-ce qu'un hook
@@ -31,25 +31,25 @@ Cas d'usage classiques :
 
 ## Les 4 types de hook
 
-| Type | Définition | Quand l'utiliser |
-|------|------------|------------------|
-| `command` | Exécute un shell command. | 95% des cas — validation, formatting, git guards. |
-| `http` | POST sur une URL. | Notifications externes (Slack webhook, monitoring). |
-| `prompt` | Injecte un message dans la conversation. | Contexte à ajouter (ex: "Au fait, c'est vendredi, pas de refacto"). |
-| `agent` | Lance un subagent. | Quality gate (Doer/Judge), review automatique. |
+| Type      | Définition                               | Quand l'utiliser                                                    |
+| --------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| `command` | Exécute un shell command.                | 95% des cas — validation, formatting, git guards.                   |
+| `http`    | POST sur une URL.                        | Notifications externes (Slack webhook, monitoring).                 |
+| `prompt`  | Injecte un message dans la conversation. | Contexte à ajouter (ex: "Au fait, c'est vendredi, pas de refacto"). |
+| `agent`   | Lance un subagent.                       | Quality gate (Doer/Judge), review automatique.                      |
 
 ## Les événements
 
-| Événement | Déclenché quand |
-|-----------|-----------------|
-| `SessionStart` | Au tout début de la session. |
-| `SessionEnd` | À la fermeture (Ctrl+D ou /exit). |
+| Événement          | Déclenché quand                                             |
+| ------------------ | ----------------------------------------------------------- |
+| `SessionStart`     | Au tout début de la session.                                |
+| `SessionEnd`       | À la fermeture (Ctrl+D ou /exit).                           |
 | `UserPromptSubmit` | Après chaque prompt utilisateur (avant que l'agent traite). |
-| `PreToolUse` | Avant qu'un outil soit appelé. |
-| `PostToolUse` | Après qu'un outil a été appelé. |
-| `Stop` | Quand l'agent a fini son travail (avant de rendre la main). |
-| `SubagentStop` | Quand un subagent termine. |
-| `PreCompact` | Avant un `/compact`. |
+| `PreToolUse`       | Avant qu'un outil soit appelé.                              |
+| `PostToolUse`      | Après qu'un outil a été appelé.                             |
+| `Stop`             | Quand l'agent a fini son travail (avant de rendre la main). |
+| `SubagentStop`     | Quand un subagent termine.                                  |
+| `PreCompact`       | Avant un `/compact`.                                        |
 
 ## Les matchers
 
@@ -61,11 +61,15 @@ Un matcher filtre **quand** le hook s'active. C'est une regex sur `tool_name` (p
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": ".claude/hooks/validate-bash.sh" }]
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/validate-bash.sh" }
+        ]
       },
       {
         "matcher": "Edit|Write",
-        "hooks": [{ "type": "command", "command": ".claude/hooks/format-file.sh" }]
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/format-file.sh" }
+        ]
       }
     ]
   }
@@ -78,11 +82,11 @@ Un matcher filtre **quand** le hook s'active. C'est une regex sur `tool_name` (p
 
 Pour les hooks de type `command`, **le code de sortie détermine l'effet** :
 
-| Exit code | Effet |
-|-----------|-------|
-| `0` | OK, on continue normalement. |
-| `2` | **Bloque** l'action. `stderr` est renvoyé à l'agent comme feedback. |
-| Autre (1, 3, …) | Warning silencieux — l'action continue mais le code est loggé. |
+| Exit code       | Effet                                                               |
+| --------------- | ------------------------------------------------------------------- |
+| `0`             | OK, on continue normalement.                                        |
+| `2`             | **Bloque** l'action. `stderr` est renvoyé à l'agent comme feedback. |
+| Autre (1, 3, …) | Warning silencieux — l'action continue mais le code est loggé.      |
 
 **C'est le code 2 qui est spécial** : c'est le seul qui **stoppe l'agent et lui dit pourquoi**. Mal utilisé, tu as un hook qui plante sans conséquence visible (exit 1 = bug silencieux).
 
@@ -185,11 +189,11 @@ Le subagent `judge` (défini dans `.claude/agents/judge.md`) relit ce qui a ét�
 
 ## Scope — où définir les hooks
 
-| Fichier | Scope | Quand l'utiliser |
-|---------|-------|------------------|
-| `~/.claude/settings.json` | User global | Tes hooks perso (ex: toujours formatter avant save). |
-| `<repo>/.claude/settings.json` | Projet | Hooks d'équipe, versionnés dans git. |
-| Plugin | Distribuable | Hooks à partager entre plusieurs équipes/repos. |
+| Fichier                        | Scope        | Quand l'utiliser                                     |
+| ------------------------------ | ------------ | ---------------------------------------------------- |
+| `~/.claude/settings.json`      | User global  | Tes hooks perso (ex: toujours formatter avant save). |
+| `<repo>/.claude/settings.json` | Projet       | Hooks d'équipe, versionnés dans git.                 |
+| Plugin                         | Distribuable | Hooks à partager entre plusieurs équipes/repos.      |
 
 Pour un lab ou un projet pro, **toujours** versionne dans `<repo>/.claude/settings.json` — sinon seul le dev qui a configuré profite du hook.
 
@@ -215,10 +219,29 @@ Sans le `chmod +x`, le hook est **ignoré silencieusement**. C'est le bug #1.
   scenario="Ton hook PreToolUse détecte une commande interdite. Il exit avec code 1."
   question="Que se passe-t-il côté Claude ?"
   options={[
-    { text: "L'action est bloquée et Claude reçoit stderr.", correct: false, explanation: "Seul exit 2 bloque + renvoie stderr à l'agent. Exit 1 = warning silencieux." },
-    { text: "L'action continue, un warning est loggé.", correct: true, explanation: "C'est le piège #1 des hooks. Tu croyais bloquer, tu as juste logué. Il faut impérativement `exit 2` pour stopper + informer l'agent." },
-    { text: "Claude affiche une erreur à l'utilisateur.", correct: false, explanation: "Non, exit 1 ne remonte pas à l'utilisateur de façon visible ; c'est un warning dans les logs techniques." },
-    { text: "Le hook est retiré de la config.", correct: false, explanation: "Jamais. Un exit non-zéro ne désactive pas le hook." }
+    {
+      text: "L'action est bloquée et Claude reçoit stderr.",
+      correct: false,
+      explanation:
+        "Seul exit 2 bloque + renvoie stderr à l'agent. Exit 1 = warning silencieux.",
+    },
+    {
+      text: "L'action continue, un warning est loggé.",
+      correct: true,
+      explanation:
+        "C'est le piège #1 des hooks. Tu croyais bloquer, tu as juste logué. Il faut impérativement `exit 2` pour stopper + informer l'agent.",
+    },
+    {
+      text: "Claude affiche une erreur à l'utilisateur.",
+      correct: false,
+      explanation:
+        "Non, exit 1 ne remonte pas à l'utilisateur de façon visible ; c'est un warning dans les logs techniques.",
+    },
+    {
+      text: "Le hook est retiré de la config.",
+      correct: false,
+      explanation: "Jamais. Un exit non-zéro ne désactive pas le hook.",
+    },
   ]}
 />
 
@@ -228,10 +251,30 @@ Sans le `chmod +x`, le hook est **ignoré silencieusement**. C'est le bug #1.
   scenario="Tu veux auto-formatter uniquement les fichiers Python modifiés. Tu hésites entre trois approches."
   question="Laquelle est correcte ?"
   options={[
-    { text: "Matcher: 'Edit|Write', script qui vérifie l'extension .py.", correct: true, explanation: "C'est le pattern canonique : matcher large sur l'événement, filtrage fin dans le script. Le script reste lisible et maintenable." },
-    { text: "Matcher: 'Edit.*\\.py', pas de filtrage dans le script.", correct: false, explanation: "Le matcher est une regex sur tool_name, pas sur file_path. Il ne peut pas matcher l'extension." },
-    { text: "Pas de matcher, filtrage 100% dans le script.", correct: false, explanation: "Ça marche mais c'est inefficace : le hook serait appelé sur TOUS les tool calls, même Bash. Le matcher existe pour préfiltrer." },
-    { text: "Un hook par extension, matchers différents.", correct: false, explanation: "Dupliquer la logique pour chaque extension est un cauchemar de maintenance. Un seul hook avec dispatch par extension est plus propre." }
+    {
+      text: "Matcher: 'Edit|Write', script qui vérifie l'extension .py.",
+      correct: true,
+      explanation:
+        "C'est le pattern canonique : matcher large sur l'événement, filtrage fin dans le script. Le script reste lisible et maintenable.",
+    },
+    {
+      text: "Matcher: 'Edit.*\\.py', pas de filtrage dans le script.",
+      correct: false,
+      explanation:
+        "Le matcher est une regex sur tool_name, pas sur file_path. Il ne peut pas matcher l'extension.",
+    },
+    {
+      text: "Pas de matcher, filtrage 100% dans le script.",
+      correct: false,
+      explanation:
+        "Ça marche mais c'est inefficace : le hook serait appelé sur TOUS les tool calls, même Bash. Le matcher existe pour préfiltrer.",
+    },
+    {
+      text: "Un hook par extension, matchers différents.",
+      correct: false,
+      explanation:
+        "Dupliquer la logique pour chaque extension est un cauchemar de maintenance. Un seul hook avec dispatch par extension est plus propre.",
+    },
   ]}
 />
 
